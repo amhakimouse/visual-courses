@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse et Complexité d'Algorithmes - Les Tris</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // --- Components ---
+
+        const Navbar = ({ activeTab, setActiveTab }) => {
+            const tabs = [
+                { id: 'intro', label: 'Introduction', icon: 'fa-info-circle' },
+                { id: 'bulle', label: 'Tri à Bulle', icon: 'fa-bubbles' },
+                { id: 'selection', label: 'Tri Sélection', icon: 'fa-mouse-pointer' },
+                { id: 'insertion', label: 'Tri Insertion', icon: 'fa-layer-group' },
+                { id: 'rapide', label: 'Tri Rapide', icon: 'fa-bolt' },
+                { id: 'fusion', label: 'Tri Fusion', icon: 'fa-code-branch' }
+            ];
+
+            return (
+                <nav className="fixed top-0 left-0 right-0 glass z-50 border-b border-slate-200">
+                    <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+                        <h1 className="text-xl font-bold text-indigo-600">AlgoComplex v2026</h1>
+                        <div className="flex space-x-4 overflow-x-auto">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-3 py-2 rounded-full transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <i className={`fas ${tab.icon}`}></i>
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+
+        const Visualizer = ({ data, activeIndices, sortedIndices }) => {
+            // Find max value to normalize heights dynamically
+            const maxVal = Math.max(...data, 10);
+
+            return (
+                <div className="flex items-end justify-center gap-1 sm:gap-2 h-64 mb-8 bg-white rounded-xl p-4 sm:p-6 shadow-inner border border-slate-100 overflow-hidden">
+                    {data.map((val, idx) => {
+                        let bgColor = "bg-indigo-400";
+                        if (activeIndices.includes(idx)) bgColor = "bg-yellow-400 scale-110 z-10 shadow-lg";
+                        if (sortedIndices.includes(idx)) bgColor = "bg-emerald-500";
+                        
+                        // Calculate relative height (max 200px)
+                        const height = Math.max((val / maxVal) * 200, 20);
+
+                        return (
+                            <motion.div
+                                key={`${idx}-${val}`}
+                                layout
+                                className={`w-6 sm:w-10 rounded-t-md flex items-center justify-center text-white font-bold text-xs sm:text-sm transition-colors duration-200 ${bgColor}`}
+                                style={{ height: `${height}px` }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            >
+                                {val}
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        const ComplexityBadge = ({ label, value, color }) => (
+            <div className={`p-4 rounded-lg border-l-4 ${color} bg-white shadow-sm flex flex-col justify-center`}>
+                <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">{label}</span>
+                <div className="text-xl sm:text-2xl font-mono mt-1 font-semibold text-slate-800">{value}</div>
+            </div>
+        );
+
+        // --- Sections ---
+
+        const IntroSection = () => (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 mt-4">
+                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-8 rounded-3xl border border-indigo-100 shadow-sm">
+                    <h2 className="text-4xl font-extrabold text-indigo-900 mb-4">Problème de Tri</h2>
+                    <p className="text-indigo-800/80 leading-relaxed text-lg max-w-3xl">
+                        Un algorithme de tri prend en entrée un tableau et réorganise ses éléments selon un ordre total (généralement croissant). C'est l'un des problèmes algorithmiques les plus fondamentaux, souvent utilisé comme sous-problème dans des systèmes complexes.
+                    </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl mb-4">
+                            <i className="fas fa-rocket"></i>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-3">Applications Innombrables</h3>
+                        <ul className="text-slate-600 space-y-3">
+                            <li className="flex items-start"><i className="fas fa-check text-emerald-500 mt-1 mr-3"></i> Tri des mails selon leur ancienneté.</li>
+                            <li className="flex items-start"><i className="fas fa-check text-emerald-500 mt-1 mr-3"></i> Tri des résultats de requête dans un moteur de recherche.</li>
+                            <li className="flex items-start"><i className="fas fa-check text-emerald-500 mt-1 mr-3"></i> Brique de base pour la recherche binaire.</li>
+                            <li className="flex items-start"><i className="fas fa-check text-emerald-500 mt-1 mr-3"></i> Recherche des éléments dupliqués.</li>
+                        </ul>
+                    </div>
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl mb-4">
+                            <i className="fas fa-tags"></i>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-3">Différents types de tri</h3>
+                        <ul className="text-slate-600 space-y-3">
+                            <li className="flex items-start"><i className="fas fa-microchip text-indigo-400 mt-1 mr-3"></i> <strong>Tri interne :</strong> en mémoire centrale (RAM).</li>
+                            <li className="flex items-start"><i className="fas fa-hdd text-indigo-400 mt-1 mr-3"></i> <strong>Tri externe :</strong> données sur disque externe.</li>
+                            <li className="flex items-start"><i className="fas fa-compress-arrows-alt text-indigo-400 mt-1 mr-3"></i> <strong>En place :</strong> modifie la structure sans mémoire supplémentaire (ou O(1)).</li>
+                            <li className="flex items-start"><i className="fas fa-balance-scale text-indigo-400 mt-1 mr-3"></i> <strong>Stable :</strong> conserve l'ordre relatif des éléments égaux.</li>
+                        </ul>
+                    </div>
+                </div>
+            </motion.div>
+        );
+
+        const SortSection = ({ title, principle, complexity, code, algorithm, examples }) => {
+            const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+            const [array, setArray] = useState([...examples[0].data]);
+            const [activeIndices, setActiveIndices] = useState([]);
+            const [sortedIndices, setSortedIndices] = useState([]);
+            const [isSorting, setIsSorting] = useState(false);
+            const [isPaused, setIsPaused] = useState(false);
+            const [speed, setSpeed] = useState(400);
+
+            const isPausedRef = useRef(false);
+            const speedRef = useRef(400);
+            const nextStepResolver = useRef(null);
+
+            useEffect(() => {
+                isPausedRef.current = isPaused;
+            }, [isPaused]);
+
+            useEffect(() => {
+                speedRef.current = speed;
+            }, [speed]);
+
+            useEffect(() => {
+                reset();
+            }, [currentExampleIndex]);
+
+            const reset = () => {
+                setArray([...examples[currentExampleIndex].data]);
+                setActiveIndices([]);
+                setSortedIndices([]);
+                setIsSorting(false);
+                setIsPaused(false);
+                nextStepResolver.current = null;
+            };
+
+            const pauseAwareWait = async (multiplier = 1) => {
+                await new Promise(r => setTimeout(r, speedRef.current * multiplier));
+                while (isPausedRef.current) {
+                    if (nextStepResolver.current) {
+                        nextStepResolver.current();
+                        nextStepResolver.current = null;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            };
+
+            const handleNextStep = () => {
+                if (nextStepResolver.current) {
+                    nextStepResolver.current();
+                    nextStepResolver.current = null;
+                } else {
+                    // If no one is waiting yet, we can set a flag or just wait for the next wait call
+                    nextStepResolver.current = () => {}; 
+                }
+            };
+
+            const runSort = async () => {
+                setIsSorting(true);
+                setIsPaused(false);
+                await algorithm(array, setArray, setActiveIndices, setSortedIndices, pauseAwareWait);
+                setIsSorting(false);
+                setIsPaused(false);
+            };
+
+            return (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 mt-4">
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        <div className="flex-1 space-y-6">
+                            <div>
+                                <h2 className="text-3xl font-bold text-slate-800 mb-3">{title}</h2>
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                    <p className="text-blue-900 leading-relaxed"><i className="fas fa-lightbulb mr-2 opacity-70"></i>{principle}</p>
+                                </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <select 
+                                        value={currentExampleIndex} 
+                                        onChange={(e) => setCurrentExampleIndex(Number(e.target.value))}
+                                        disabled={isSorting}
+                                        className="bg-slate-50 border border-slate-300 text-slate-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                    >
+                                        {examples.map((ex, idx) => (
+                                            <option key={idx} value={idx}>{ex.label}</option>
+                                        ))}
+                                    </select>
+                                    
+                                    {!isSorting ? (
+                                        <button 
+                                            onClick={runSort} 
+                                            disabled={sortedIndices.length === array.length}
+                                            className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm flex items-center font-medium"
+                                        >
+                                            <i className="fas fa-play mr-2"></i> Lancer
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => setIsPaused(!isPaused)} 
+                                                className={`${isPaused ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'} text-white px-5 py-2 rounded-lg transition-colors shadow-sm flex items-center font-medium min-w-[130px] justify-center`}
+                                            >
+                                                <i className={`fas ${isPaused ? 'fa-play' : 'fa-pause'} mr-2`}></i>
+                                                {isPaused ? 'Reprendre' : 'Pause'}
+                                            </button>
+                                            
+                                            {isPaused && (
+                                                <button 
+                                                    onClick={handleNextStep}
+                                                    className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center font-medium"
+                                                >
+                                                    <i className="fas fa-step-forward mr-2"></i> Suivant
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    <button 
+                                        onClick={reset}
+                                        className="bg-slate-100 text-slate-700 px-5 py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center font-medium"
+                                    >
+                                        <i className="fas fa-undo mr-2"></i> Reset
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+                                    <i className="fas fa-tachometer-alt text-slate-400"></i>
+                                    <input 
+                                        type="range" 
+                                        min="10" 
+                                        max="1000" 
+                                        step="10" 
+                                        value={1010 - speed} 
+                                        onChange={(e) => setSpeed(1010 - e.target.value)}
+                                        className="w-24 sm:w-32 accent-indigo-600"
+                                    />
+                                </div>
+                            </div>
+
+                            <Visualizer data={array} activeIndices={activeIndices} sortedIndices={sortedIndices} />
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <ComplexityBadge label="Meilleur Cas" value={complexity.best} color="border-emerald-500" />
+                                <ComplexityBadge label="Pire Cas" value={complexity.worst} color="border-rose-500" />
+                                <ComplexityBadge label="Cas Moyen" value={complexity.average} color="border-amber-500" />
+                                <ComplexityBadge label="En Place" value={complexity.inPlace ? "Oui" : "Non"} color="border-indigo-500" />
+                            </div>
+                        </div>
+
+                        <div className="w-full lg:w-1/3 flex flex-col">
+                            <div className="bg-slate-800 rounded-t-xl px-4 py-3 flex justify-between items-center border-b border-slate-700">
+                                <span className="text-slate-200 font-mono text-sm"><i className="fab fa-cuttlefish text-blue-400 mr-2 text-lg"></i>Implémentation C</span>
+                            </div>
+                            <pre className="rounded-t-none rounded-b-xl m-0 flex-1 shadow-md"><code>{code}</code></pre>
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Algorithms Implementation (Async & Visual) ---
+
+        const bubbleSortAlgo = async (arr, setArr, setActive, setSorted, wait) => {
+            let tempArr = [...arr];
+            let n = tempArr.length;
+            let sorted = [];
+            for (let i = 0; i < n; i++) {
+                let swapped = false;
+                for (let j = 0; j < n - i - 1; j++) {
+                    setActive([j, j + 1]);
+                    await wait();
+                    if (tempArr[j] > tempArr[j + 1]) {
+                        [tempArr[j], tempArr[j + 1]] = [tempArr[j + 1], tempArr[j]];
+                        setArr([...tempArr]);
+                        swapped = true;
+                    }
+                }
+                sorted.unshift(n - i - 1);
+                setSorted([...sorted]);
+                if (!swapped) {
+                    for(let k=0; k < n-i-1; k++) sorted.push(k);
+                    setSorted([...sorted]);
+                    break;
+                }
+            }
+            setActive([]);
+        };
+
+        const selectionSortAlgo = async (arr, setArr, setActive, setSorted, wait) => {
+            let tempArr = [...arr];
+            let n = tempArr.length;
+            let sorted = [];
+            for (let i = 0; i < n; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < n; j++) {
+                    setActive([i, j, minIdx]);
+                    await wait();
+                    if (tempArr[j] < tempArr[minIdx]) {
+                        minIdx = j;
+                    }
+                }
+                if (minIdx !== i) {
+                    [tempArr[i], tempArr[minIdx]] = [tempArr[minIdx], tempArr[i]];
+                    setArr([...tempArr]);
+                }
+                sorted.push(i);
+                setSorted([...sorted]);
+            }
+            setActive([]);
+        };
+
+        const insertionSortAlgo = async (arr, setArr, setActive, setSorted, wait) => {
+            let tempArr = [...arr];
+            let n = tempArr.length;
+            setSorted([0]);
+            
+            // Allow user to see the initial state before sorting starts
+            await wait();
+
+            for (let i = 1; i < n; i++) {
+                let key = tempArr[i];
+                let j = i - 1;
+                setActive([i]); // Highlight the key being picked
+                await wait(1.5);
+                
+                while (j >= 0 && tempArr[j] > key) {
+                    setActive([j, j + 1]); // Highlight comparison
+                    tempArr[j + 1] = tempArr[j]; // Shift element to the right
+                    setArr([...tempArr]);
+                    await wait();
+                    j = j - 1;
+                }
+                tempArr[j + 1] = key; // Insert the key at its correct position
+                setArr([...tempArr]);
+                
+                // Update sorted indices up to current i
+                let currentSorted = [];
+                for(let k=0; k<=i; k++) currentSorted.push(k);
+                setSorted(currentSorted);
+            }
+            setActive([]);
+        };
+
+        const quickSortAlgo = async (arr, setArr, setActive, setSorted, wait) => {
+            let tempArr = [...arr];
+            
+            const partition = async (low, high) => {
+                let pivot = tempArr[high];
+                let i = low - 1;
+                for (let j = low; j < high; j++) {
+                    setActive([j, high, i + 1]);
+                    await wait();
+                    if (tempArr[j] < pivot) {
+                        i++;
+                        [tempArr[i], tempArr[j]] = [tempArr[j], tempArr[i]];
+                        setArr([...tempArr]);
+                    }
+                }
+                [tempArr[i + 1], tempArr[high]] = [tempArr[high], tempArr[i + 1]];
+                setArr([...tempArr]);
+                return i + 1;
+            };
+
+            const sort = async (low, high) => {
+                if (low < high) {
+                    let pi = await partition(low, high);
+                    setSorted(prev => [...new Set([...prev, pi])]);
+                    await sort(low, pi - 1);
+                    await sort(pi + 1, high);
+                } else if (low === high) {
+                    setSorted(prev => [...new Set([...prev, low])]);
+                }
+            };
+
+            await sort(0, tempArr.length - 1);
+            setActive([]);
+            setSorted(tempArr.map((_, i) => i));
+        };
+
+        const mergeSortAlgo = async (arr, setArr, setActive, setSorted, wait) => {
+            let tempArr = [...arr];
+
+            const merge = async (low, mid, high) => {
+                let left = tempArr.slice(low, mid + 1);
+                let right = tempArr.slice(mid + 1, high + 1);
+                let i = 0, j = 0, k = low;
+
+                while (i < left.length && j < right.length) {
+                    setActive([low + i, mid + 1 + j]);
+                    await wait();
+                    if (left[i] <= right[j]) {
+                        tempArr[k] = left[i];
+                        i++;
+                    } else {
+                        tempArr[k] = right[j];
+                        j++;
+                    }
+                    setArr([...tempArr]);
+                    k++;
+                }
+
+                while (i < left.length) {
+                    setActive([low + i]);
+                    await wait();
+                    tempArr[k] = left[i];
+                    setArr([...tempArr]);
+                    i++;
+                    k++;
+                }
+
+                while (j < right.length) {
+                    setActive([mid + 1 + j]);
+                    await wait();
+                    tempArr[k] = right[j];
+                    setArr([...tempArr]);
+                    j++;
+                    k++;
+                }
+            };
+
+            const sort = async (low, high) => {
+                if (low < high) {
+                    let mid = Math.floor((low + high) / 2);
+                    await sort(low, mid);
+                    await sort(mid + 1, high);
+                    await merge(low, mid, high);
+                    
+                    // Mark this range as "partially sorted" or just highlight
+                    if (low === 0 && high === tempArr.length - 1) {
+                        setSorted(tempArr.map((_, i) => i));
+                    }
+                }
+            };
+
+            await sort(0, tempArr.length - 1);
+            setActive([]);
+        };
+
+        // --- Examples Data ---
+
+        const bubbleExamples = [
+            { label: "Exemple PDF: [5, 1, 3, 2, 4]", data: [5, 1, 3, 2, 4] },
+            { label: "Aléatoire: [8, 3, 5, 1, 9, 2, 7, 4]", data: [8, 3, 5, 1, 9, 2, 7, 4] },
+            { label: "Pire cas (inversé): [9, 8, 7, 6, 5, 4, 3]", data: [9, 8, 7, 6, 5, 4, 3] },
+            { label: "Meilleur cas (trié): [1, 2, 3, 4, 5]", data: [1, 2, 3, 4, 5] },
+        ];
+
+        const selectionExamples = [
+            { label: "Exemple PDF: [7, 8, 15, 5, 10]", data: [7, 8, 15, 5, 10] },
+            { label: "Aléatoire long: [12, 4, 9, 1, 8, 15, 3]", data: [12, 4, 9, 1, 8, 15, 3] },
+            { label: "Pire cas (échanges max): [9, 8, 7, 6, 5]", data: [9, 8, 7, 6, 5] },
+            { label: "Déjà trié: [2, 4, 6, 8, 10]", data: [2, 4, 6, 8, 10] },
+        ];
+
+        const insertionExamples = [
+            { label: "Exemple demandé: [8, 3, 6, 1, 9, 4, 7, 2]", data: [8, 3, 6, 1, 9, 4, 7, 2] },
+            { label: "Exemple PDF: [5, 1, 3, 2, 4]", data: [5, 1, 3, 2, 4] },
+            { label: "Pire cas (inversé): [9, 8, 7, 6, 5, 4]", data: [9, 8, 7, 6, 5, 4] },
+            { label: "Meilleur cas (trié): [1, 2, 3, 4, 5]", data: [1, 2, 3, 4, 5] },
+            { label: "Presque trié: [1, 3, 2, 4, 5, 7, 6]", data: [1, 3, 2, 4, 5, 7, 6] }
+        ];
+
+        const quickExamples = [
+            { label: "Exemple: [10, 7, 8, 9, 1, 5]", data: [10, 7, 8, 9, 1, 5] },
+            { label: "Aléatoire: [3, 5, 8, 1, 2, 9, 4, 7, 6]", data: [3, 5, 8, 1, 2, 9, 4, 7, 6] },
+            { label: "Pire cas (trié): [1, 2, 3, 4, 5, 6]", data: [1, 2, 3, 4, 5, 6] },
+        ];
+
+        const mergeExamples = [
+            { label: "Exemple: [38, 27, 43, 3, 9, 82, 10]", data: [38, 27, 43, 3, 9, 82, 10] },
+            { label: "Aléatoire: [12, 11, 13, 5, 6, 7]", data: [12, 11, 13, 5, 6, 7] },
+            { label: "Inversé: [5, 4, 3, 2, 1]", data: [5, 4, 3, 2, 1] },
+        ];
+
+        // --- Main App ---
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('intro');
+
+            return (
+                <div className="min-h-screen pt-20 pb-12 px-4 max-w-7xl mx-auto">
+                    <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+                    
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'intro' && <IntroSection key="intro" />}
+                        
+                        {activeTab === 'bulle' && (
+                            <SortSection 
+                                key="bulle"
+                                title="Le Tri à Bulle (Bubble Sort)"
+                                principle="On parcourt le tableau et on compare des paires d'éléments adjacents. S'ils sont mal ordonnés, on les permute. Les éléments les plus grands « remontent » ainsi peu à peu vers la fin du tableau."
+                                complexity={{ best: "O(n)", average: "O(n²)", worst: "O(n²)", inPlace: true }}
+                                code={`void tri_bulle(int* tableau, int n) {\n  int passage = 0;\n  bool permut = true;\n  int en_cours, temp;\n\n  while(permut) {\n    permut = false;\n    passage++;\n    for(en_cours=0; en_cours < n-passage; en_cours++) {\n      if(tableau[en_cours] > tableau[en_cours+1]) {\n        permut = true;\n        // Échange\n        temp = tableau[en_cours];\n        tableau[en_cours] = tableau[en_cours+1];\n        tableau[en_cours+1] = temp;\n      }\n    }\n  }\n}`}
+                                algorithm={bubbleSortAlgo}
+                                examples={bubbleExamples}
+                            />
+                        )}
+
+                        {activeTab === 'selection' && (
+                            <SortSection 
+                                key="selection"
+                                title="Le Tri par Sélection"
+                                principle="À chaque itération, on cherche le plus petit élément dans la partie non triée du tableau, et on l'échange avec le premier élément de cette partie non triée."
+                                complexity={{ best: "O(n²)", average: "O(n²)", worst: "O(n²)", inPlace: true }}
+                                code={`void tri_selection(int* tableau, int taille) {\n  int en_cours, plus_petit, j, temp;\n\n  for(en_cours=0; en_cours < taille-1; en_cours++) {\n    plus_petit = en_cours;\n    \n    // Chercher le minimum dans le reste\n    for(j = en_cours+1; j < taille; j++) {\n      if(tableau[j] < tableau[plus_petit]) {\n        plus_petit = j;\n      }\n    }\n    \n    // Échange avec le premier non trié\n    temp = tableau[en_cours];\n    tableau[en_cours] = tableau[plus_petit];\n    tableau[plus_petit] = temp;\n  }\n}`}
+                                algorithm={selectionSortAlgo}
+                                examples={selectionExamples}
+                            />
+                        )}
+
+                        {activeTab === 'insertion' && (
+                            <SortSection 
+                                key="insertion"
+                                title="Le Tri par Insertion"
+                                principle="Similaire au tri d'un jeu de cartes dans vos mains : on insère itérativement le prochain élément (la clé) à sa position correcte dans la partie du tableau qui est déjà triée."
+                                complexity={{ best: "O(n)", average: "O(n²)", worst: "O(n²)", inPlace: true }}
+                                code={`void tri_insertion(int* t, int taille) {\n  int i, j, en_cours;\n\n  for(i=1; i < taille; i++) {\n    en_cours = t[i]; // Élément à insérer\n    \n    // Décaler les éléments plus grands vers la droite\n    for(j=i; j>0 && t[j-1] > en_cours; j--) {\n      t[j] = t[j-1];\n    }\n    \n    // Insérer l'élément à sa place\n    t[j] = en_cours;\n  }\n}`}
+                                algorithm={insertionSortAlgo}
+                                examples={insertionExamples}
+                            />
+                        )}
+
+                        {activeTab === 'rapide' && (
+                            <SortSection 
+                                key="rapide"
+                                title="Le Tri Rapide (Quick Sort)"
+                                principle="Basé sur la stratégie « diviser pour régner ». On choisit un pivot, on partitionne le tableau (éléments plus petits à gauche, plus grands à droite), puis on trie récursivement les deux parties."
+                                complexity={{ best: "O(n log n)", average: "O(n log n)", worst: "O(n²)", inPlace: true }}
+                                code={`void tri_rapide(int* t, int g, int d) {\n  if(g < d) {\n    int pi = partition(t, g, d);\n    tri_rapide(t, g, pi - 1);\n    tri_rapide(t, pi + 1, d);\n  }\n}\n\nint partition(int* t, int g, int d) {\n  int pivot = t[d];\n  int i = g - 1;\n  for(int j=g; j < d; j++) {\n    if(t[j] < pivot) {\n      i++;\n      echanger(&t[i], &t[j]);\n    }\n  }\n  echanger(&t[i+1], &t[d]);\n  return i + 1;\n}`}
+                                algorithm={quickSortAlgo}
+                                examples={quickExamples}
+                            />
+                        )}
+
+                        {activeTab === 'fusion' && (
+                            <SortSection 
+                                key="fusion"
+                                title="Le Tri Fusion (Merge Sort)"
+                                principle="Algorithme récursif utilisant « diviser pour régner ». On divise le tableau en deux moitiés, on les trie récursivement, puis on fusionne les deux moitiés triées pour obtenir le tableau final."
+                                complexity={{ best: "O(n log n)", average: "O(n log n)", worst: "O(n log n)", inPlace: false }}
+                                code={`void fusion(int* t, int g, int m, int d) {\n  // Copier dans des tableaux temporaires L et R\n  // Fusionner L et R dans t[g..d]\n}\n\nvoid tri_fusion(int* t, int g, int d) {\n  if(g < d) {\n    int m = g + (d - g) / 2;\n    tri_fusion(t, g, m);\n    tri_fusion(t, m + 1, d);\n    fusion(t, g, m, d);\n  }\n}`}
+                                algorithm={mergeSortAlgo}
+                                examples={mergeExamples}
+                            />
+                        )}
+                    </AnimatePresence>
+
+                    <footer className="mt-16 pt-8 border-t border-slate-200 text-center text-slate-500 text-sm">
+                        <p><i className="fas fa-graduation-cap mr-2"></i>Algorithmique et Complexité - Chapitre 3 (Partie 1)</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
