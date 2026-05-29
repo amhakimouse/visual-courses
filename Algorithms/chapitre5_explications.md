@@ -1,21 +1,30 @@
 # Chapitre 5 : Structures de données hiérarchiques - Les Arbres
 
-Bienvenue dans ce guide détaillé sur les arbres, une structure de données fondamentale en informatique. Contrairement aux listes ou aux tableaux qui sont des structures linéaires, les arbres permettent d'organiser les données de manière hiérarchique.
+Bienvenue dans ce guide détaillé sur les arbres, une structure de données fondamentale en informatique. Contrairement aux listes ou aux tableaux qui sont des structures linéaires, les arbres permettent d'organiser les données de manière hiérarchique, avec un ordre vertical (parents/enfants) ou horizontal (frères).
+
+On les retrouve partout en informatique : systèmes de fichiers (UNIX, Windows), arborescences de tournois, organigrammes d'entreprises, ou encore arbres de syntaxe en compilation.
+
+---
 
 ## 1. Concepts de base et Vocabulaire
 
-Un arbre est un ensemble d'éléments appelés **nœuds**, reliés entre eux par des **arêtes**. L'arbre commence par un nœud principal unique, appelé la **racine**. À partir de cette racine, les données se ramifient.
+Un arbre est un ensemble d'éléments appelés **nœuds**, reliés entre eux par des **arêtes**. L'arbre commence par un nœud principal unique, appelé la **racine**. Il n'y a **aucun cycle** : entre deux nœuds, il n'existe qu'un seul chemin.
 
-### Vocabulaire essentiel :
-* **Racine** : Le seul nœud de l'arbre qui n'a pas de parent (le point de départ).
+### 1.1 Vocabulaire essentiel :
+* **Racine** : L'ancêtre de tous les nœuds, le seul nœud qui n'a pas de parent.
 * **Nœud interne** : Un nœud qui a au moins un enfant.
-* **Feuille (ou Nœud externe)** : Un nœud qui n'a aucun enfant (les extrémités de l'arbre).
-* **Parent / Enfant (Fils)** : Un nœud $A$ relié à un nœud inférieur $B$ est le parent de $B$. Inversement, $B$ est l'enfant de $A$.
-* **Frères** : Des nœuds qui partagent le même parent.
-* **Profondeur d'un nœud** : Sa distance par rapport à la racine (la racine est à la profondeur 0).
-* **Hauteur de l'arbre** : La profondeur maximale atteinte par une feuille dans l'arbre.
+* **Feuille (ou Nœud externe)** : Un nœud qui n'a aucun enfant.
+* **Parent / Enfant (Fils)** : Un nœud $A$ au-dessus d'un nœud $B$ est le parent. $B$ est l'enfant.
+* **Ancêtre / Descendant** : Extension de la relation Parent/Enfant par transitivité.
+* **Frères** : Nœuds partageant le même parent.
+* **Profondeur d'un nœud** : Sa distance par rapport à la racine (la racine est de profondeur 0).
+* **Hauteur d'un arbre** : La profondeur maximale atteinte par une feuille.
 
-### Illustration d'un Arbre Générique
+### 1.2 Catégories spéciales d'arbres
+* **Arbre vide** : Ne possède aucun nœud.
+* **Arbre entier** : Tous les nœuds sont soit internes (avec des enfants), soit des feuilles.
+* **Arbre complet** : Arbre entier où la différence de profondeur entre toutes les feuilles n'excède pas 1.
+* **Arbre parfait** : Arbre entier où **toutes** les feuilles sont exactement à la même profondeur.
 
 ```mermaid
 graph TD
@@ -36,197 +45,267 @@ graph TD
     class B,C interne;
     class D,E,F,G feuille;
 ```
-*Ici, A est la racine (profondeur 0). B et C sont des nœuds internes (profondeur 1). D, E, F et G sont des feuilles. La hauteur de cet arbre est de 2.*
 
 ---
 
-## 2. Arbres Binaires (AB) et Représentation
+## 2. Arbres Binaires (AB) et Implémentation en C
 
-Un **Arbre Binaire (AB)** est un type d'arbre spécifique où **chaque nœud possède au maximum 2 enfants**, que l'on nomme systématiquement le **fils gauche** et le **fils droit**.
+Un **Arbre Binaire (AB)** est un arbre où **chaque nœud possède au maximum 2 enfants**, nommés le **fils gauche (sag)** et le **fils droit (sad)**.
+*Propriété : Un arbre binaire de hauteur $h$ contient au maximum $2^{h}-1$ nœuds au total.*
 
-### Structure et Implémentation
-En mémoire, un nœud d'un arbre binaire est généralement représenté par une structure contenant 3 éléments :
-1. **La donnée** (ou la valeur).
-2. Un pointeur vers le **Sous-Arbre Gauche (SAG)**.
-3. Un pointeur vers le **Sous-Arbre Droit (SAD)**.
+### 2.1 Définition de la structure (SDD) en C
 
-Si un enfant n'existe pas, le pointeur correspond à `NULL` (ou une adresse vide).
+En mémoire, on l'implémente généralement avec des structures auto-référentielles (pointeurs) :
 
-*Note : Pour un arbre binaire **complet** (où tous les niveaux sont remplis sauf éventuellement le dernier qui est rempli de gauche à droite), on peut utiliser un simple **Tableau** pour le représenter en mémoire. Le fils gauche de l'indice $i$ se trouve à l'indice $2i$ et le fils droit à $2i+1$.*
+```c
+typedef int Element;
 
-### Illustration d'un Arbre Binaire
+// Structure d'un noeud
+typedef struct node {
+    Element elem;           // La donnée
+    struct node *left;      // Pointeur vers le Sous-Arbre Gauche (sag)
+    struct node *right;     // Pointeur vers le Sous-Arbre Droit (sad)
+} Node;
 
-```mermaid
-graph TD
-    10((10)) --> 5((5))
-    10 --> 15((15))
-    
-    5 --> 2((2))
-    5 --> 7((7))
-    
-    15 --> 12((12))
-    15 --> 20((20))
+// Un arbre est un pointeur vers son nœud racine
+typedef Node *BTree;
 ```
+
+### 2.2 Fonctions de base
+
+```c
+#include <stdlib.h>
+
+// Vérifier si un arbre est vide
+int EstArbreVide(BTree a) {
+    return a == NULL;
+}
+
+// Créer un nouveau nœud (singleton)
+BTree CreerNoeud(Element e) {
+    BTree a = (BTree)malloc(sizeof(Node));
+    a->elem = e;
+    a->left = NULL;
+    a->right = NULL;
+    return a;
+}
+```
+
+### 2.3 Représentation d'un Arbre Binaire Complet par Tableau
+Si l'arbre est **complet**, on peut le stocker dans un tableau simple $A$ (en lisant niveau par niveau). L'accès y est en $\mathcal{O}(1)$ :
+* L'enfant gauche du nœud $A[i]$ se trouve en $A[2i]$.
+* L'enfant droit du nœud $A[i]$ se trouve en $A[2i+1]$.
+* Le parent du nœud $A[i]$ se trouve en $A[i/2]$ (division entière).
 
 ---
 
-## 3. Algorithmes de Parcours
+## 3. Algorithmes sur Arbre Binaire
 
-Parcourir un arbre signifie visiter tous ses nœuds une et une seule fois. Mais dans quel ordre ? Il existe deux grandes familles de parcours.
+### 3.1 Algorithmes Classiques (Mesures et Gestion)
 
-Prenons cet arbre de référence pour comprendre les parcours :
+Les arbres se prêtent naturellement aux algorithmes **récursifs**.
 
-```mermaid
-graph TD
-    1((1)) --> 2((2))
-    1 --> 3((3))
-    2 --> 4((4))
-    2 --> 5((5))
-    3 --> 6((6))
-    3 --> 7((7))
+```c
+// 1. Compter le nombre d'éléments
+int NombreElements(BTree a) {
+    if (EstArbreVide(a)) return 0;
+    return 1 + NombreElements(a->left) + NombreElements(a->right);
+}
+
+// 2. Mesurer la hauteur d'un arbre
+int Hauteur(BTree a) {
+    if (EstArbreVide(a)) return 0;
+    int hg = Hauteur(a->left);
+    int hd = Hauteur(a->right);
+    if (hg > hd) return 1 + hg;
+    else return 1 + hd;
+}
+
+// 3. Libérer la mémoire (Post-ordre)
+void Liberer(BTree a) {
+    if (!EstArbreVide(a)) {
+        Liberer(a->left);
+        Liberer(a->right);
+        free(a);
+    }
+}
 ```
 
-### 3.1. Parcours en Largeur (BFS - Breadth-First Search)
-Ce parcours visite l'arbre **niveau par niveau**, de haut en bas et de gauche à droite.
-* **Algorithme (Itératif avec une File)** : On place la racine dans une file. Tant que la file n'est pas vide, on retire le premier élément, on le traite, puis on ajoute ses enfants (gauche puis droit) à la fin de la file.
-* **Ordre de visite pour notre arbre** : `1, 2, 3, 4, 5, 6, 7`
+*(D'autres algorithmes existent comme `EstSousArbreDe(a, b)` pour vérifier si $b$ appartient à $a$, ou `NouvelArbreParfait(n, e)` pour initialiser mathématiquement un arbre complet).*
 
-### 3.2. Parcours en Profondeur (DFS - Depth-First Search)
-Ce parcours plonge le plus profondément possible dans une branche (généralement à gauche) avant de remonter. Comme l'arbre est une structure récursive, on utilise la **récursivité** (ou une Pile) pour l'implémenter. Il y a trois variantes principales selon le moment où l'on "traite" (ou affiche) le parent par rapport à ses enfants :
+### 3.2 Parcours d'Arbres Binaires
+Parcourir signifie visiter chaque nœud une fois.
 
-#### A. Parcours Pré-ordre (Préfixe)
-**Ordre** : Parent -> Fils Gauche -> Fils Droit.
-*(Utile pour copier un arbre).*
-* **Étape par étape** : On affiche 1, on va à gauche sur 2. On affiche 2, on va à gauche sur 4. On affiche 4, plus d'enfant, on remonte. On va sur 5, on l'affiche. On remonte sur 1, on va à droite sur 3. Etc.
-* **Ordre de visite** : `1, 2, 4, 5, 3, 6, 7`
+#### A. Parcours en Largeur (BFS)
+On lit l'arbre niveau par niveau. Cet algorithme est **itératif** et utilise une **File**.
+1. Enfiler la racine.
+2. Tant que la file n'est pas vide : Défiler un nœud, le traiter, et Enfiler ses enfants (gauche puis droit).
 
-#### B. Parcours In-ordre (Infixe)
-**Ordre** : Fils Gauche -> Parent -> Fils Droit.
-*(Très utilisé pour obtenir les valeurs triées d'un Arbre Binaire de Recherche).*
-* **Ordre de visite** : `4, 2, 5, 1, 6, 3, 7`
+#### B. Parcours en Profondeur (DFS)
+On explore une branche jusqu'au bout avant de remonter. Naturellement **récursif** (ou itératif avec une **Pile**).
 
-#### C. Parcours Post-ordre (Postfixe)
-**Ordre** : Fils Gauche -> Fils Droit -> Parent.
-*(Utile pour supprimer ou libérer la mémoire d'un arbre : on supprime d'abord les enfants avant le parent).*
-* **Ordre de visite** : `4, 5, 2, 6, 7, 3, 1`
+```c
+// Pré-ordre (Préfixe) : Parent -> Gauche -> Droit
+void ParcoursPrefixe(BTree a) {
+    if (EstArbreVide(a)) return;
+    printf("%d ", a->elem);     // Traitement du parent
+    ParcoursPrefixe(a->left);   // Gauche
+    ParcoursPrefixe(a->right);  // Droit
+}
+
+// In-ordre (Infixe) : Gauche -> Parent -> Droit
+void ParcoursInfixe(BTree a) {
+    if (EstArbreVide(a)) return;
+    ParcoursInfixe(a->left);    // Gauche
+    printf("%d ", a->elem);     // Traitement du parent
+    ParcoursInfixe(a->right);   // Droit
+}
+
+// Post-ordre (Postfixe) : Gauche -> Droit -> Parent
+void ParcoursPostfixe(BTree a) {
+    if (EstArbreVide(a)) return;
+    ParcoursPostfixe(a->left);   // Gauche
+    ParcoursPostfixe(a->right);  // Droit
+    printf("%d ", a->elem);      // Traitement du parent
+}
+```
 
 ---
 
 ## 4. Arbres Binaires de Recherche (ABR)
 
-Un **Arbre Binaire de Recherche** est un arbre binaire doté d'une règle stricte de rangement (relation d'ordre) qui le rend extrêmement puissant pour la recherche d'informations :
-* **Règle** : Pour tout nœud $N$, toutes les valeurs de son **sous-arbre gauche** sont **strictement inférieures** à la valeur de $N$, et toutes les valeurs de son **sous-arbre droit** sont **strictement supérieures** à la valeur de $N$.
+L'**ABR** est l'application la plus utile des arbres. C'est un arbre binaire avec une condition d'ordre forte :
+* Pour tout nœud $N$, **$max(SousArbreGauche) < N < min(SousArbreDroit)$**.
+* Un parcours infixe sur un ABR renvoie les éléments **triés**.
 
-### 4.1. Recherche et Insertion
-Grâce à cette règle, la recherche (ou l'insertion) s'apparente à une dichotomie.
-* Si on cherche `11` en partant de `10` : $11 > 10$, donc on descend directement dans le sous-arbre droit. On ignore toute la moitié gauche de l'arbre.
-* **Complexité** : La recherche est très rapide en moyenne $O(\log n)$, mais peut dégénérer en $O(n)$ si l'arbre est complètement déséquilibré (ressemblant à une simple liste chaînée).
+### 4.1 Recherche
+Très performante (similaire à une dichotomie).
 
-**Exemple d'Insertion du nombre `6` :**
-```mermaid
-flowchart TD
-    10((10)) --> 4((4))
-    10 --> 15((15))
-    
-    4 --> 2((2))
-    4 --> 8((8))
-    
-    8 -. on ajoute 6 .-> 6((6:::new))
-    
-    classDef new fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+```c
+// Recherche d'un élément (Itératif, plus optimisé que récursif)
+int RechercheABR(BTree a, Element e) {
+    while (!EstArbreVide(a)) {
+        if (a->elem == e) return 1; // Vrai (trouvé)
+        if (e < a->elem) 
+            a = a->left;  // Chercher à gauche
+        else 
+            a = a->right; // Chercher à droite
+    }
+    return 0; // Faux (non trouvé)
+}
 ```
 
-### 4.2. La Suppression dans un ABR
-C'est l'opération la plus complexe car il faut conserver la structure (la propriété ABR) de l'arbre après le retrait d'un nœud. Il y a **3 cas possibles**.
+### 4.2 Insertion (Exemple complet)
+L'ajout se fait toujours au niveau d'une feuille.
 
-#### Cas A : Le nœud à supprimer est une feuille
-C'est le cas le plus simple. Le nœud n'a aucun enfant. Il suffit de le "décrocher" en mettant à jour le pointeur de son parent vers `NULL`.
+```c
+// Ajouter un élément (Itératif)
+BTree AjoutABR(BTree a, Element e) {
+    if (EstArbreVide(a)) return CreerNoeud(e);
+    
+    BTree b = a;
+    BTree p = NULL; // Gardera trace du parent
+    
+    while (!EstArbreVide(b)) {
+        p = b;
+        if (e < b->elem) b = b->left;
+        else b = b->right;
+    }
+    
+    // Ajout effectif
+    if (e < p->elem) p->left = CreerNoeud(e);
+    else p->right = CreerNoeud(e);
+    
+    return a;
+}
+```
+
+**Exemple du cours :** Construction par ajouts successifs de `14, 10, 35, 6, 30, 33, 11, 16, 8, 18` :
+
+```mermaid
+graph TD
+    14((14)) --> 10((10))
+    14 --> 35((35))
+    
+    10 --> 6((6))
+    10 --> 11((11))
+    
+    6 --> null1[ ]
+    style null1 stroke-width:0px,fill:none
+    6 --> 8((8))
+    
+    35 --> 30((30))
+    35 --> null2[ ]
+    style null2 stroke-width:0px,fill:none
+    
+    30 --> 16((16))
+    30 --> 33((33))
+    
+    16 --> null3[ ]
+    style null3 stroke-width:0px,fill:none
+    16 --> 18((18))
+```
+
+### 4.3 La Suppression
+Opération complexe comportant **3 cas**.
+
+#### Cas A : Le nœud est une feuille
+On met simplement le pointeur du parent à `NULL`.
+*Exemple : Supprimer 8.* Le 6 n'aura plus d'enfant droit.
+
+#### Cas B : Le nœud a UN SEUL enfant
+On "saute" le nœud à supprimer. Le parent pointe directement sur le petit-fils.
+*Exemple : Supprimer 16.* Le 30 (parent de 16) pointera directement sur 18 (enfant de 16).
+
+#### Cas C : Le nœud a DEUX enfants
+Le nœud est bloqué. On doit le remplacer par une valeur qui maintient l'ordre de l'ABR :
+1. On cherche soit le **plus grand élément du sous-arbre gauche**, soit le **plus petit élément du sous-arbre droit**.
+2. On copie cette valeur à la place du nœud à supprimer.
+3. On supprime le nœud remplaçant (qui, par nature, n'aura qu'un enfant au maximum, retombant dans le Cas A ou B).
 
 ```mermaid
 flowchart TD
-    subgraph Avant [Avant suppression de 30]
-        20((20)) --> 10((10))
-        20 --> 40((40))
-        40 --> 30((30))
-        40 --> 50((50))
+    subgraph 1. Cas C: Supprimer 30
+        14a((14)) --> 10a((10))
+        14a --> 35a((35))
+        35a --> 30a((30:::target))
+        30a --> 16a((16))
+        30a --> 33a((33))
+        
+        classDef target fill:#faa,stroke:#333,stroke-width:2px;
     end
     
-    subgraph Apres [Après suppression de 30]
-        20a((20)) --> 10a((10))
-        20a --> 40a((40))
-        40a --> null((NULL))
-        40a --> 50a((50))
-        style null fill:#ccc,stroke:#333,stroke-width:1px,stroke-dasharray: 2 2
+    subgraph 2. Copie du remplaçant (ex: max du sag)
+        14b((14)) --> 10b((10))
+        14b --> 35b((35))
+        35b --> 30b((16:::highlight))
+        30b --> 16b((16:::highlight))
+        30b --> 33b((33))
+        
+        classDef highlight fill:#ff9,stroke:#333,stroke-width:2px;
+    end
+    
+    subgraph 3. Suppression de l'ancienne position
+        14c((14)) --> 10c((10))
+        14c --> 35c((35))
+        35c --> 16c((16))
+        16c --> null4[ ]
+        16c --> 33c((33))
+        style null4 stroke-width:0px,fill:none
     end
 ```
-
-#### Cas B : Le nœud à supprimer a un seul enfant
-On décroche le nœud à supprimer et on connecte directement son enfant (unique) à la place, au niveau de son ancien parent.
-
-```mermaid
-flowchart TD
-    subgraph Avant [Avant suppression de 40]
-        20((20)) --> 10((10))
-        20 --> 40((40))
-        40 --> null1[ ]
-        40 --> 50((50))
-        style null1 stroke-width:0px,fill:none
-    end
-    
-    subgraph Apres [Après suppression de 40]
-        20a((20)) --> 10a((10))
-        20a --> 50a((50:::highlight))
-        classDef highlight fill:#cfc,stroke:#333,stroke-width:2px;
-    end
-```
-
-#### Cas C : Le nœud à supprimer a deux enfants
-C'est le cas délicat. On ne peut pas simplement retirer le nœud car il laisserait deux sous-arbres orphelins, or le parent ne peut accepter qu'un seul successeur.
-**La solution** : 
-1. Trouver une valeur de "remplacement" qui ne viole pas les règles de l'ABR. Cette valeur est soit :
-   * **Le maximum de son sous-arbre gauche** (le nœud le plus à droite à gauche).
-   * **Le minimum de son sous-arbre droit** (le nœud le plus à gauche à droite).
-2. On copie la valeur de ce nœud remplaçant à la place de la valeur que l'on veut supprimer.
-3. On supprime le nœud remplaçant d'origine (qui tombe forcément dans le Cas A ou le Cas B, puisqu'étant un extremum, il n'a au maximum qu'un seul enfant).
-
-**Exemple : Suppression de la racine `50` (en utilisant le plus petit des plus grands).**
-```mermaid
-flowchart TD
-    subgraph 1. Avant
-        50((50)) --> 30((30))
-        50 --> 70((70))
-        
-        70 --> 60((60))
-        70 --> 80((80))
-        60 --> 55((55))
-        60 --> 65((65))
-    end
-    
-    subgraph 2. Recherche du remplaçant
-        50b((50)) --> 30b((30))
-        50b --> 70b((70))
-        
-        70b --> 60b((60))
-        70b --> 80b((80))
-        60b --> 55b((55:::highlight2))
-        60b --> 65b((65))
-        
-        classDef highlight2 fill:#ff9,stroke:#333,stroke-width:2px;
-    end
-    
-    subgraph 3. Remplacement et suppression
-        55c((55)) --> 30c((30))
-        55c --> 70c((70))
-        
-        70c --> 60c((60))
-        70c --> 80c((80))
-        60c --> null2[ ]
-        60c --> 65c((65))
-        
-        style null2 stroke-width:0px,fill:none
-    end
-```
-*Ici, pour remplacer 50, on cherche le minimum de son sous-arbre droit (le 55). On met 55 à la place de 50. Puis, on supprime l'ancien nœud 55 (qui n'avait pas d'enfant, Cas A).*
 
 ---
-*Ce document couvre les concepts essentiels du Chapitre 5. Assurez-vous de bien maîtriser les parcours récursifs et les cas de suppression dans un ABR pour vos applications et examens !*
+
+## 5. Synthèse des Coûts (Complexité)
+
+L'ABR brille particulièrement sur les opérations de modification par rapport aux structures linéaires, à condition que sa hauteur $h$ soit proche de $\log n$ (arbre équilibré).
+
+| Structure | Insertion | Recherche | Suppression |
+| :--- | :--- | :--- | :--- |
+| **Tableau** | $\mathcal{O}(1)$ | $\mathcal{O}(n)$ | $\mathcal{O}(n)$ |
+| **Tableau trié** | $\mathcal{O}(n)$ | $\mathcal{O}(\log n)$ | $\mathcal{O}(n)$ |
+| **Liste chaînée** | $\mathcal{O}(1)$ | $\mathcal{O}(n)$ | $\mathcal{O}(n)$ |
+| **ABR** | $\mathcal{O}(h)$ | $\mathcal{O}(h)$ | $\mathcal{O}(h)$ |
+
+*Où $h$ est la hauteur de l'arbre : $\mathcal{O}(\log n)$ dans le meilleur des cas (arbre équilibré type AVL), et $\mathcal{O}(n)$ dans le pire des cas (arbre peigne / dégénéré).*
