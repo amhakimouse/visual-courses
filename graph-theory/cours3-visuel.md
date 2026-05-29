@@ -198,3 +198,5 @@ sequenceDiagram
 
 ---
 *Ce document couvre désormais la théorie complète de la résolution graphique et l'introduction algébrique aux dictionnaires.*
+
+
