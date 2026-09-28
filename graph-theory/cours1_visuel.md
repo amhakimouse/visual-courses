@@ -83,10 +83,10 @@ graph LR
 ## 3. Ordonnancement : Calcul des Dates et Marges (Pages 13-15)
 
 ### 3.1 Définitions des dates
-*   **ES(i) (Earliest Start)** : Plus grand chemin du début des travaux au début de $i$.
+*   **ES(i) (Earliest Start)** : Plus grand chemin du début des travaux au début de $i$. : Date au plus tôt 
 *   **EF(i) (Earliest Finish)** : $EF(i) = ES(i) + d(i)$
 *   **LF(i) (Latest Finish)** : $T$ (Durée totale) - chemin maximum joignant la fin des travaux à la fin de $i$.
-*   **LS(i) (Latest Start)** : $LS(i) = LF(i) - d(i)$
+*   **LS(i) (Latest Start)** : $LS(i) = LF(i) - d(i)$ : **Date au plus tard 
 
 ### 3.2 Définitions des Marges
 *   **Marge Totale MT(i)** : Délai maximal de mise à exécution sans retarder le projet final.

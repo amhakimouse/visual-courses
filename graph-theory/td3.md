@@ -629,3 +629,120 @@ La fonction est continue aux points de rupture :
 Voici la représentation graphique de cette fonction :
 
 ![Profit maximal Z en fonction de p](plots/td3_ex7.png)
+
+---
+
+## Exercice 9 : Allocation de cultures (Orge et Blé)
+
+### 1. Formulation du Programme Linéaire
+
+**Concept : Allocation de ressources**
+Il s'agit d'un problème classique où l'on cherche à maximiser un bénéfice sous plusieurs contraintes de ressources (surface, budget, travail).
+
+```mermaid
+graph LR
+    Surface[Surface: 35 acres] --> Orge
+    Surface --> Ble[Blé]
+    Budget[Budget: 1800 €] --> Orge
+    Budget --> Ble
+    Travail[Travail: 120 jours] --> Orge
+    Travail --> Ble
+    
+    Orge(Orge: x1) -- 200/acre --> Z((Bénéfice Z))
+    Ble(Blé: x2) -- 300/acre --> Z
+```
+
+**Variables de décision** :
+*   $x_1$ : Nombre d'acres alloués à l'orge.
+*   $x_2$ : Nombre d'acres alloués au blé.
+
+**Fonction Objectif (Maximisation du bénéfice)** :
+$$\text{Max } Z = 200x_1 + 300x_2$$
+
+**Contraintes** :
+1.  **Surface** : $x_1 + x_2 \le 35$
+2.  **Budget (Coût d'exploitation)** : $30x_1 + 60x_2 \le 1800$
+3.  **Travail (Jours)** : $4x_1 + 3x_2 \le 120$
+4.  **Non-négativité** : $x_1, x_2 \ge 0$
+
+---
+
+### 2. Résolution par la méthode du Simplexe
+
+**Étape 1 : Forme Standard**
+On ajoute des variables d'écart ($e_1, e_2, e_3 \ge 0$) pour transformer les inégalités en égalités.
+*Note : Pour simplifier les calculs manuels, on peut diviser la contrainte de budget par 30 : $x_1 + 2x_2 \le 60$.*
+
+Max $Z = 200x_1 + 300x_2 \implies Z - 200x_1 - 300x_2 = 0$
+1. $x_1 + x_2 + e_1 = 35$
+2. $x_1 + 2x_2 + e_2 = 60$ *(Contrainte de budget simplifiée)*
+3. $4x_1 + 3x_2 + e_3 = 120$
+
+**Étape 2 : Tableau Initial ($T_0$)**
+
+| Base | $x_1$ | $x_2$ | $e_1$ | $e_2$ | $e_3$ | RHS |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$e_1$** | 1 | 1 | 1 | 0 | 0 | 35 |
+| **$e_2$** | 1 | **2** | 0 | 1 | 0 | 60 |
+| **$e_3$** | 4 | 3 | 0 | 0 | 1 | 120 |
+| **Z** | -200 | **-300** | 0 | 0 | 0 | 0 |
+
+*   **Variable entrante** : $x_2$ (coût réduit le plus négatif : -300).
+*   **Variable sortante** : Ratios : $e_1 \to 35/1 = 35$, $e_2 \to 60/2 = 30$, $e_3 \to 120/3 = 40$. Le ratio minimum est 30, donc **$e_2$ sort**.
+*   **Pivot** : **2** (Ligne 2).
+
+---
+
+**Étape 3 : Itération 1 ($T_1$)**
+
+*   $L_2' = L_2 / 2 = (1/2, 1, 0, 1/2, 0 \mid 30)$
+*   $L_1' = L_1 - L_2' = (1, 1, 1, 0, 0 \mid 35) - (1/2, 1, 0, 1/2, 0 \mid 30) = (1/2, 0, 1, -1/2, 0 \mid 5)$
+*   $L_3' = L_3 - 3L_2' = (4, 3, 0, 0, 1 \mid 120) - (3/2, 3, 0, 3/2, 0 \mid 90) = (5/2, 0, 0, -3/2, 1 \mid 30)$
+*   $Z' = Z + 300L_2' = (-200, -300, 0, 0, 0 \mid 0) + (150, 300, 0, 150, 0 \mid 9000) = (-50, 0, 0, 150, 0 \mid 9000)$
+
+| Base | $x_1$ | $x_2$ | $e_1$ | $e_2$ | $e_3$ | RHS |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$e_1$** | **1/2** | 0 | 1 | -1/2 | 0 | 5 |
+| **$x_2$** | 1/2 | 1 | 0 | 1/2 | 0 | 30 |
+| **$e_3$** | 5/2 | 0 | 0 | -3/2 | 1 | 30 |
+| **Z** | **-50** | 0 | 0 | 150 | 0 | 9000 |
+
+*   **Variable entrante** : $x_1$ (coût réduit négatif : -50).
+*   **Variable sortante** : Ratios : $e_1 \to 5 / 0.5 = 10$, $x_2 \to 30 / 0.5 = 60$, $e_3 \to 30 / 2.5 = 12$. Le ratio minimum est 10, donc **$e_1$ sort**.
+*   **Pivot** : **1/2** (Ligne 1).
+
+---
+
+**Étape 4 : Itération 2 ($T_2$ - Optimum)**
+
+*   $L_1'' = L_1' / (1/2) = 2 \times L_1' = (1, 0, 2, -1, 0 \mid 10)$
+*   $L_2'' = L_2' - (1/2)L_1'' = (1/2, 1, 0, 1/2, 0 \mid 30) - (1/2, 0, 1, -1/2, 0 \mid 5) = (0, 1, -1, 1, 0 \mid 25)$
+*   $L_3'' = L_3' - (5/2)L_1'' = (5/2, 0, 0, -3/2, 1 \mid 30) - (5/2, 0, 5, -5/2, 0 \mid 25) = (0, 0, -5, 1, 1 \mid 5)$
+*   $Z'' = Z' + 50L_1'' = (-50, 0, 0, 150, 0 \mid 9000) + (50, 0, 100, -50, 0 \mid 500) = (0, 0, 100, 100, 0 \mid 9500)$
+
+| Base | $x_1$ | $x_2$ | $e_1$ | $e_2$ | $e_3$ | RHS |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$x_1$** | 1 | 0 | 2 | -1 | 0 | 10 |
+| **$x_2$** | 0 | 1 | -1 | 1 | 0 | 25 |
+| **$e_3$** | 0 | 0 | -5 | 1 | 1 | 5 |
+| **Z** | 0 | 0 | 100 | 100 | 0 | **9500** |
+
+Tous les coûts réduits sur la ligne $Z$ sont positifs ou nuls ($\ge 0$). Le tableau est donc **optimal**.
+
+---
+
+### 3. Conclusion et Interprétation
+
+**Solution optimale :**
+L'agriculteur doit planter :
+*   **$x_1 = 10$ acres d'orge**.
+*   **$x_2 = 25$ acres de blé**.
+
+**Bénéfice maximal :**
+*   **$Z = 9500$ u.m.**
+
+**Analyse des ressources (Variables d'écart) :**
+*   $e_1 = 0$ : Toute la surface (35 acres) est utilisée ($10 + 25 = 35$).
+*   $e_2 = 0$ : Tout le budget (1800) est consommé ($30\times10 + 60\times25 = 1800$).
+*   $e_3 = 5$ : Il reste **5 jours de travail non utilisés** sur les 120 jours disponibles ($4\times10 + 3\times25 = 115 \le 120$).
+
