@@ -2,7 +2,7 @@
 **kernel** (also called a filter or convolution matrix) is ==a small matrix of numbers used to slide across an image and perform a math operation called convolution==
 #### C'est quoi une convolution ?
 
-C'est l'opération **fondamentale** derrière le flou(blur), la détection de contours, le renforcement — presque tout le repose là-dessus.
+C'est l'opération **fondamentale** derrière le flou(blur), la détection de contours, le renforcement  presque tout le repose là-dessus.
 
 **Idée simple** : on fait glisser une petite matrice (le **kernel**, aussi appelé masque/noyau) sur l'image, et à chaque position on calcule une somme pondérée des pixels voisins.
 

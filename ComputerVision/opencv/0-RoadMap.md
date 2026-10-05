@@ -1,4 +1,4 @@
-### Roadmap: OpenCV + Computer Vision
+### Roadmap: OpenCV + imahe proccessing Computer Vision
 
 ```
 STAGE 1 — Image Foundations
@@ -7,13 +7,18 @@ STAGE 1 — Image Foundations
 ├─ 1.3 Reading/writing/displaying images & videos in OpenCV
 └─ 1.4 Image arithmetic & blending (add, weighted, masks)
 
-STAGE 2 — Image Processing Math (the "engine room")
-├─ 2.1 Convolution & correlation (the core operation)
-├─ 2.2 Filtering & blurring (Gaussian, Median, Bilateral)
-├─ 2.3 Edge detection (Sobel, Laplacian, Canny) — gradient math
-├─ 2.4 Thresholding & Otsu's method
-├─ 2.5 Morphological operations (erosion, dilation, opening/closing)
-└─ 2.6 Geometric transforms (affine, perspective, homography)
+STAGE 2 — Image Processing Math
+├─ 2.1 Convolution & correlation
+├─ 2.2 Filtering (Gaussian, Median, Bilateral)
+├─ 2.3 Histograms & enhancement   ← ADD
+│     - histogram / normalized / cumulative histogram
+│     - stretching (étirement) vs equalization (égalisation)
+│     - entropy
+│     - gamma correction (non-linear)
+├─ 2.4 Edge detection (Sobel, Laplacian, Canny)
+├─ 2.5 Thresholding & Otsu
+├─ 2.6 Morphological operations
+└─ 2.7 Geometric transforms
 
 STAGE 3 — Classical CV Projects (feature-based)
 ├─ 3.1 Contours & shape analysis
@@ -28,3 +33,4 @@ STAGE 4 — Learning-Based CV
 ├─ 4.3 Object detection (YOLO family) with OpenCV/ONNX inference
 └─ 4.4 Deploying a CV model in a real pipeline (webcam/image → inference → action)
 ```
+
