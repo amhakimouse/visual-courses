@@ -4,33 +4,51 @@
     "type": "split",
     "children": [
       {
-        "id": "292c9cfa1ae3f61e",
+        "id": "bece12eda4d29833",
         "type": "tabs",
+        "dimension": 46.74880219028063,
         "children": [
           {
-            "id": "b8f9d9313dfb2439",
+            "id": "09e089180df017f9",
             "type": "leaf",
             "state": {
               "type": "pdf",
               "state": {
-                "file": "ComputerVision/TD/TD3-CV-2026.pdf"
+                "file": "linux/cours2/Cours progShell.pptx.pdf"
               },
               "icon": "lucide-file-text",
-              "title": "TD3-CV-2026"
+              "title": "Cours progShell.pptx"
             }
-          },
+          }
+        ]
+      },
+      {
+        "id": "f08276cb01738ef0",
+        "type": "tabs",
+        "dimension": 53.25119780971937,
+        "children": [
           {
-            "id": "21e02ef12e9bd968",
+            "id": "8b952bb0f34ea9f0",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
+                "file": "linux/cours2/bash scripting.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "6-Filtrage (Gaussian, Median, Bilateral)"
+              "title": "bash scripting"
+            }
+          },
+          {
+            "id": "f11b3c23f5679f23",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -68,14 +86,14 @@
               "type": "search",
               "state": {
                 "query": "",
-                "matchingCase": false,
+                "matchingCase": true,
                 "explainSearch": false,
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical"
               },
               "icon": "lucide-search",
-              "title": "Rechercher"
+              "title": "Search"
             }
           },
           {
@@ -95,7 +113,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "right": {
     "id": "92598c3459ef134d",
@@ -200,14 +219,25 @@
       "bases:Create new base": false
     }
   },
-  "active": "b8f9d9313dfb2439",
+  "active": "09e089180df017f9",
   "lastOpenFiles": [
+    "linux/cours2/bash scripting.md",
+    "linux/TP1-Sctipt-Shell.pdf",
+    "linux/cours1/notes.md",
+    "linux/cours2/Cours progShell.pptx.pdf",
+    "linux/cours1/Administration_Linux.ppt.pdf",
+    "linux/cours2/Unconfirmed 947938.crdownload",
+    "linux/cours2",
+    "linux/TP2-Script-Shell.pdf",
+    "Untitled.canvas",
+    "Untitled.base",
+    "2026-10-08.md",
+    "linux/cours1",
+    "linux/Unconfirmed 382744.crdownload",
     "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
     "ComputerVision/TD/TD3-CV-2026.pdf",
     "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
     "ComputerVision/opencv/5-Convolution & Corrélation.md",
-    "ComputerVision/TD/TD2-CV-2026.pdf",
-    "Algo/cours3/Cours3-MeREA-PLNE-Meth-Coupes(B&C).pdf",
     "Algo/cours3/3-Les 4 algorithmiques PLNE.md",
     "Algo/cours3/1-Modéliser avec des variables entières.md",
     "Algo/cours3/0-Plan.md",
@@ -223,8 +253,6 @@
     "graph-theory/plots/resolution_graphique.png",
     "graph-theory/plots/step1_domaine.png",
     "Algo/cours3/Pasted image 20261006112650.png",
-    "Untitled.base",
-    "Algo/cours3/Serie2-TD-MeREA-meths-Coupes.pdf",
     "Algo/cours2/3. Introduction d'une nouvelle variable xₙ₊₁.md",
     "Algo/cours2/4.  nouvelle contrainte.md",
     "Algo/cours2/2. Modification d'un terme de droite bᵣ.md",
@@ -233,15 +261,11 @@
     "Algo/cours2/notes.md",
     "Algo/cours2/example.md",
     "ComputerVision/opencv/0-RoadMap.md",
-    "ComputerVision/Cours/Vision_Par_Ordinateur_1.pdf",
-    "Algo/cours2/Cours2-Pro-Math-Post-Opt.pdf",
-    "Algo/cours2/Serie1-TD-MeREA-postopt.pdf",
     "graph-theory/td3.md",
     "Algo/cours2/Pasted image 20261005120634.png",
     "Algo/cours2/Pasted image 20261005122027.png",
     "Algo/cours1/notes.md",
     "Algo/cours2/Pasted image 20261005115935.png",
-    "Algo/cours2/Pasted image 20261005115855.png",
-    "Algo/cours1/Cours1-Intro-MeREA.pdf"
+    "Algo/cours2/Pasted image 20261005115855.png"
   ]
 }
