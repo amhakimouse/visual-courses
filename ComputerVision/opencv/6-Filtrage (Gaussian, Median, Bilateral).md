@@ -47,6 +47,9 @@ Le paramètre clé est **σ (sigma)** — l'écart-type :
 (réduction de bruit)           (flou volontaire)
 ```
 
+![[Pasted image 20261009151023.png|700]]
+
+    Concolution NL: training a mode to learn the kernels instead of picking                              manually
 ---
 
 #### 2️⃣ Median Blur — le "vote de la majorité"
