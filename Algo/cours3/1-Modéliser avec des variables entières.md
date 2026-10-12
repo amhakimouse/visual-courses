@@ -37,15 +37,15 @@ Si l'arête `(u,v)` existe, `xᵤ + xᵥ ≤ 1` interdit de prendre les deux.
 
 Où construire des usines pour servir des clients au moindre coût ?
 
-|Symbole|Sens|
-|---|---|
-|`aᵢ`|coût de construction du site _i_|
-|`uᵢ`|capacité du site _i_|
-|`bᵢ`|coût de production unitaire|
-|`cᵢⱼ`|coût de transport _i → j_|
-|`dⱼ`|demande du client _j_|
-|**`yᵢ ∈ {0,1}`**|1 si usine construite en _i_|
-|**`xᵢⱼ ≥ 0`** (réel)|quantité envoyée de _i_ à _j_|
+| Symbole            | Sens                             |
+| ------------------ | -------------------------------- |
+| `aᵢ`               | coût de construction du site _i_ |
+| `uᵢ`               | capacité du site _i_             |
+| `bᵢ`               | coût de production unitaire      |
+| `cᵢⱼ`              | coût de transport _i → j_        |
+| `dⱼ`               | demande du client _j_            |
+| **yᵢ ∈ {0,1}**     | 1 si usine construite en _i_     |
+| **xᵢⱼ ≥ 0** (réel) | quantité envoyée de _i_ à _j_    |
 
 ```
  Min  Σ aᵢ yᵢ  +  Σ (bᵢ + cᵢⱼ) xᵢⱼ
@@ -88,7 +88,7 @@ On introduit `y ∈ {0,1}` et un très grand `M` :
 
 ### 5️⃣ Fonction à N valeurs possibles
 
-`f(x) = d₁ **ou** d₂ **ou** … **ou** d_N`
+f(x) = d₁ **ou** d₂ **ou** … **ou** d_N
 
 ```
  f(x) = Σ dⱼ yⱼ

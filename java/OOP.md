@@ -29,6 +29,7 @@ Chaque objet a **ses propres valeurs**, mais **partage la même structure** déf
 
 ---
 
+
 ### 💻 Exemple pratique : app desktop de gestion d'utilisateurs (type Swing/JavaFX)
 
 java
