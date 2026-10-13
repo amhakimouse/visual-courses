@@ -6,19 +6,18 @@
       {
         "id": "6031d51d9a46e2dc",
         "type": "tabs",
+        "dimension": 49.90125082290981,
         "children": [
           {
             "id": "d2f7325df3291dbd",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "pdf",
               "state": {
-                "file": "ComputerVision/opencv/8-Détection de contours (Sobel, Laplacian, Canny).md",
-                "mode": "source",
-                "source": false
+                "file": "Algo/cours5/Cours6-MeREA-Pb-Affectation.pdf"
               },
-              "icon": "lucide-file",
-              "title": "8-Détection de contours (Sobel, Laplacian, Canny)"
+              "icon": "lucide-file-text",
+              "title": "Cours6-MeREA-Pb-Affectation"
             }
           },
           {
@@ -27,12 +26,45 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ComputerVision/opencv/0-RoadMap.md",
+                "file": "Algo/cours1/dual.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "dual"
+            }
+          }
+        ]
+      },
+      {
+        "id": "acdce2d6b3ddd9e5",
+        "type": "tabs",
+        "dimension": 50.0987491770902,
+        "children": [
+          {
+            "id": "0eab45dc70eeef5a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Algo/cours4/3-Example.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "0-RoadMap"
+              "title": "3-Example"
+            }
+          },
+          {
+            "id": "538a466e49588376",
+            "type": "leaf",
+            "state": {
+              "type": "pdf",
+              "state": {
+                "file": "Algo/cours2/Serie1-TD-MeREA-postopt.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "Serie1-TD-MeREA-postopt"
             }
           }
         ],
@@ -98,7 +130,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "right": {
     "id": "92598c3459ef134d",
@@ -203,13 +236,25 @@
       "bases:Create new base": false
     }
   },
-  "active": "cc3911dded78308e",
+  "active": "d2f7325df3291dbd",
   "lastOpenFiles": [
-    "ComputerVision/opencv/1-How Images Are Represented.md",
+    "Algo/cours2/Serie1-TD-MeREA-postopt.pdf",
+    "Algo/cours1/dual.md",
+    "Algo/cours1/simplexe primal.md",
+    "Algo/cours1/notes.md",
+    "Algo/cours4/5-Problème d’affectation.md",
+    "Algo/cours1/Cours1-Intro-MeREA.pdf",
+    "Algo/cours5/Cours6-MeREA-Pb-Affectation.pdf",
+    "Algo/cours4/Cours4-MeREA-PLNE-Meth-Sep-Eval(B&B).pdf",
+    "Algo/cours4/Serie3-TD-MeREA-meths-B&B.pdf",
+    "Algo/cours5/Serie5-TD-RO-Affectation.pdf",
+    "Algo/cours4/3-Example.md",
     "ComputerVision/opencv/8-Détection de contours (Sobel, Laplacian, Canny).md",
+    "Algo/cours4/4-SacAdos (didn't get glution).md",
+    "ComputerVision/opencv/0-RoadMap.md",
+    "ComputerVision/opencv/1-How Images Are Represented.md",
     "ComputerVision/opencv/Pasted image 20261009151023.png",
     "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
-    "ComputerVision/opencv/0-RoadMap.md",
     "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
     "java/3-OOP Mechanism.md",
     "java/2-OOP.md",
@@ -220,14 +265,8 @@
     "linux/cours1/notes.md",
     "linux/cours1/Administration_Linux.ppt.pdf",
     "linux/cours2/Unconfirmed 947938.crdownload",
-    "linux/cours2",
-    "linux/TP2-Script-Shell.pdf",
     "Untitled.canvas",
-    "Untitled.base",
     "2026-10-08.md",
-    "linux/cours1",
-    "linux/Unconfirmed 382744.crdownload",
-    "ComputerVision/TD/TD3-CV-2026.pdf",
     "ComputerVision/opencv/5-Convolution & Corrélation.md",
     "Algo/cours3/3-Les 4 algorithmiques PLNE.md",
     "Algo/cours3/1-Modéliser avec des variables entières.md",
@@ -236,19 +275,12 @@
     "graph-theory/PrbOrdtd.md",
     "graph-theory/cours3-visuel.md",
     "graph-theory/cours2-visuel.md",
-    "graph-theory/cours1_visuel.md",
     "graph-theory/plots/td2_ex3.png",
     "graph-theory/plots/td2_ex2.png",
     "graph-theory/plots/exemple_complexe.png",
     "graph-theory/plots/resolution_graphique.png",
     "graph-theory/plots/step1_domaine.png",
     "Algo/cours3/Pasted image 20261006112650.png",
-    "Algo/cours2/3. Introduction d'une nouvelle variable xₙ₊₁.md",
-    "Algo/cours2/4.  nouvelle contrainte.md",
-    "Algo/cours2/2. Modification d'un terme de droite bᵣ.md",
-    "Algo/cours2/1.b Modification du coût cⱼ d'une variable de base.md",
-    "Algo/cours2/1.a Modification du coût cⱼ hors base.md",
-    "Algo/cours2/notes.md",
     "Algo/cours2/Pasted image 20261005120634.png",
     "Algo/cours2/Pasted image 20261005122027.png",
     "Algo/cours2/Pasted image 20261005115935.png"
