@@ -1,3 +1,5 @@
+![[Pasted image 20261013223429.png]]
+
 ### Concept : Classe & Objet
 
 Une **classe** est un plan (blueprint). Un **objet** est une instance concrète créée à partir de ce plan.
