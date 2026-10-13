@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+from pathlib import Path
+
 
 def generate_step_plots():
-    output_dir = 'graph-theory/plots'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     x = np.linspace(0, 4, 400)
     y1 = 3 - x
@@ -32,7 +32,7 @@ def generate_step_plots():
     base_plot()
     plt.title("Étape 1 : Identification du Domaine Admissible")
     plt.legend()
-    plt.savefig(f'{output_dir}/step1_domaine.png')
+    plt.savefig(output_dir / 'step1_domaine.png')
     plt.close()
 
     # Étape 2 : Introduction de Z = 0
@@ -41,7 +41,7 @@ def generate_step_plots():
     plt.plot(x, z_line, 'k:', label='Z = 0 (Départ)')
     plt.title("Étape 2 : Tracé de la ligne objectif initiale (Z=0)")
     plt.legend()
-    plt.savefig(f'{output_dir}/step2_z0.png')
+    plt.savefig(output_dir / 'step2_z0.png')
     plt.close()
 
     # Étape 3 : Translation de la ligne
@@ -51,7 +51,7 @@ def generate_step_plots():
     plt.arrow(0.5, 0.5, 0.3, 0.6, head_width=0.1, head_length=0.1, fc='blue', ec='blue', label='Sens du déplacement')
     plt.title("Étape 3 : Glissement parallèle vers l'optimum")
     plt.legend()
-    plt.savefig(f'{output_dir}/step3_translation.png')
+    plt.savefig(output_dir / 'step3_translation.png')
     plt.close()
 
     # Étape 4 : Point Optimal
@@ -62,7 +62,7 @@ def generate_step_plots():
                  arrowprops=dict(facecolor='black', shrink=0.05))
     plt.title("Étape 4 : Dernier point de contact = Solution Optimale")
     plt.legend()
-    plt.savefig(f'{output_dir}/step4_optimum.png')
+    plt.savefig(output_dir / 'step4_optimum.png')
     plt.close()
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
+
 
 def plot_ex3():
     fig, ax = plt.subplots(figsize=(10, 7))
@@ -47,10 +49,9 @@ def plot_ex3():
     ax.set_title('Projections des Solutions de Base dans le repère $Ox_1x_2$', fontsize=14)
     ax.grid(True, linestyle='--', alpha=0.7)
 
-    import os
-    if not os.path.exists('graph-theory/plots'):
-        os.makedirs('graph-theory/plots')
-    plt.savefig('graph-theory/plots/td2_ex3.png', bbox_inches='tight')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td2_ex3.png', bbox_inches='tight')
     plt.close()
 
 if __name__ == "__main__":

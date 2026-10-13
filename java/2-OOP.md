@@ -3,26 +3,26 @@
 Une **classe** est un plan (blueprint). Un **objet** est une instance concrète créée à partir de ce plan.
 
 ```
-┌─────────────────────────────┐
+┌──────────────────────────────┐
 │        CLASSE: Utilisateur   │   ← le moule / le plan
 │───────────────────────────── │
 │ Attributs :                  │
 │   - nom                      │
 │   - email                    │
-│   - motDePasse                │
-│───────────────────────────── │
-│ Méthodes :                   │
+│   - motDePasse               │
+│───────────────────────────────
+│ Méthodes :                    │
 │   - seConnecter()             │
 │   - afficherProfil()          │
-└─────────────────────────────┘
+└───────────────────────────────┘
               │
               │  new Utilisateur(...)
               ▼
-   ┌──────────────┐   ┌──────────────┐
+   ┌───────────────┐   ┌───────────────┐
    │ OBJET 1       │   │ OBJET 2       │
    │ nom: "Hakim"  │   │ nom: "Sara"   │
    │ email: h@..   │   │ email: s@..   │
-   └──────────────┘   └──────────────┘
+   └───────────────┘   └───────────────┘
 ```
 
 Chaque objet a **ses propres valeurs**, mais **partage la même structure** définie par la classe.

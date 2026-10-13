@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 # Définition des intervalles
 p1 = np.linspace(0, 12, 100)
@@ -14,9 +15,9 @@ z3 = np.full_like(p3, 1440)
 plt.figure(figsize=(10, 6))
 
 # Tracé des segments
-plt.plot(p1, z1, label='$Z = -105p + 2750$ ($0 \leq p \leq 12$)', color='blue', linewidth=2)
-plt.plot(p2, z2, label='$Z = -100p + 2690$ ($12 \leq p \leq 12.5$)', color='green', linewidth=2)
-plt.plot(p3, z3, label='$Z = 1440$ ($p \geq 12.5$)', color='red', linewidth=2)
+plt.plot(p1, z1, label=r'$Z = -105p + 2750$ ($0 \leq p \leq 12$)', color='blue', linewidth=2)
+plt.plot(p2, z2, label=r'$Z = -100p + 2690$ ($12 \leq p \leq 12.5$)', color='green', linewidth=2)
+plt.plot(p3, z3, label=r'$Z = 1440$ ($p \geq 12.5$)', color='red', linewidth=2)
 
 # Points de jonction
 plt.scatter([12, 12.5], [1490, 1440], color='black', zorder=5)
@@ -30,5 +31,7 @@ plt.grid(True, linestyle='--', alpha=0.7)
 plt.legend()
 plt.tight_layout()
 
-plt.savefig('plots/td3_ex7.png')
-print("Plot saved to plots/td3_ex7.png")
+output_dir = Path(__file__).resolve().parent / 'plots'
+output_dir.mkdir(parents=True, exist_ok=True)
+plt.savefig(output_dir / 'td3_ex7.png')
+print(f"Plot saved to {output_dir / 'td3_ex7.png'}")

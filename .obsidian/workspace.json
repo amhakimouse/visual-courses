@@ -4,36 +4,39 @@
     "type": "split",
     "children": [
       {
-        "id": "292c9cfa1ae3f61e",
+        "id": "6031d51d9a46e2dc",
         "type": "tabs",
         "children": [
           {
-            "id": "b8f9d9313dfb2439",
-            "type": "leaf",
-            "state": {
-              "type": "pdf",
-              "state": {
-                "file": "ComputerVision/TD/TD3-CV-2026.pdf"
-              },
-              "icon": "lucide-file-text",
-              "title": "TD3-CV-2026"
-            }
-          },
-          {
-            "id": "21e02ef12e9bd968",
+            "id": "d2f7325df3291dbd",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
+                "file": "ComputerVision/opencv/8-Détection de contours (Sobel, Laplacian, Canny).md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "6-Filtrage (Gaussian, Median, Bilateral)"
+              "title": "8-Détection de contours (Sobel, Laplacian, Canny)"
+            }
+          },
+          {
+            "id": "cc3911dded78308e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ComputerVision/opencv/0-RoadMap.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "0-RoadMap"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -68,14 +71,14 @@
               "type": "search",
               "state": {
                 "query": "",
-                "matchingCase": false,
+                "matchingCase": true,
                 "explainSearch": false,
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical"
               },
               "icon": "lucide-search",
-              "title": "Rechercher"
+              "title": "Search"
             }
           },
           {
@@ -111,7 +114,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
+                "file": "ComputerVision/opencv/0-RoadMap.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -121,7 +124,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Rétroliens"
+              "title": "Backlinks"
             }
           },
           {
@@ -130,12 +133,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
+                "file": "ComputerVision/opencv/0-RoadMap.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Liens sortants"
+              "title": "Outgoing links"
             }
           },
           {
@@ -150,7 +153,7 @@
                 "searchQuery": ""
               },
               "icon": "lucide-tags",
-              "title": "Mots-clés"
+              "title": "Tags"
             }
           },
           {
@@ -164,7 +167,7 @@
                 "searchQuery": ""
               },
               "icon": "lucide-archive",
-              "title": "Toutes les propriétés"
+              "title": "All properties"
             }
           },
           {
@@ -173,13 +176,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
+                "file": "ComputerVision/opencv/0-RoadMap.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Plan"
+              "title": "Outline"
             }
           }
         ]
@@ -200,19 +203,36 @@
       "bases:Create new base": false
     }
   },
-  "active": "b8f9d9313dfb2439",
+  "active": "cc3911dded78308e",
   "lastOpenFiles": [
+    "ComputerVision/opencv/1-How Images Are Represented.md",
+    "ComputerVision/opencv/8-Détection de contours (Sobel, Laplacian, Canny).md",
+    "ComputerVision/opencv/Pasted image 20261009151023.png",
     "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
-    "ComputerVision/TD/TD3-CV-2026.pdf",
+    "ComputerVision/opencv/0-RoadMap.md",
     "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
+    "java/3-OOP Mechanism.md",
+    "java/2-OOP.md",
+    "java/1-basics.md",
+    "linux/cours2/bash scripting.md",
+    "linux/cours2/Cours progShell.pptx.pdf",
+    "linux/TP1-Sctipt-Shell.pdf",
+    "linux/cours1/notes.md",
+    "linux/cours1/Administration_Linux.ppt.pdf",
+    "linux/cours2/Unconfirmed 947938.crdownload",
+    "linux/cours2",
+    "linux/TP2-Script-Shell.pdf",
+    "Untitled.canvas",
+    "Untitled.base",
+    "2026-10-08.md",
+    "linux/cours1",
+    "linux/Unconfirmed 382744.crdownload",
+    "ComputerVision/TD/TD3-CV-2026.pdf",
     "ComputerVision/opencv/5-Convolution & Corrélation.md",
-    "ComputerVision/TD/TD2-CV-2026.pdf",
-    "Algo/cours3/Cours3-MeREA-PLNE-Meth-Coupes(B&C).pdf",
     "Algo/cours3/3-Les 4 algorithmiques PLNE.md",
     "Algo/cours3/1-Modéliser avec des variables entières.md",
     "Algo/cours3/0-Plan.md",
     "Algo/cours3/2-Relaxation linéaire et borne.md",
-    "java/OOP.md",
     "graph-theory/PrbOrdtd.md",
     "graph-theory/cours3-visuel.md",
     "graph-theory/cours2-visuel.md",
@@ -223,25 +243,14 @@
     "graph-theory/plots/resolution_graphique.png",
     "graph-theory/plots/step1_domaine.png",
     "Algo/cours3/Pasted image 20261006112650.png",
-    "Untitled.base",
-    "Algo/cours3/Serie2-TD-MeREA-meths-Coupes.pdf",
     "Algo/cours2/3. Introduction d'une nouvelle variable xₙ₊₁.md",
     "Algo/cours2/4.  nouvelle contrainte.md",
     "Algo/cours2/2. Modification d'un terme de droite bᵣ.md",
     "Algo/cours2/1.b Modification du coût cⱼ d'une variable de base.md",
     "Algo/cours2/1.a Modification du coût cⱼ hors base.md",
     "Algo/cours2/notes.md",
-    "Algo/cours2/example.md",
-    "ComputerVision/opencv/0-RoadMap.md",
-    "ComputerVision/Cours/Vision_Par_Ordinateur_1.pdf",
-    "Algo/cours2/Cours2-Pro-Math-Post-Opt.pdf",
-    "Algo/cours2/Serie1-TD-MeREA-postopt.pdf",
-    "graph-theory/td3.md",
     "Algo/cours2/Pasted image 20261005120634.png",
     "Algo/cours2/Pasted image 20261005122027.png",
-    "Algo/cours1/notes.md",
-    "Algo/cours2/Pasted image 20261005115935.png",
-    "Algo/cours2/Pasted image 20261005115855.png",
-    "Algo/cours1/Cours1-Intro-MeREA.pdf"
+    "Algo/cours2/Pasted image 20261005115935.png"
   ]
 }

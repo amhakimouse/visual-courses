@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
+
 
 def plot_ex4():
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -55,13 +56,12 @@ def plot_ex4():
     ax.set_xlabel('$x_1$', fontsize=12)
     ax.set_ylabel('$x_2$', fontsize=12)
     ax.legend(loc='upper right', fontsize=11)
-    ax.set_title('Exercice 4 : Domaine Admissible (Corrigé $x_2 \leq 4, x_1 \leq 5$)', fontsize=14)
+    ax.set_title(r'Exercice 4 : Domaine Admissible (Corrigé $x_2 \leq 4, x_1 \leq 5$)', fontsize=14)
     ax.grid(True, linestyle='--', alpha=0.7)
 
-    output_dir = 'plots'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    plt.savefig(os.path.join(output_dir, 'td2_ex4.png'), bbox_inches='tight')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td2_ex4.png', bbox_inches='tight')
     plt.close()
 
 if __name__ == "__main__":
