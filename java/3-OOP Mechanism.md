@@ -184,7 +184,7 @@ Un **tableau** stocke plusieurs valeurs **du même type** sous un seul nom. C’
                                                     pt[i] = new Point();
 ```
 
-### Le code des slides (classe `Tableaux`)
+### (classe `Tableaux`)
 
 java
 
@@ -262,3 +262,22 @@ Descendre dans la hiérarchie demande un cast, et deux vérifications se déclen
    erreur de compilation                 ClassCastException
 ```
 
+### Exemple complet
+
+
+```java
+Animal a = new Chien();     // type statique Animal, type dynamique Chien
+
+Chien c = (Chien) a;        // ✅ OK : l'objet EST un Chien
+```
+
+```java
+Animal a = new Animal();    // type dynamique : Animal
+
+Chien c = (Chien) a;        // ✅ compile (Chien extends Animal)
+                            // ❌ ClassCastException à l'exécution
+```
+
+```java
+String s = (String) a;      // ❌ ne compile pas : aucune relation d'héritage
+```
