@@ -10,8 +10,8 @@
  (résoudre   (ajouter     (énumérer         (② + ③
   RP seul)   des contr.)   intelligemment)   combinés)
 ```
-
 ---
+
 
 ### ① Unimodularité totale (TU)
 

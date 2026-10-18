@@ -29,6 +29,7 @@ graph LR
     Primal_P -- "Construction du Dual" --> Dual_D
 ```
 
+![[Pasted image 20261017162128.png]]
 ---
 
 ##  Règles Générales de Passage (Signes)
@@ -71,15 +72,7 @@ $$Z(X^*) = W(Y^*)$$
    ligne Z ≥ 0                          arrêt quand tout b ≥ 0
 ```
 
-### 2. Quand l'utiliser ?
-
-|Situation|Intérêt|
-|---|---|
-|Contraintes **≥** dans un problème de min|Évite les variables artificielles (Big-M / 2 phases)|
-|Ajout d'une contrainte après avoir résolu le PL|On repart du tableau optimal au lieu de tout refaire|
-|Analyse de sensibilité, branch & bound|Réoptimisation rapide|
-
-### 3. Les 4 étapes (inversion du primal)
+### 2. Les 4 étapes (inversion du primal)
 
 ```
 ┌──────────────────────────────────────────────────────────┐

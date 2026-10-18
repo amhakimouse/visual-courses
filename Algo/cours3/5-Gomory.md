@@ -82,6 +82,8 @@ Coupe (4) :
 
 ```
  −(2/3) t₁ − (2/3) t₂  ≤  −1/3     ⟺     t₁ + t₂ ≥ 1/2
+ 
+ injecter "t₁ + t₂ ≥ 1/2" dans les contraintes originales
 ```
 
 ⚠️ Piège : `⌊−1/3⌋ = −1` (pas 0), le plancher d’un négatif descend.
