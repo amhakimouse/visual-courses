@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLNE Exercice 6 — Coupe de Gomory, Simplexe Dual & Branch and Bound (SVG Animé)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- KaTeX for LaTeX Math -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ]
+    });"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @keyframes dashMove {
+      to { stroke-dashoffset: -40; }
+    }
+    @keyframes pulseRed {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(244, 63, 94, 1)); }
+    }
+    @keyframes pulseEmerald {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(16, 185, 129, 1)); }
+    }
+    @keyframes pulseAmber {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(251, 191, 36, 1)); }
+    }
+    .svg-dash-anim {
+      stroke-dasharray: 8 6;
+      animation: dashMove 1.3s linear infinite;
+    }
+    .glow-red {
+      animation: pulseRed 2s infinite ease-in-out;
+    }
+    .glow-green {
+      animation: pulseEmerald 2.2s infinite ease-in-out;
+    }
+    .glow-amber {
+      animation: pulseAmber 2.2s infinite ease-in-out;
+    }
+    .smooth-svg {
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-amber-500 selection:text-slate-950 pb-20">
+
+  <!-- ================= HEADER STICKY ================= -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 font-extrabold text-slate-950 text-lg">
+          E6
+        </div>
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block">TD PLNE — Coupe de Gomory &amp; Branch and Bound</span>
+          <h1 class="text-base sm:text-lg font-extrabold text-white">Exercice 6 : Chargement d'un Camion (X33 &amp; Y25)</h1>
+        </div>
+      </div>
+
+      <!-- Navigation rapide -->
+      <nav class="flex flex-wrap items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs">
+        <a href="#sec-cours" class="px-2.5 py-1.5 rounded-lg font-semibold text-amber-300 bg-slate-900/80 hover:bg-slate-900 transition">0. Cours SVG</a>
+        <a href="#sec-q1-q2" class="px-2.5 py-1.5 rounded-lg font-semibold text-sky-300 hover:bg-slate-700/60 transition">Q1 &amp; Q2. Modèle &amp; Simplexe</a>
+        <a href="#sec-q3" class="px-2.5 py-1.5 rounded-lg font-semibold text-amber-300 hover:bg-slate-700/60 transition">Q3. Coupe Gomory ($x_2$)</a>
+        <a href="#sec-q4" class="px-2.5 py-1.5 rounded-lg font-semibold text-emerald-300 hover:bg-slate-700/60 transition">Q4. Simplexe Dual</a>
+        <a href="#sec-q5" class="px-2.5 py-1.5 rounded-lg font-semibold text-purple-300 hover:bg-slate-700/60 transition">Q5. Branch &amp; Bound ($x_1$)</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 pt-6 space-y-12">
+
+    <!-- ================= SYNTHÈSE DE L'ÉNONCÉ & CAMION SVG ================= -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <!-- Données clés -->
+        <div class="lg:col-span-6 space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+            <span>🚚 Problème de Chargement Optimal (PL puis PLNE)</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-bold text-white">Optimiser le chiffre d'affaires d'un voyage unique</h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            On dispose d'un camion limité par <strong>deux capacités</strong> : une charge utile de <strong>$7\text{ tonnes}$</strong> et un volume maximal de <strong>$12\text{ m}^3$</strong>. On transporte deux marchandises secrètes <strong>X33</strong> (quantité $x_1$) et <strong>Y25</strong> (quantité $x_2$).
+          </p>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-2">
+            <table class="w-full text-xs text-center border-collapse mono">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-sans">
+                  <th class="py-2 px-2 text-left">Marchandise</th>
+                  <th class="py-2 px-2 text-sky-400">Variable</th>
+                  <th class="py-2 px-2 text-emerald-400">Chiffre d'affaires</th>
+                  <th class="py-2 px-2 text-amber-400">Poids spécifique</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/70">
+                <tr>
+                  <td class="py-2 px-2 text-left font-sans font-bold text-sky-300">Code X33</td>
+                  <td class="py-2 px-2 font-bold text-white">$x_1$</td>
+                  <td class="py-2 px-2 text-emerald-300 font-bold">30 € / unité</td>
+                  <td class="py-2 px-2 text-amber-300">1 tonne / m³</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-2 text-left font-sans font-bold text-indigo-300">Code Y25</td>
+                  <td class="py-2 px-2 font-bold text-white">$x_2$</td>
+                  <td class="py-2 px-2 text-emerald-300 font-bold">20 € / unité</td>
+                  <td class="py-2 px-2 text-amber-300">1/4 tonne / m³</td>
+                </tr>
+                <tr class="bg-slate-900/90">
+                  <td class="py-2 px-2 text-left font-sans font-bold text-rose-300" colspan="2">Limites du Camion</td>
+                  <td class="py-2 px-2 text-rose-300 font-bold">Max 7 tonnes</td>
+                  <td class="py-2 px-2 text-rose-300 font-bold">Max 12 m³</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Schéma SVG du Camion et des 5 Questions -->
+        <div class="lg:col-span-6 bg-slate-950 border border-slate-800 rounded-xl p-4">
+          <svg viewBox="0 0 540 245" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+            <!-- Titre -->
+            <text x="15" y="24" fill="#fbbf24" font-size="13" font-weight="bold">Schéma du Camion : Du Continu (Q1-Q2) à l'Entier (Q3-Q5)</text>
+
+            <!-- Remorque du camion -->
+            <rect x="20" y="42" width="290" height="120" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+            <!-- Cabine du camion -->
+            <path d="M 310 72 L 365 72 L 385 105 L 385 162 L 310 162 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+            <polygon points="320,82 358,82 373,105 320,105" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.5"/>
+            <!-- Roues -->
+            <circle cx="85" cy="168" r="18" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+            <circle cx="85" cy="168" r="6" fill="#38bdf8"/>
+            <circle cx="245" cy="168" r="18" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+            <circle cx="245" cy="168" r="6" fill="#38bdf8"/>
+            <circle cx="348" cy="168" r="18" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+            <circle cx="348" cy="168" r="6" fill="#38bdf8"/>
+
+            <!-- Contenu Marchandise X33 (Bleu) -->
+            <rect x="28" y="50" width="128" height="104" rx="6" fill="#0284c7" fill-opacity="0.35" stroke="#38bdf8" stroke-width="2"/>
+            <text x="92" y="85" fill="#7dd3fc" font-size="14" font-weight="bold" text-anchor="middle">Marchandise X33</text>
+            <text x="92" y="106" fill="#ffffff" font-size="12" font-family="monospace" text-anchor="middle">30 € | Poids: 1</text>
+            <text x="92" y="128" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Continu: 16/3 (5,33)</text>
+            <text x="92" y="145" fill="#34d399" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Entier: x₁* = 4</text>
+
+            <!-- Contenu Marchandise Y25 (Indigo/Emeraude) -->
+            <rect x="164" y="50" width="138" height="104" rx="6" fill="#4f46e5" fill-opacity="0.35" stroke="#818cf8" stroke-width="2"/>
+            <text x="233" y="85" fill="#c7d2fe" font-size="14" font-weight="bold" text-anchor="middle">Marchandise Y25</text>
+            <text x="233" y="106" fill="#ffffff" font-size="12" font-family="monospace" text-anchor="middle">20 € | Poids: 1/4</text>
+            <text x="233" y="128" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Continu: 20/3 (6,67)</text>
+            <text x="233" y="145" fill="#34d399" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Entier: x₂* = 8</text>
+
+            <!-- Panneau de droite : Comparaison des 2 méthodes -->
+            <rect x="400" y="42" width="128" height="68" rx="8" fill="#422006" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="464" y="62" fill="#fde047" font-size="11" font-weight="bold" text-anchor="middle">Q3-Q4: Gomory</text>
+            <text x="464" y="80" fill="#ffffff" font-size="11" font-family="monospace" text-anchor="middle">Coupe sur x₂</text>
+            <text x="464" y="98" fill="#34d399" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">➔ Z* = 280 €</text>
+
+            <rect x="400" y="120" width="128" height="68" rx="8" fill="#3b0764" stroke="#c084fc" stroke-width="1.5"/>
+            <text x="464" y="140" fill="#e9d5ff" font-size="11" font-weight="bold" text-anchor="middle">Q5: Branch &amp; Bound</text>
+            <text x="464" y="158" fill="#ffffff" font-size="11" font-family="monospace" text-anchor="middle">x₁ ≤ 5  ou  x₁ ≥ 6</text>
+            <text x="464" y="176" fill="#d8b4fe" font-size="10" text-anchor="middle">2 sous-PL à poser</text>
+
+            <!-- Barre de synthèse en bas -->
+            <rect x="20" y="200" width="508" height="34" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
+            <text x="274" y="221" fill="#cbd5e1" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">
+              Contraintes :  x₁ + (1/4)x₂ ≤ 7 (Poids)   |   x₁ + x₂ ≤ 12 (Volume)
+            </text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 0. RAPPEL DE COURS VISUEL (SVG ANIMÉ) ================= -->
+    <section id="sec-cours" class="space-y-6">
+      <div class="border-b border-slate-800 pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Étape 0 — Rappel de Cours (Avant de résoudre)</span>
+        <h2 class="text-2xl font-extrabold text-white">Comprendre la Coupe de Gomory, le Simplexe Dual et le Branch &amp; Bound</h2>
+      </div>
+
+      <!-- 3 Cartes de cours -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-rose-500/40 rounded-2xl p-4 space-y-2 bg-rose-950/10">
+          <div class="text-xs font-bold text-rose-400 uppercase">1. Le Piège de la Coupe sur $x_2$</div>
+          <h3 class="font-bold text-white text-sm">Partie fractionnaire de $-\frac{4}{3}$</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Tout nombre $a$ s'écrit $a = \lfloor a \rfloor + f$ avec <strong>$0 \le f < 1$</strong>. Pour un nombre négatif comme $-\frac{4}{3} \approx -1,33$, l'entier immédiatement inférieur (à gauche) est <strong>$-2$</strong> :
+            <span class="block mt-1.5 p-1.5 rounded bg-slate-950 text-amber-300 mono text-center font-bold">-4/3 = -2 + 2/3  ➔  f = +2/3</span>
+          </p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-emerald-400 uppercase">2. Le Pivot du Simplexe Dual</div>
+          <h3 class="font-bold text-white text-sm">Règle du Ratio Minimum</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            La coupe ajoute une variable de base $\overline{x}_3 = -\frac{2}{3} < 0$. Elle <strong>sort de la base</strong>. Pour choisir la variable qui <strong>entre</strong>, on calcule $\left|\frac{\text{Coût réduit } c_j}{\text{Coeff négatif } a_{3j}}\right|$ et on prend le <strong>plus petit ratio</strong>.
+          </p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-purple-400 uppercase">3. Le Branch &amp; Bound (Séparation)</div>
+          <h3 class="font-bold text-white text-sm">Couper l'intervalle vide $]5, 6[$</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Puisque $x_1 = \frac{16}{3} = 5,33$ et qu'aucun entier n'existe entre $5$ et $6$, on crée deux sous-problèmes : l'un avec <strong>$x_1 \le 5$</strong> et l'autre avec <strong>$x_1 \ge 6$</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- SCHÉMA SVG ANIMÉ : L'AXE DES NOMBRES POUR -4/3, +4/3 ET 20/3 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-base font-bold text-white">
+              🎬 Schéma SVG Animé : Décomposition de $-\frac{4}{3}$ et $+\frac{4}{3}$ sur la droite réelle (Question 3)
+            </h3>
+            <p class="text-xs text-slate-400">
+              Regarde pourquoi la partie fractionnaire de $-\frac{4}{3}$ vaut $+\frac{2}{3}$ alors que celle de $+\frac{4}{3}$ vaut $+\frac{1}{3}$. On part toujours de l'entier à gauche ($\lfloor a \rfloor$) et on avance vers la droite !
+            </p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mono">
+            a = ⌊a⌋ + f  avec  0 ≤ f &lt; 1
+          </span>
+        </div>
+
+        <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <svg viewBox="0 0 900 215" class="w-full h-auto min-w-[680px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Axe gradué de -2 à +2 -->
+            <!-- Échelle : -2 -> x=90, -1 -> x=270, 0 -> x=450, +1 -> x=630, +2 -> x=810 (1 unité = 180px, 1/3 = 60px) -->
+            <line x1="40" y1="130" x2="855" y2="130" stroke="#475569" stroke-width="3"/>
+            <polygon points="865,130 852,124 852,136" fill="#475569"/>
+            <polygon points="30,130 43,124 43,136" fill="#475569"/>
+
+            <!-- Petites graduations des tiers -->
+            <g stroke="#334155" stroke-width="2">
+              <line x1="150" y1="123" x2="150" y2="137"/>
+              <line x1="210" y1="123" x2="210" y2="137"/>
+              <line x1="330" y1="123" x2="330" y2="137"/>
+              <line x1="390" y1="123" x2="390" y2="137"/>
+              <line x1="510" y1="123" x2="510" y2="137"/>
+              <line x1="570" y1="123" x2="570" y2="137"/>
+              <line x1="690" y1="123" x2="690" y2="137"/>
+              <line x1="750" y1="123" x2="750" y2="137"/>
+            </g>
+
+            <!-- Graduations Entières : -2, -1, 0, +1, +2 -->
+            <g stroke="#34d399" stroke-width="3.5">
+              <line x1="90" y1="114" x2="90" y2="146"/>
+              <line x1="270" y1="114" x2="270" y2="146"/>
+              <line x1="450" y1="114" x2="450" y2="146"/>
+              <line x1="630" y1="114" x2="630" y2="146"/>
+              <line x1="810" y1="114" x2="810" y2="146"/>
+            </g>
+            <g fill="#34d399" font-size="16" font-weight="bold" font-family="monospace" text-anchor="middle">
+              <text x="90" y="170">-2</text>
+              <text x="270" y="170">-1</text>
+              <text x="450" y="170">0</text>
+              <text x="630" y="170">+1</text>
+              <text x="810" y="170">+2</text>
+            </g>
+            <text x="90" y="192" fill="#6ee7b7" font-size="11" text-anchor="middle">⌊-4/3⌋ = -2</text>
+            <text x="630" y="192" fill="#6ee7b7" font-size="11" text-anchor="middle">⌊+4/3⌋ = +1</text>
+
+            <!-- Point -4/3 (x = 90 + 120 = 210) -->
+            <circle cx="210" cy="130" r="8" fill="#f43f5e" stroke="#fef08a" stroke-width="2" class="glow-red"/>
+            <text x="210" y="170" fill="#fb7185" font-size="14" font-weight="bold" font-family="monospace" text-anchor="middle">-4/3</text>
+            <text x="210" y="190" fill="#fda4af" font-size="11" font-family="monospace" text-anchor="middle">(-1,33)</text>
+
+            <!-- Arc de -4/3 vers l'entier inférieur -2 -->
+            <path d="M 210 116 Q 150 75 95 115" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,4"/>
+            <text x="150" y="82" fill="#94a3b8" font-size="10" text-anchor="middle">1. Entier à gauche : -2</text>
+
+            <!-- Arc animé de -2 vers -4/3 : f = +2/3 -->
+            <path d="M 90 118 Q 150 28 205 118" fill="none" stroke="#fbbf24" stroke-width="3.5" class="svg-dash-anim"/>
+            <rect x="65" y="16" width="175" height="34" rx="8" fill="#422006" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="152" y="38" fill="#fde047" font-size="13" font-weight="bold" font-family="monospace" text-anchor="middle">-4/3 = -2 + 2/3 ➔ f₁ = 2/3</text>
+
+            <!-- Point +4/3 (x = 630 + 60 = 690) -->
+            <circle cx="690" cy="130" r="8" fill="#38bdf8" stroke="#fef08a" stroke-width="2"/>
+            <text x="690" y="170" fill="#38bdf8" font-size="14" font-weight="bold" font-family="monospace" text-anchor="middle">+4/3</text>
+            <text x="690" y="190" fill="#7dd3fc" font-size="11" font-family="monospace" text-anchor="middle">(+1,33)</text>
+
+            <!-- Arc animé de +1 vers +4/3 : f = +1/3 -->
+            <path d="M 630 118 Q 660 45 686 118" fill="none" stroke="#38bdf8" stroke-width="3.5" class="svg-dash-anim"/>
+            <rect x="575" y="16" width="175" height="34" rx="8" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="662" y="38" fill="#7dd3fc" font-size="13" font-weight="bold" font-family="monospace" text-anchor="middle">+4/3 = +1 + 1/3 ➔ f₂ = 1/3</text>
+
+            <!-- Encadré central pour b2 = 20/3 -->
+            <rect x="300" y="16" width="245" height="58" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="422" y="37" fill="#f8fafc" font-size="12" font-weight="bold" text-anchor="middle">Et pour le second membre b₂ = 20/3 ?</text>
+            <text x="422" y="59" fill="#34d399" font-size="13" font-weight="bold" font-family="monospace" text-anchor="middle">20/3 = 18/3 + 2/3 = 6 + 2/3 ➔ f = 2/3</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= QUESTIONS 1 & 2 : MODÉLISATION (P) & TABLEAU DU SIMPLEXE ================= -->
+    <section id="sec-q1-q2" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Questions 1 &amp; 2 — Modélisation Linéaire &amp; Simplexe</span>
+          <h2 class="text-2xl font-extrabold text-white">1. Programme Linéaire $(P)$ &amp; 2. Tableau Initial et Optimal du Simplexe</h2>
+        </div>
+        <span class="text-xs text-slate-400 mono">Variables d'écart : $\overline{x}_1 \ge 0$ et $\overline{x}_2 \ge 0$</span>
+      </div>
+
+      <!-- Explication de la modélisation Q1 et de la cohérence avec le tableau de l'énoncé -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <h3 class="text-base font-bold text-sky-400">1. Rédaction de la Question 1 : Le Programme $(P)$</h3>
+
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs sm:text-sm">
+            <div class="font-bold text-white">Modèle Mathématique $(P)$ correspondant au tableau de l'énoncé :</div>
+            <div class="py-1 text-slate-100">
+              $$\text{$(P)$} \quad \begin{cases}
+              \max Z = 30x_1 + 20x_2 & \text{(Chiffre d'affaires en €)} \\[6pt]
+              \text{s.c.} \quad \begin{aligned}
+              x_1 + \frac{1}{4}x_2 &\le 7 & \text{(Contrainte 1 : Charge max } 7\text{ t)} \\
+              x_1 + x_2 &\le 12 & \text{(Contrainte 2 : Capacité max } 12\text{ m}^3\text{)} \\
+              x_1, x_2 &\ge 0
+              \end{aligned}
+              \end{cases}$$
+            </div>
+          </div>
+
+          <!-- Astuce Examen : Pourquoi ce système correspond exactement au tableau de l'énoncé -->
+          <div class="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs space-y-2">
+            <div class="font-bold text-amber-300 flex items-center gap-1.5">
+              <span>💡</span>
+              <span>Astuce Examen — Comment vérifier que c'est bien le système du professeur ?</span>
+            </div>
+            <p class="text-amber-100/90 leading-relaxed">
+              Dans le tableau optimal donné par l'énoncé, la solution continue vaut $x_1 = \frac{16}{3}$ et $x_2 = \frac{20}{3}$. Vérifions en remplaçant dans nos deux contraintes saturées ($\overline{x}_1 = 0, \overline{x}_2 = 0$) :
+            </p>
+            <ul class="mono text-amber-200 space-y-1">
+              <li>• Contrainte 1 : $\frac{16}{3} + \frac{1}{4}\left(\frac{20}{3}\right) = \frac{16}{3} + \frac{5}{3} = \frac{21}{3} = \mathbf{7}$ ✓</li>
+              <li>• Contrainte 2 : $\frac{16}{3} + \frac{20}{3} = \frac{36}{3} = \mathbf{12}$ ✓</li>
+              <li>• Objectif $Z$ : $30\left(\frac{16}{3}\right) + 20\left(\frac{20}{3}\right) = \frac{480 + 400}{3} = \mathbf{\frac{880}{3}}$ ✓</li>
+            </ul>
+            <p class="text-slate-400 text-[11px] pt-1">
+              <em>Note : Si l'on interprétait physiquement $x_1, x_2$ en tonnes où $1\text{ t}$ de Y25 occupe $\frac{1}{1/4}=4\text{ m}^3$, on écrirait $x_1+x_2 \le 7$ et $x_1+4x_2 \le 12$. Mentionne-le en remarque sur ta copie, puis utilise le système ci-dessus qui donne exactement le tableau de l'énoncé !</em>
+            </p>
+          </div>
+
+          <!-- Question 2 : Tableau du Simplexe Interactif (Initial -> Itération 1 -> Optimal) -->
+          <div class="space-y-3 pt-2 border-t border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-base font-bold text-white">2. Tableaux du Simplexe (Q2)</h3>
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button id="btn-p-0" onclick="setSimplexP(0)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">1. Tableau Initial (Q2)</button>
+                <button id="btn-p-1" onclick="setSimplexP(1)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">2. Itération 1</button>
+                <button id="btn-p-2" onclick="setSimplexP(2)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">3. Tableau Optimal (Énoncé)</button>
+              </div>
+            </div>
+
+            <div id="p-simplex-banner" class="p-3 rounded-xl bg-sky-950/40 border border-sky-500/40 text-xs text-sky-200">
+              <!-- Rempli par JS -->
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+              <table class="w-full text-xs sm:text-sm text-center border-collapse mono">
+                <thead>
+                  <tr class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                    <th class="py-2.5 px-3 text-left font-sans">Base</th>
+                    <th class="py-2.5 px-3 text-sky-400">$x_1$</th>
+                    <th class="py-2.5 px-3 text-sky-400">$x_2$</th>
+                    <th class="py-2.5 px-3 text-slate-200">$\overline{x}_1$</th>
+                    <th class="py-2.5 px-3 text-slate-200">$\overline{x}_2$</th>
+                    <th class="py-2.5 px-3 text-purple-400">$z$</th>
+                    <th class="py-2.5 px-3 text-amber-400 font-bold">$b$</th>
+                  </tr>
+                </thead>
+                <tbody id="p-simplex-body" class="divide-y divide-slate-800/80">
+                  <!-- Rempli par JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne Droite : Graphique Géométrique SVG (Continu vs Coupe de Gomory) -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-white">Visualisation Géométrique 2D : $(P)$ et Coupe de Gomory</h3>
+              <p class="text-xs text-slate-400">Observe le sommet fractionnaire $B(16/3, 20/3)$ et l'effet de la coupe $2x_1 + x_2 \le 16$.</p>
+            </div>
+            <button id="btn-toggle-cut-e6" onclick="toggleCutE6()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow transition">
+              ✂️ Afficher / Masquer la Coupe (Q3-Q4)
+            </button>
+          </div>
+
+          <!-- SVG GRAPHIQUE 2D :
+               Origine (0,0) -> (65, 355)
+               Échelle : 1 unité = 24 px (x1 de 0 à 13 -> max X = 377 ; x2 de 0 à 13 -> min Y = 43)
+               Points clés :
+               O(0,0) -> (65, 355)
+               A(7,0) -> (65 + 168 = 233, 355)
+               B(16/3 = 5.333, 20/3 = 6.667) -> (65 + 128 = 193, 355 - 160 = 195)
+               C(0, 12) -> (65, 355 - 288 = 67)
+               Point Entier Optimal avec la coupe : E*(4, 8) -> (65 + 96 = 161, 355 - 192 = 163)
+               Coupe 2x1 + x2 = 16 : passe par (2, 12)->(113, 67), E*(4, 8)->(161, 163), (6, 4)->(209, 259), (8, 0)->(257, 355)
+          -->
+          <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2">
+            <svg viewBox="0 0 500 400" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grille entière (pas de 2 unités = 48px) -->
+              <g stroke="#1e293b" stroke-width="1">
+                <line x1="113" y1="35" x2="113" y2="355"/>
+                <line x1="161" y1="35" x2="161" y2="355"/>
+                <line x1="209" y1="35" x2="209" y2="355"/>
+                <line x1="257" y1="35" x2="257" y2="355"/>
+                <line x1="305" y1="35" x2="305" y2="355"/>
+                <line x1="353" y1="35" x2="353" y2="355"/>
+                <line x1="65" y1="307" x2="420" y2="307"/>
+                <line x1="65" y1="259" x2="420" y2="259"/>
+                <line x1="65" y1="211" x2="420" y2="211"/>
+                <line x1="65" y1="163" x2="420" y2="163"/>
+                <line x1="65" y1="115" x2="420" y2="115"/>
+                <line x1="65" y1="67" x2="420" y2="67"/>
+              </g>
+
+              <!-- Domaine réalisable continu O(65,355) - A(233,355) - B(193,195) - C(65,67) -->
+              <polygon points="65,355 233,355 193,195 65,67" fill="rgba(56, 189, 248, 0.16)" stroke="none"/>
+
+              <!-- Zone coupée par la coupe de Gomory 2x1 + x2 <= 16 : entre E*(4,8)=(161,163), B(193,195) et (201, 243) -->
+              <g id="e6-cut-group" class="smooth-svg" opacity="1">
+                <!-- Intersection de 2x1 + x2 = 16 avec x1 + 0.25x2 = 7 : x1 = 15/3.5 = 30/7 = 4.28, wait: 2x1+x2=16 => x2=16-2x1 => x1 + 4 - 0.5x1 = 7 => 0.5x1 = 3 => x1 = 6, x2 = 4 ! -->
+                <!-- Donc la coupe passe exactement par E*(4,8)=(161,163) sur x1+x2=12 et par F(6,4)=(209,259) sur x1+0.25x2=7 ! -->
+                <polygon points="161,163 193,195 209,259" fill="rgba(244, 63, 94, 0.42)" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="3,3"/>
+                <line x1="113" y1="67" x2="257" y2="355" stroke="#fbbf24" stroke-width="3" class="svg-dash-anim"/>
+                <rect x="235" y="268" width="210" height="26" rx="6" fill="#422006" stroke="#fbbf24" stroke-width="1.5"/>
+                <text x="340" y="285" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Coupe Gomory : 2x₁ + x₂ ≤ 16</text>
+              </g>
+
+              <!-- Droite Contrainte 2 : x1 + x2 = 12 -> C(0,12)=(65,67) à (12,0)=(353,355) -->
+              <line x1="65" y1="67" x2="353" y2="355" stroke="#818cf8" stroke-width="2.5"/>
+              <text x="275" y="235" fill="#a5b4fc" font-size="11" font-weight="bold" font-family="monospace">x₁ + x₂ ≤ 12 (x̄₂=0)</text>
+
+              <!-- Droite Contrainte 1 : x1 + (1/4)x2 = 7 -> (4,12)=(161,67) à A(7,0)=(233,355) -->
+              <line x1="155" y1="43" x2="233" y2="355" stroke="#38bdf8" stroke-width="2.5"/>
+              <text x="238" y="340" fill="#38bdf8" font-size="11" font-weight="bold" font-family="monospace">x₁ + ¼x₂ ≤ 7 (x̄₁=0)</text>
+
+              <!-- Axes -->
+              <line x1="45" y1="355" x2="435" y2="355" stroke="#94a3b8" stroke-width="2"/>
+              <line x1="65" y1="375" x2="65" y2="25" stroke="#94a3b8" stroke-width="2"/>
+              <text x="425" y="375" fill="#f8fafc" font-size="13" font-weight="bold">x₁</text>
+              <text x="42" y="35" fill="#f8fafc" font-size="13" font-weight="bold">x₂</text>
+
+              <!-- Graduations -->
+              <g fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="middle">
+                <text x="113" y="370">2</text>
+                <text x="161" y="370">4</text>
+                <text x="209" y="370">6</text>
+                <text x="233" y="370" fill="#38bdf8">7</text>
+                <text x="257" y="370">8</text>
+                <text x="353" y="370">12</text>
+                <text x="50" y="311">2</text>
+                <text x="50" y="263">4</text>
+                <text x="50" y="215">6</text>
+                <text x="50" y="167">8</text>
+                <text x="50" y="119">10</text>
+                <text x="50" y="71">12</text>
+              </g>
+
+              <!-- Points entiers remarquables -->
+              <circle cx="209" cy="259" r="5" fill="#10b981" stroke="#052e16" stroke-width="1.5"/>
+              <text x="220" y="256" fill="#6ee7b7" font-size="10" font-family="monospace">(6,4) [Z=260]</text>
+
+              <circle cx="185" cy="211" r="5" fill="#10b981" stroke="#052e16" stroke-width="1.5"/>
+              <text x="122" y="215" fill="#6ee7b7" font-size="10" font-family="monospace">(5,6) [Z=270]</text>
+
+              <!-- Point Optimal Entier après Coupe : E*(4, 8) -> (161, 163) -->
+              <g class="glow-green">
+                <circle cx="161" cy="163" r="8" fill="#10b981" stroke="#fef08a" stroke-width="2.5"/>
+              </g>
+              <rect x="75" y="96" width="172" height="42" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1.8"/>
+              <text x="85" y="114" fill="#ffffff" font-size="11" font-weight="bold" font-family="monospace">★ Optimum Coupe : (4, 8)</text>
+              <text x="85" y="130" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace">x₁*=4, x₂*=8 ➔ Z*=280 €</text>
+
+              <!-- Sommet Optimal Continu B(16/3, 20/3) -> (193, 195) -->
+              <g class="glow-red">
+                <circle cx="193" cy="195" r="7" fill="#f43f5e" stroke="#fef08a" stroke-width="2"/>
+              </g>
+              <rect x="208" y="142" width="235" height="44" rx="8" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+              <text x="218" y="160" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace">Optimum Relaxé : B(16/3, 20/3)</text>
+              <text x="218" y="176" fill="#fef08a" font-size="11" font-weight="bold" font-family="monospace">Z = 880/3 ≈ 293,33 € (Non entier)</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= QUESTION 3 : COUPE DE GOMORY SUR LA VARIABLE x2 ================= -->
+    <section id="sec-q3" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Question 3 — Extraction Chirurgicale de la Coupe</span>
+          <h2 class="text-2xl font-extrabold text-white">3. Donner la coupe de Gomory associée à la variable $x_2$</h2>
+        </div>
+        <span class="text-xs text-amber-300 mono">Ligne 2 du tableau optimal : $x_2 - \frac{4}{3}\overline{x}_1 + \frac{4}{3}\overline{x}_2 = \frac{20}{3}$</span>
+      </div>
+
+      <!-- GRAND SCHÉMA SVG D'ANATOMIE DE LA COUPE SUR x2 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+        <h3 class="text-base font-bold text-white">
+          🔬 Schéma SVG : Décomposition terme par terme de la ligne $x_2$ en $\lfloor a \rfloor + f$ (avec $0 \le f < 1$)
+        </h3>
+
+        <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <svg viewBox="0 0 900 320" class="w-full h-auto min-w-[680px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Équation de départ -->
+            <rect x="20" y="15" width="860" height="52" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="38" y="46" fill="#94a3b8" font-size="14" font-weight="bold">Ligne de x₂ :</text>
+            <text x="190" y="47" fill="#38bdf8" font-size="18" font-weight="bold" font-family="monospace">1 · x₂</text>
+            <text x="285" y="47" fill="#cbd5e1" font-size="18" font-weight="bold" font-family="monospace">+</text>
+            <text x="335" y="47" fill="#f43f5e" font-size="18" font-weight="bold" font-family="monospace">(-4/3) · x̄₁</text>
+            <text x="495" y="47" fill="#cbd5e1" font-size="18" font-weight="bold" font-family="monospace">+</text>
+            <text x="545" y="47" fill="#60a5fa" font-size="18" font-weight="bold" font-family="monospace">(+4/3) · x̄₂</text>
+            <text x="705" y="47" fill="#cbd5e1" font-size="18" font-weight="bold" font-family="monospace">=</text>
+            <text x="760" y="47" fill="#fbbf24" font-size="18" font-weight="bold" font-family="monospace">20/3</text>
+
+            <!-- Flèches animées -->
+            <line x1="220" y1="67" x2="220" y2="105" stroke="#475569" stroke-width="2" class="svg-dash-anim"/>
+            <line x1="400" y1="67" x2="400" y2="105" stroke="#f43f5e" stroke-width="2.5" class="svg-dash-anim"/>
+            <line x1="610" y1="67" x2="610" y2="105" stroke="#38bdf8" stroke-width="2.5" class="svg-dash-anim"/>
+            <line x1="795" y1="67" x2="795" y2="105" stroke="#fbbf24" stroke-width="2.5" class="svg-dash-anim"/>
+
+            <!-- Boîte 1 : x2 -->
+            <rect x="135" y="108" width="165" height="88" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+            <text x="217" y="130" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle">Coeff de x₂ : 1</text>
+            <text x="217" y="155" fill="#34d399" font-size="15" font-weight="bold" text-anchor="middle" font-family="monospace">1 = 1 + 0</text>
+            <text x="217" y="180" fill="#64748b" font-size="12" text-anchor="middle" font-family="monospace">f = 0 (Entier)</text>
+
+            <!-- Boîte 2 : x_bar_1 (-4/3) -->
+            <rect x="315" y="108" width="190" height="88" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2.5"/>
+            <text x="410" y="130" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">⚠️ Coeff de x̄₁ : -4/3</text>
+            <text x="410" y="155" fill="#ffffff" font-size="15" font-weight="bold" text-anchor="middle" font-family="monospace">-4/3 = -2 + 2/3</text>
+            <text x="410" y="180" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f₁ = +2/3</text>
+
+            <!-- Boîte 3 : x_bar_2 (+4/3) -->
+            <rect x="520" y="108" width="185" height="88" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <text x="612" y="130" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">Coeff de x̄₂ : +4/3</text>
+            <text x="612" y="155" fill="#ffffff" font-size="15" font-weight="bold" text-anchor="middle" font-family="monospace">+4/3 = 1 + 1/3</text>
+            <text x="612" y="180" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f₂ = +1/3</text>
+
+            <!-- Boîte 4 : Second membre 20/3 -->
+            <rect x="720" y="108" width="160" height="88" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+            <text x="800" y="130" fill="#fde047" font-size="12" font-weight="bold" text-anchor="middle">Membre droit : 20/3</text>
+            <text x="800" y="155" fill="#ffffff" font-size="15" font-weight="bold" text-anchor="middle" font-family="monospace">20/3 = 6 + 2/3</text>
+            <text x="800" y="180" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f = +2/3</text>
+
+            <!-- Regroupement -->
+            <path d="M 410 196 L 410 225 L 550 225" fill="none" stroke="#fde047" stroke-width="2"/>
+            <path d="M 612 196 L 612 225 L 550 225" fill="none" stroke="#fde047" stroke-width="2"/>
+            <path d="M 800 196 L 800 225 L 550 225" fill="none" stroke="#fde047" stroke-width="2"/>
+            <line x1="550" y1="225" x2="550" y2="245" stroke="#fde047" stroke-width="2.5"/>
+
+            <!-- Boîte Finale Coupe -->
+            <rect x="135" y="245" width="745" height="62" rx="12" fill="#064e3b" stroke="#34d399" stroke-width="2.5"/>
+            <text x="158" y="270" fill="#a7f3d0" font-size="13" font-weight="bold">Coupe de Gomory (∑ fⱼ · x̄ⱼ ≥ f) :</text>
+            <text x="415" y="271" fill="#fde047" font-size="16" font-weight="bold" font-family="monospace">(2/3)x̄₁ + (1/3)x̄₂ ≥ 2/3</text>
+            <text x="158" y="294" fill="#ffffff" font-size="13" font-family="monospace">• Avec variable d'écart x̄₃ ≥ 0 :   -(2/3)x̄₁ - (1/3)x̄₂ + x̄₃ = -2/3</text>
+          </svg>
+        </div>
+
+        <!-- Rédaction mathématique détaillée de la Question 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-amber-400">Rédaction étape par étape sur ta copie (Q3) :</div>
+            <p class="text-slate-300 leading-relaxed">
+              On extrait la deuxième ligne du tableau optimal associée à la variable de base $x_2$ :
+              $$x_2 - \frac{4}{3}\overline{x}_1 + \frac{4}{3}\overline{x}_2 = \frac{20}{3}$$
+              On décompose chaque coefficient sous la forme $\lfloor a \rfloor + f$ avec $0 \le f < 1$ :
+              $$x_2 + \left(-2 + \frac{2}{3}\right)\overline{x}_1 + \left(1 + \frac{1}{3}\right)\overline{x}_2 = 6 + \frac{2}{3}$$
+              En isolant les parties fractionnaires :
+              $$\frac{2}{3}\overline{x}_1 + \frac{1}{3}\overline{x}_2 - \frac{2}{3} = 6 - x_2 + 2\overline{x}_1 - \overline{x}_2 \in \mathbb{Z}$$
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2">
+            <div class="font-bold text-emerald-400">Forme standard de la coupe pour le tableau (Q4) :</div>
+            <p class="text-slate-300 leading-relaxed">
+              Comme $\frac{2}{3}\overline{x}_1 + \frac{1}{3}\overline{x}_2 \ge 0$, ce membre gauche doit être un entier $\ge 0$, d'où l'inégalité de coupe de Gomory :
+              $$\frac{2}{3}\overline{x}_1 + \frac{1}{3}\overline{x}_2 \ge \frac{2}{3} \iff -\frac{2}{3}\overline{x}_1 - \frac{1}{3}\overline{x}_2 \le -\frac{2}{3}$$
+              En introduisant une nouvelle variable d'écart entière $\overline{x}_3 \ge 0$, on obtient la ligne à ajouter au tableau :
+              $$\mathbf{-\frac{2}{3}\overline{x}_1 - \frac{1}{3}\overline{x}_2 + \overline{x}_3 = -\frac{2}{3}}$$
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= QUESTION 4 : INTÉGRATION DE LA COUPE & SIMPLEXE DUAL ================= -->
+    <section id="sec-q4" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Question 4 — Poursuite de la Résolution (Simplexe Dual)</span>
+          <h2 class="text-2xl font-extrabold text-white">4. Intégrer la coupe calculée et poursuivre la résolution</h2>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button id="btn-dual6-0" onclick="setDualStepE6(0)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Étape 1 : Ajout de $\overline{x}_3$</button>
+          <button id="btn-dual6-1" onclick="setDualStepE6(1)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Étape 2 : Choix du Pivot</button>
+          <button id="btn-dual6-2" onclick="setDualStepE6(2)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Étape 3 : Tableau Optimal Entier</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Tableau Dual Interactif -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div id="dual6-banner" class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs sm:text-sm text-emerald-200">
+            <!-- Rempli par JS -->
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+            <table class="w-full text-xs sm:text-sm text-center border-collapse mono">
+              <thead>
+                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                  <th class="py-2.5 px-3 text-left font-sans">Base</th>
+                  <th class="py-2.5 px-3 text-sky-400">$x_1$</th>
+                  <th class="py-2.5 px-3 text-sky-400">$x_2$</th>
+                  <th class="py-2.5 px-3 text-slate-200">$\overline{x}_1$</th>
+                  <th class="py-2.5 px-3 text-slate-200">$\overline{x}_2$</th>
+                  <th class="py-2.5 px-3 text-amber-400">$\overline{x}_3$ (Coupe)</th>
+                  <th class="py-2.5 px-3 text-purple-400">$z$</th>
+                  <th class="py-2.5 px-3 text-emerald-400 font-bold">$b$</th>
+                </tr>
+              </thead>
+              <tbody id="dual6-body" class="divide-y divide-slate-800/80">
+                <!-- Rempli par JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Schéma SVG des combinaisons linéaires du pivotage -->
+          <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <svg viewBox="0 0 680 160" class="w-full h-auto min-w-[540px]" xmlns="http://www.w3.org/2000/svg">
+              <text x="15" y="22" fill="#34d399" font-size="13" font-weight="bold">Astuce de Calcul Rapide des Lignes (Pivot = -2/3 dans la colonne x̄₁) :</text>
+
+              <!-- Colonne gauche : Ligne Pivot -->
+              <rect x="15" y="34" width="310" height="112" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+              <text x="28" y="56" fill="#7dd3fc" font-size="12" font-weight="bold">1. Nouvelle ligne L₃' (x̄₁ remplace x̄₃) :</text>
+              <text x="28" y="78" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace">L₃' = L₃ ÷ (-2/3) = (-3/2) · L₃</text>
+              <text x="28" y="100" fill="#ffffff" font-size="12" font-family="monospace">• Coeffs : (0, 0, 1, 1/2, -3/2, 0)</text>
+              <text x="28" y="122" fill="#34d399" font-size="12" font-weight="bold" font-family="monospace">• Second membre : (-3/2)·(-2/3) = +1</text>
+
+              <!-- Colonne droite : Élimination super rapide -->
+              <rect x="340" y="34" width="325" height="112" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+              <text x="353" y="56" fill="#a7f3d0" font-size="12" font-weight="bold">2. Élimination directe avec L₃ (coeff = -2/3) :</text>
+              <text x="353" y="78" fill="#ffffff" font-size="11.5" font-family="monospace">• L₁' = L₁ + 2·L₃  ➔ x₁ = 16/3 + 2(-2/3) = 4</text>
+              <text x="353" y="100" fill="#ffffff" font-size="11.5" font-family="monospace">• L₂' = L₂ - 2·L₃  ➔ x₂ = 20/3 - 2(-2/3) = 8</text>
+              <text x="353" y="122" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace">• Lz' = Lz + 20·L₃ ➔ z* = 880/3 + 20(-2/3) = 280</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Explication détaillée pour la copie (Question 4) -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs sm:text-sm">
+          <h3 class="text-lg font-bold text-emerald-400">Rédaction Examen (Question 4)</h3>
+
+          <div class="space-y-3 text-slate-300">
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+              <div class="font-bold text-rose-400">1) Variable sortante :</div>
+              <p>
+                Dans le tableau augmenté de la coupe, la variable de base $\overline{x}_3$ vaut $b_{\overline{x}_3} = -\frac{2}{3} < 0$. C'est la seule variable négative : <strong>$\overline{x}_3$ sort de la base</strong>.
+              </p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="font-bold text-amber-400">2) Variable entrante (Règle du Simplexe Dual) :</div>
+              <p>
+                On examine les coefficients strictement négatifs ($a_{3j} < 0$) sur la ligne de $\overline{x}_3$ et on minimise le rapport $\left|\frac{c_j}{a_{3j}}\right|$ :
+              </p>
+              <div class="p-2 rounded bg-slate-900 text-slate-100 text-center">
+                $$\min \left\{ \underbrace{\frac{40/3}{|-2/3|}}_{\text{col. }\overline{x}_1 \; = \; \mathbf{20}} \; , \; \underbrace{\frac{50/3}{|-1/3|}}_{\text{col. }\overline{x}_2 \; = \; 50} \right\} = 20$$
+              </div>
+              <p class="text-emerald-300 font-semibold">
+                Le minimum ($20$) est atteint pour la colonne $\overline{x}_1$ : <strong>$\overline{x}_1$ entre dans la base</strong>. Le pivot est <strong>$-\frac{2}{3}$</strong>.
+              </p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-1">
+              <div class="font-bold text-emerald-300">3) Solution Optimale Entière :</div>
+              <p class="text-emerald-100">
+                Après un seul pivotage, tous les seconds membres sont positifs et <strong>entiers</strong> ($x_1 = 4, x_2 = 8, \overline{x}_1 = 1$). L'algorithme s'arrête :
+                $$\mathbf{x_1^* = 4, \quad x_2^* = 8, \quad Z^* = 280\text{ euros}}$$
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= QUESTION 5 : MÉTHODE DE BRANCH AND BOUND SUR x1 ================= -->
+    <section id="sec-q5" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Question 5 — Séparation et Évaluation (Branch &amp; Bound)</span>
+          <h2 class="text-2xl font-extrabold text-white">5. Séparation suivant la variable $x_1$ : quels sont les PLs à résoudre ?</h2>
+        </div>
+        <span class="text-xs text-purple-300 mono">Au sommet continu : $x_1 = \frac{16}{3} = 5,333... \notin \mathbb{N}$</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Schéma SVG de l'Arbre de Branch & Bound + Bande interdite ]5, 6[ -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <h3 class="text-base font-bold text-white">
+            🌳 Schéma SVG Animé : Arbre de Séparation sur $x_1 = \frac{16}{3}$ et Zone Interdite $]5, 6[$
+          </h3>
+
+          <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <svg viewBox="0 0 680 340" class="w-full h-auto min-w-[540px]" xmlns="http://www.w3.org/2000/svg">
+              <!-- NŒUD RACINE (P) -->
+              <rect x="195" y="15" width="290" height="78" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+              <text x="340" y="38" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">NŒUD RACINE : Programme Relaxé (P)</text>
+              <text x="340" y="59" fill="#ffffff" font-size="13" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 16/3 ≈ 5,33  |  x₂ = 20/3 ≈ 6,67</text>
+              <text x="340" y="79" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 880/3 ≈ 293,33 €  (5 &lt; x₁ &lt; 6)</text>
+
+              <!-- Arêtes de séparation animées -->
+              <path d="M 270 93 L 160 165" fill="none" stroke="#34d399" stroke-width="3.5" class="svg-dash-anim"/>
+              <path d="M 410 93 L 520 165" fill="none" stroke="#c084fc" stroke-width="3.5" class="svg-dash-anim"/>
+
+              <!-- Étiquettes sur les branches -->
+              <rect x="125" y="110" width="145" height="28" rx="6" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+              <text x="197" y="128" fill="#6ee7b7" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ ⌊16/3⌋ = 5</text>
+
+              <rect x="410" y="110" width="145" height="28" rx="6" fill="#3b0764" stroke="#c084fc" stroke-width="1.5"/>
+              <text x="482" y="128" fill="#e9d5ff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ ⌈16/3⌉ = 6</text>
+
+              <!-- SOUS-PROBLÈME GAUCHE (PL1) -->
+              <rect x="20" y="168" width="295" height="150" rx="12" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
+              <text x="167" y="192" fill="#34d399" font-size="14" font-weight="bold" text-anchor="middle">Sous-problème (PL₁)</text>
+              <text x="40" y="216" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace">Max Z = 30x₁ + 20x₂</text>
+              <text x="40" y="238" fill="#cbd5e1" font-size="12" font-family="monospace">s.c.  x₁ + (1/4)x₂ ≤ 7</text>
+              <text x="40" y="258" fill="#cbd5e1" font-size="12" font-family="monospace">      x₁ + x₂      ≤ 12</text>
+              <rect x="35" y="268" width="265" height="24" rx="5" fill="#064e3b"/>
+              <text x="45" y="284" fill="#6ee7b7" font-size="12" font-weight="bold" font-family="monospace">    + Contrainte :  x₁ ≤ 5</text>
+              <text x="40" y="307" fill="#94a3b8" font-size="11" font-family="monospace">      x₁ ≥ 0, x₂ ≥ 0</text>
+
+              <!-- SOUS-PROBLÈME DROITE (PL2) -->
+              <rect x="365" y="168" width="295" height="150" rx="12" fill="#0f172a" stroke="#c084fc" stroke-width="2.5"/>
+              <text x="512" y="192" fill="#c084fc" font-size="14" font-weight="bold" text-anchor="middle">Sous-problème (PL₂)</text>
+              <text x="385" y="216" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace">Max Z = 30x₁ + 20x₂</text>
+              <text x="385" y="238" fill="#cbd5e1" font-size="12" font-family="monospace">s.c.  x₁ + (1/4)x₂ ≤ 7</text>
+              <text x="385" y="258" fill="#cbd5e1" font-size="12" font-family="monospace">      x₁ + x₂      ≤ 12</text>
+              <rect x="380" y="268" width="265" height="24" rx="5" fill="#3b0764"/>
+              <text x="390" y="284" fill="#e9d5ff" font-size="12" font-weight="bold" font-family="monospace">    + Contrainte :  x₁ ≥ 6</text>
+              <text x="385" y="307" fill="#94a3b8" font-size="11" font-family="monospace">      x₁ ≥ 0, x₂ ≥ 0</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Rédaction Complète Question 5 pour la copie -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs sm:text-sm">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-full bg-purple-500 text-white font-extrabold text-xs">À Écrire sur ta Copie</span>
+            <h3 class="text-base font-bold text-white">Rédaction de la Question 5</h3>
+          </div>
+
+          <p class="text-slate-300 leading-relaxed">
+            À l'optimum du problème continu relaxé $(P)$, la variable $x_1$ prend la valeur fractionnaire :
+            $$x_1 = \frac{16}{3} = 5 + \frac{1}{3} \approx 5,33 \notin \mathbb{N}$$
+            Encadrons $x_1$ par les deux entiers consécutifs :
+            $$\left\lfloor \frac{16}{3} \right\rfloor = 5 \quad \text{et} \quad \left\lceil \frac{16}{3} \right\rceil = 6$$
+            Puisqu'aucune solution entière ne peut vérifier $5 < x_1 < 6$, on sépare $(P)$ en <strong>deux sous-programmes linéaires continus $(PL_1)$ et $(PL_2)$</strong> à résoudre à l'étape suivante :
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40">
+              <div class="font-bold text-emerald-400 mb-1">Programme $(PL_1)$ :</div>
+              <div class="text-xs text-slate-100">
+                $$\begin{cases}
+                \max Z = 30x_1 + 20x_2 \\
+                x_1 + \frac{1}{4}x_2 \le 7 \\
+                x_1 + x_2 \le 12 \\
+                \mathbf{x_1 \le 5} \\
+                x_1, x_2 \ge 0
+                \end{cases}$$
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950 border border-purple-500/40">
+              <div class="font-bold text-purple-400 mb-1">Programme $(PL_2)$ :</div>
+              <div class="text-xs text-slate-100">
+                $$\begin{cases}
+                \max Z = 30x_1 + 20x_2 \\
+                x_1 + \frac{1}{4}x_2 \le 7 \\
+                x_1 + x_2 \le 12 \\
+                \mathbf{x_1 \ge 6} \\
+                x_1, x_2 \ge 0
+                \end{cases}$$
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+            <strong>💡 Bonus (Que donnent ces 2 branches si on les résout ?) :</strong>
+            <br>• Sur $(PL_1)$ ($x_1 \le 5$) : pour $x_1 = 5$, $x_2 = 12 - 5 = 7 \implies Z = 290\text{ €}$, mais $5 + 7/4 = 6,75 \le 7$ ! Et pour $(4, 8)$, $Z = 280\text{ €}$.
+            <br>• Sur $(PL_2)$ ($x_1 \ge 6$) : en $x_1 = 6$, la contrainte $x_1 + \frac{1}{4}x_2 \le 7$ donne $x_2 \le 4$, soit le point entier $(6, 4)$ avec $Z = 260\text{ €}$.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= SCRIPTS INTERACTIFS ================= -->
+  <script>
+    // --- 1. TABLEAUX DU SIMPLEXE CONTINU (QUESTION 2) ---
+    const pSimplexSteps = [
+      {
+        banner: "<strong>1. Tableau Initial du Simplexe (Question 2) :</strong> Base de départ $B_0 = (\\overline{x}_1, \\overline{x}_2) = (7, 12)$ au sommet $O(0,0)$ avec $z = 0$. L'équation de l'objectif s'écrit $-30x_1 - 20x_2 + z = 0$.",
+        rows: [
+          { base: "x̄₁", x1: "1", x2: "1/4", xb1: "1", xb2: "0", z: "0", b: "7", style: "" },
+          { base: "x̄₂", x1: "1", x2: "1", xb1: "0", xb2: "1", z: "0", b: "12", style: "" },
+          { base: "z", x1: "-30 (Entre)", x2: "-20", xb1: "0", xb2: "0", z: "1", b: "0", style: "bg-slate-900 font-bold text-amber-300 border-t-2 border-slate-700" }
+        ]
+      },
+      {
+        banner: "<strong>2. Itération 1 (Sommet A(7,0)) :</strong> $x_1$ est entré dans la base à la place de $\\overline{x}_1$ ($x_1 = 7, \\; z = 210$). Il reste un coût négatif sous $x_2$ ($-25/2 < 0$) : $x_2$ entre en base et $\\overline{x}_2$ sort (Pivot = $3/4$).",
+        rows: [
+          { base: "x₁", x1: "1", x2: "1/4", xb1: "1", xb2: "0", z: "0", b: "7", style: "" },
+          { base: "x̄₂ (Sort)", x1: "0", x2: "3/4 (Pivot)", xb1: "-1", xb2: "1", z: "0", b: "5", style: "bg-sky-950/40 text-sky-200 font-bold" },
+          { base: "z", x1: "0", x2: "-25/2 (Entre)", xb1: "30", xb2: "0", z: "1", b: "210", style: "bg-slate-900 font-bold text-amber-300 border-t-2 border-slate-700" }
+        ]
+      },
+      {
+        banner: "<strong>3. Tableau Optimal donné par l'énoncé (Sommet B(16/3, 20/3)) :</strong> Tous les coûts de la ligne $z$ sont positifs ($40/3 \\ge 0$ et $50/3 \\ge 0$). Solution continue optimale : $x_1 = 16/3, \\; x_2 = 20/3$ et $z = 880/3 \\approx 293,33\\text{ €}$.",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", xb1: "4/3", xb2: "-1/3", z: "0", b: "16/3", style: "" },
+          { base: "x₂ (Ligne Q3)", x1: "0", x2: "1", xb1: "-4/3", xb2: "4/3", z: "0", b: "20/3", style: "bg-amber-950/40 text-amber-200 font-bold" },
+          { base: "z", x1: "0", x2: "0", xb1: "40/3", xb2: "50/3", z: "1", b: "880/3", style: "bg-slate-900 font-bold text-emerald-300 border-t-2 border-slate-700" }
+        ]
+      }
+    ];
+
+    function setSimplexP(idx) {
+      [0, 1, 2].forEach(i => {
+        const btn = document.getElementById(`btn-p-${i}`);
+        btn.className = i === idx
+          ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 transition"
+          : "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+      });
+
+      const step = pSimplexSteps[idx];
+      const banner = document.getElementById('p-simplex-banner');
+      banner.innerHTML = step.banner;
+
+      const tbody = document.getElementById('p-simplex-body');
+      tbody.innerHTML = step.rows.map(r => `
+        <tr class="${r.style || 'text-slate-200'}">
+          <td class="py-2.5 px-3 text-left font-sans font-bold">${r.base}</td>
+          <td class="py-2.5 px-3">${r.x1}</td>
+          <td class="py-2.5 px-3">${r.x2}</td>
+          <td class="py-2.5 px-3">${r.xb1}</td>
+          <td class="py-2.5 px-3">${r.xb2}</td>
+          <td class="py-2.5 px-3">${r.z}</td>
+          <td class="py-2.5 px-3 font-bold text-amber-300">${r.b}</td>
+        </tr>
+      `).join('');
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    // --- 2. BASCULE DE LA COUPE SUR LE GRAPHIQUE 2D ---
+    let cutE6Visible = true;
+    function toggleCutE6() {
+      cutE6Visible = !cutE6Visible;
+      const g = document.getElementById('e6-cut-group');
+      g.setAttribute('opacity', cutE6Visible ? '1' : '0.12');
+    }
+
+    // --- 3. TABLEAUX DU SIMPLEXE DUAL (QUESTION 4) ---
+    const dualStepsE6 = [
+      {
+        banner: "<strong>Étape 1 — Intégration de la coupe de Gomory :</strong> On ajoute la ligne $-\\frac{2}{3}\\overline{x}_1 - \\frac{1}{3}\\overline{x}_2 + \\overline{x}_3 = -\\frac{2}{3}$. Le second membre $b_{\\overline{x}_3} = -2/3 < 0$ est négatif : <strong>$\\overline{x}_3$ sort de la base</strong>.",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", xb1: "4/3", xb2: "-1/3", xb3: "0", z: "0", b: "16/3", style: "" },
+          { base: "x₂", x1: "0", x2: "1", xb1: "-4/3", xb2: "4/3", xb3: "0", z: "0", b: "20/3", style: "" },
+          { base: "x̄₃ (Sort < 0)", x1: "0", x2: "0", xb1: "-2/3", xb2: "-1/3", xb3: "1", z: "0", b: "-2/3", style: "bg-rose-950/50 text-rose-200 font-bold" },
+          { base: "z", x1: "0", x2: "0", xb1: "40/3", xb2: "50/3", xb3: "0", z: "1", b: "880/3", style: "bg-slate-900 font-bold text-amber-300 border-t-2 border-slate-700" }
+        ]
+      },
+      {
+        banner: "<strong>Étape 2 — Calcul des ratios duaux :</strong> Sur la ligne pivot $\\overline{x}_3$, on divise les coûts de la ligne $z$ par la valeur absolue des coefficients négatifs : pour $\\overline{x}_1$, $(40/3)/(2/3) = \\mathbf{20}$ ; pour $\\overline{x}_2$, $(50/3)/(1/3) = 50$. Le minimum est $20$ : <strong>$\\overline{x}_1$ entre en base</strong> (Pivot = $-2/3$).",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", xb1: "4/3", xb2: "-1/3", xb3: "0", z: "0", b: "16/3", style: "" },
+          { base: "x₂", x1: "0", x2: "1", xb1: "-4/3", xb2: "4/3", xb3: "0", z: "0", b: "20/3", style: "" },
+          { base: "x̄₃ (Sort)", x1: "0", x2: "0", xb1: "-2/3 (Pivot)", xb2: "-1/3", xb3: "1", z: "0", b: "-2/3", style: "bg-emerald-950/50 text-emerald-200 font-bold" },
+          { base: "z", x1: "0", x2: "0", xb1: "40/3", xb2: "50/3", xb3: "0", z: "1", b: "880/3", style: "bg-slate-900 text-slate-300 border-t border-slate-700" },
+          { base: "Ratio Dual", x1: "—", x2: "—", xb1: "20 (Min ➔ Entre)", xb2: "50", xb3: "—", z: "—", b: "", style: "bg-amber-950/40 font-bold text-amber-300" }
+        ]
+      },
+      {
+        banner: "<strong>Étape 3 — Tableau Final Optimal et Entier :</strong> Après un seul pivotage ($L_3' = -\\frac{3}{2}L_3$, $L_1' = L_1 + 2L_3$, $L_2' = L_2 - 2L_3$, $L_z' = L_z + 20L_3$), tous les seconds membres sont positifs et <strong>entiers</strong> : <strong>$x_1^* = 4, \\; x_2^* = 8, \\; \\overline{x}_1^* = 1$ et $z^* = 280\\text{ €}$</strong> !",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", xb1: "0", xb2: "-1", xb3: "2", z: "0", b: "4 (Entier ✓)", style: "bg-emerald-950/30 text-emerald-200 font-bold" },
+          { base: "x₂", x1: "0", x2: "1", xb1: "0", xb2: "2", xb3: "-2", z: "0", b: "8 (Entier ✓)", style: "bg-emerald-950/30 text-emerald-200 font-bold" },
+          { base: "x̄₁", x1: "0", x2: "0", xb1: "1", xb2: "1/2", xb3: "-3/2", z: "0", b: "1 (Entier ✓)", style: "bg-emerald-950/30 text-emerald-200 font-bold" },
+          { base: "z (Optimal)", x1: "0", x2: "0", xb1: "0", xb2: "10", xb3: "20", z: "1", b: "Z* = 280 €", style: "bg-slate-900 font-extrabold text-amber-300 border-t-2 border-emerald-500/50" }
+        ]
+      }
+    ];
+
+    function setDualStepE6(idx) {
+      [0, 1, 2].forEach(i => {
+        const btn = document.getElementById(`btn-dual6-${i}`);
+        btn.className = i === idx
+          ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition shadow"
+          : "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+      });
+
+      const step = dualStepsE6[idx];
+      const banner = document.getElementById('dual6-banner');
+      banner.innerHTML = step.banner;
+
+      const tbody = document.getElementById('dual6-body');
+      tbody.innerHTML = step.rows.map(r => `
+        <tr class="${r.style || 'text-slate-200'}">
+          <td class="py-2.5 px-3 text-left font-sans font-bold">${r.base}</td>
+          <td class="py-2.5 px-3">${r.x1}</td>
+          <td class="py-2.5 px-3">${r.x2}</td>
+          <td class="py-2.5 px-3">${r.xb1}</td>
+          <td class="py-2.5 px-3">${r.xb2}</td>
+          <td class="py-2.5 px-3">${r.xb3}</td>
+          <td class="py-2.5 px-3">${r.z}</td>
+          <td class="py-2.5 px-3 font-bold text-emerald-300">${r.b}</td>
+        </tr>
+      `).join('');
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    window.onload = function () {
+      setSimplexP(0);
+      setDualStepE6(1);
+    };
+  </script>
+</body>
+</html>

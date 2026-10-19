@@ -6,43 +6,78 @@
       {
         "id": "6031d51d9a46e2dc",
         "type": "tabs",
+        "dimension": 44.48183041722746,
         "children": [
-          {
-            "id": "45c8237f38328ef8",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "java/4-Control-Organization.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "4-Control-Organization"
-            }
-          },
           {
             "id": "d7683825e923c4bc",
             "type": "leaf",
             "state": {
               "type": "pdf",
               "state": {
-                "file": "Algo/cours2/Serie1-TD-MeREA-postopt.pdf"
+                "file": "Algo/cours3/7-Serie2-TD-MeREA-meths-Coupes.pdf"
               },
               "icon": "lucide-file-text",
-              "title": "Serie1-TD-MeREA-postopt"
+              "title": "7-Serie2-TD-MeREA-meths-Coupes"
             }
           },
           {
-            "id": "c33da5144ad80e20",
+            "id": "0168808b6389e55a",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "pdf",
               "state": {
-                "file": "java/Pasted image 20261013223429.png"
+                "file": "Algo/cours3/Cours3-MeREA-PLNE-Meth-Coupes(B&C).pdf"
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20261013223429"
+              "icon": "lucide-file-text",
+              "title": "Cours3-MeREA-PLNE-Meth-Coupes(B&C)"
+            }
+          },
+          {
+            "id": "780f3bb88b54f00a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Algo/cours2/3. Introduction d'une nouvelle variable xₙ₊₁.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "3. Introduction d'une nouvelle variable xₙ₊₁"
+            }
+          }
+        ],
+        "currentTab": 2
+      },
+      {
+        "id": "7797c306b2c31e9b",
+        "type": "tabs",
+        "dimension": 55.51816958277255,
+        "children": [
+          {
+            "id": "5db18bbcf2fbe73e",
+            "type": "leaf",
+            "state": {
+              "type": "pdf",
+              "state": {
+                "file": "Algo/cours4/6-Serie3-TD-MeREA-meths-B&B.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "6-Serie3-TD-MeREA-meths-B&B"
+            }
+          },
+          {
+            "id": "e00452e46a5f4d11",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Algo/cours2/1.a Modification du coût cⱼ hors base.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "1.a Modification du coût cⱼ hors base"
             }
           }
         ]
@@ -107,7 +142,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "right": {
     "id": "92598c3459ef134d",
@@ -209,56 +245,59 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "pdf-plus:PDF++: Toggle auto-copy": false,
+      "pdf-plus:PDF++: Toggle auto-focus": false,
+      "pdf-plus:PDF++: Toggle auto-paste": false
     }
   },
-  "active": "45c8237f38328ef8",
+  "active": "5db18bbcf2fbe73e",
   "lastOpenFiles": [
+    "Algo/cours2/3. Introduction d'une nouvelle variable xₙ₊₁.md",
+    "Algo/cours4/6-Serie3-TD-MeREA-meths-B&B.pdf",
+    "Algo/cours2/1.a Modification du coût cⱼ hors base.md",
+    "Algo/cours2/2. Modification d'un terme de droite bᵣ.md",
+    "Algo/cours2/1.b Modification du coût cⱼ d'une variable de base.md",
+    "Algo/cours5/Serie5-TD-RO-Affectation.pdf",
+    "Algo/cours2/example.md",
+    "Algo/cours5/Cours6-MeREA-Pb-Affectation.pdf",
+    "Algo/cours4/3-Example.md",
+    "Algo/cours3/Cours3-MeREA-PLNE-Meth-Coupes(B&C).pdf",
+    "Algo/cours3/7-Serie2-TD-MeREA-meths-Coupes.pdf",
+    "Algo/cours4/CorrTD/Ex1-2.md",
+    "Algo/cours4/CorrTD/Ex1-2.html",
+    "Algo/cours4/CorrTD/New Text Document.txt",
+    "Algo/cours4/2-Relaxation linéaire d’un PLNE.md",
+    "Algo/cours3/CorrTD",
+    "Algo/cours2/CorrTD",
+    "Algo/cours4/CorrTD",
+    "Algo/cours4/1-B&B concept.md",
+    "Algo/cours3/6-Gomory exemple.md",
+    "Algo/cours3/5-Gomory.md",
     "java/Pasted image 20261013223429.png",
+    "java/4-Control-Organization.md",
     "Untitled.md",
     "java/Pasted image 20260926110847.png",
     "Algo/cours2/Pasted image 20261005120634.png",
     "Algo/cours2/Pasted image 20261005115935.png",
     "Algo/cours2/Pasted image 20261005115855.png",
-    "java/4-Control-Organization.md",
     "java/3-OOP Mechanism.md",
-    "Algo/cours2/Serie1-TD-MeREA-postopt.pdf",
     "java/Pasted image 20260926122507.png",
     "java/Pasted image 20260926120417.png",
     "java/Pasted image 20260926120211.png",
     "java/Pasted image 20260926110900.png",
     "java/1-basics.md",
-    "linux/TP1-Sctipt-Shell.pdf",
     "linux/cours1/notes.md",
     "ComputerVision/opencv/0-RoadMap.md",
     "linux/cours2/bash-scripting.md",
-    "linux/cours2/Cours progShell.pptx.pdf",
-    "linux/TP2-Script-Shell.pdf",
-    "linux/cours1/Administration_Linux.ppt.pdf",
     "Algo/cours1/dual.md",
-    "Algo/cours5/Cours6-MeREA-Pb-Affectation.pdf",
     "Algo/cours1/simplexe primal.md",
     "Algo/cours1/notes.md",
     "Algo/cours4/5-Problème d’affectation.md",
-    "Algo/cours1/Cours1-Intro-MeREA.pdf",
-    "Algo/cours4/Cours4-MeREA-PLNE-Meth-Sep-Eval(B&B).pdf",
-    "Algo/cours4/Serie3-TD-MeREA-meths-B&B.pdf",
-    "Algo/cours5/Serie5-TD-RO-Affectation.pdf",
-    "Algo/cours4/3-Example.md",
     "ComputerVision/opencv/8-Détection de contours (Sobel, Laplacian, Canny).md",
     "Algo/cours4/4-SacAdos (didn't get glution).md",
     "ComputerVision/opencv/1-How Images Are Represented.md",
     "ComputerVision/opencv/Pasted image 20261009151023.png",
-    "ComputerVision/opencv/6-Filtrage (Gaussian, Median, Bilateral).md",
-    "ComputerVision/opencv/7-Histogrammes & Amélioration d'image.md",
-    "java/2-OOP.md",
-    "Untitled.canvas",
-    "2026-10-08.md",
-    "ComputerVision/opencv/5-Convolution & Corrélation.md",
-    "Algo/cours3/3-Les 4 algorithmiques PLNE.md",
-    "Algo/cours3/1-Modéliser avec des variables entières.md",
-    "Algo/cours3/0-Plan.md",
-    "Algo/cours3/2-Relaxation linéaire et borne.md",
-    "graph-theory/PrbOrdtd.md"
+    "Untitled.canvas"
   ]
 }
