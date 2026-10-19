@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
+
 
 def plot_ex1():
     x = np.linspace(0, 10, 400)
@@ -47,7 +49,9 @@ def plot_ex1():
     plt.legend()
     plt.title('TD2 Exercice 1.1 : Min Z = -x1 + x2')
     plt.grid(True)
-    plt.savefig('graph-theory/plots/td2_ex1.png')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td2_ex1.png')
     plt.close()
 
 def plot_ex2():
@@ -86,7 +90,9 @@ def plot_ex2():
     plt.legend()
     plt.title('TD2 Exercice 1.2 : Max Z = 5x1 + 7x2 (Non-Borné)')
     plt.grid(True)
-    plt.savefig('graph-theory/plots/td2_ex2.png')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td2_ex2.png')
     plt.close()
 
 def plot_ex3():
@@ -116,13 +122,14 @@ def plot_ex3():
     # No feasible region to fill
     plt.text(2, 6, "Domaine Vide (Inadmissible)", fontsize=12, color='red', fontweight='bold')
     
-    plt.savefig('graph-theory/plots/td2_ex3.png')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td2_ex3.png')
     plt.close()
 
 if __name__ == "__main__":
-    import os
-    if not os.path.exists('graph-theory/plots'):
-        os.makedirs('graph-theory/plots')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
     plot_ex1()
     plot_ex2()
     plot_ex3()

@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+from pathlib import Path
+
 
 def generate_complex_example():
-    output_dir = 'graph-theory/plots'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     x = np.linspace(0, 15, 1000)
     
@@ -55,7 +55,7 @@ def generate_complex_example():
     plt.legend(loc='upper right')
     plt.grid(True, linestyle=':', alpha=0.4)
     
-    plt.savefig(f'{output_dir}/exemple_complexe.png')
+    plt.savefig(output_dir / 'exemple_complexe.png')
     plt.close()
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
+
 
 def plot_td3_ex1():
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -45,10 +46,9 @@ def plot_td3_ex1():
     ax.set_title(r'TD3 Exercice 1 : Domaine Admissible dans le repère $Ox_1x_4$', fontsize=14)
     ax.grid(True, linestyle='--', alpha=0.7)
 
-    output_dir = 'plots'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    plt.savefig(os.path.join(output_dir, 'td3_ex1.png'), bbox_inches='tight')
+    output_dir = Path(__file__).resolve().parent / 'plots'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_dir / 'td3_ex1.png', bbox_inches='tight')
     plt.close()
 
 if __name__ == "__main__":

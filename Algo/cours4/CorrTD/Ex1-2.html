@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLNE — Branch and Bound (Séparation et Évaluation) : Exercices 1 & 2</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- KaTeX for LaTeX Math -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ]
+    });"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @keyframes dashMove {
+      to { stroke-dashoffset: -40; }
+    }
+    @keyframes pulseEmerald {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(16, 185, 129, 1)); }
+    }
+    @keyframes pulseAmber {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(251, 191, 36, 1)); }
+    }
+    @keyframes pulseRose {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(244, 63, 94, 1)); }
+    }
+    .svg-dash-anim {
+      stroke-dasharray: 8 6;
+      animation: dashMove 1.3s linear infinite;
+    }
+    .glow-green {
+      animation: pulseEmerald 2s infinite ease-in-out;
+    }
+    .glow-amber {
+      animation: pulseAmber 2s infinite ease-in-out;
+    }
+    .glow-red {
+      animation: pulseRose 2s infinite ease-in-out;
+    }
+    .node-transition {
+      transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-amber-500 selection:text-slate-950 pb-20">
+
+  <!-- ================= HEADER STICKY ================= -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 font-extrabold text-slate-950 text-sm">
+          B&amp;B
+        </div>
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block">TD PLNE — Séparation et Évaluation (Branch &amp; Bound)</span>
+          <h1 class="text-base sm:text-lg font-extrabold text-white">Cours Visuel Animé &amp; Corrigé Complet : Exercices 1 &amp; 2</h1>
+        </div>
+      </div>
+
+      <!-- Navigation rapide -->
+      <nav class="flex flex-wrap items-center gap-1.5 bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs">
+        <a href="#sec-cours" class="px-3 py-1.5 rounded-lg font-semibold text-amber-300 bg-slate-900/80 hover:bg-slate-900 transition">0. Cours Branch &amp; Bound</a>
+        <a href="#sec-ex1" class="px-3 py-1.5 rounded-lg font-semibold text-sky-300 hover:bg-slate-700/60 transition">1. Exercice 1 (Min z)</a>
+        <a href="#sec-ex2" class="px-3 py-1.5 rounded-lg font-semibold text-emerald-300 hover:bg-slate-700/60 transition">2. Exercice 2 (Max z)</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 pt-6 space-y-14">
+
+    <!-- ================= 0. RAPPEL DE COURS VISUEL (SVG ANIMÉ) ================= -->
+    <section id="sec-cours" class="space-y-6">
+      <div class="border-b border-slate-800 pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Étape 0 — Rappel de Cours (Pour tout comprendre de zéro)</span>
+        <h2 class="text-2xl font-extrabold text-white">Comment fonctionne la méthode de « Séparation et Évaluation » (Branch &amp; Bound) ?</h2>
+      </div>
+
+      <!-- Les 3 Piliers du Branch & Bound -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-sky-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-sky-400 uppercase">1. Évaluation (Bound)</div>
+          <h3 class="font-bold text-white text-sm">On relâche l'intégrité</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            À chaque nœud, on résout le programme linéaire <strong>continu</strong> (sans imposer que $x_1, x_2$ soient entiers). La valeur $z$ obtenue est une <strong>borne</strong> : aucune solution entière de cette branche ne pourra faire mieux que ce $z$ continu !
+          </p>
+        </div>
+
+        <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-amber-400 uppercase">2. Séparation (Branch)</div>
+          <h3 class="font-bold text-white text-sm">On coupe la bande fractionnaire</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Si une variable prend une valeur à virgule $x_i = v \notin \mathbb{N}$ (ex: $x_1 = 3,75$), aucun entier n'existe entre $\lfloor v \rfloor = 3$ et $\lceil v \rceil = 4$. On crée alors <strong>2 sous-problèmes</strong> :
+            <span class="block mt-1 p-1 rounded bg-slate-950 text-amber-300 mono text-center font-bold">Branche 1 : x₁ ≤ 3  |  Branche 2 : x₁ ≥ 4</span>
+          </p>
+        </div>
+
+        <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-emerald-400 uppercase">3. Stérilisation (Élagage / Sonde)</div>
+          <h3 class="font-bold text-white text-sm">Quand arrête-t-on une branche ?</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            On stoppe l'exploration d'un nœud dans <strong>3 cas exactement</strong> :
+            <br>• <strong>Cas A (Entier) :</strong> La solution est entière $\rightarrow$ on met à jour notre meilleure solution connue $\hat{z}$.
+            <br>• <strong>Cas B (Impossible) :</strong> Le sous-problème n'a aucune solution ($\emptyset$).
+            <br>• <strong>Cas C (Borne) :</strong> Sa borne $z$ est déjà moins bonne que $\hat{z}$.
+          </p>
+        </div>
+      </div>
+
+      <!-- SCHÉMA SVG ANIMÉ : LES 3 RÈGLES D'ÉLAGAGE ET MIN VS MAX -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-base font-bold text-white">
+              🎬 Mémo Visuel SVG : Les 3 Causes d'Arrêt d'un Nœud &amp; Piège Minimisation (Ex 1) vs Maximisation (Ex 2)
+            </h3>
+            <p class="text-xs text-slate-400">
+              Attention au sens des inégalités : en <strong>Minimisation</strong>, « meilleur » veut dire <strong>plus petit</strong> (plus négatif) ; en <strong>Maximisation</strong>, « meilleur » veut dire <strong>plus grand</strong> !
+            </p>
+          </div>
+        </div>
+
+        <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <svg viewBox="0 0 920 220" class="w-full h-auto min-w-[680px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Carte 1 : Stérilisation par Intégrité -->
+            <rect x="15" y="15" width="280" height="190" rx="12" fill="#064e3b" fill-opacity="0.4" stroke="#10b981" stroke-width="2"/>
+            <circle cx="45" cy="45" r="14" fill="#10b981"/>
+            <text x="45" y="50" fill="#052e16" font-size="14" font-weight="bold" text-anchor="middle">✓</text>
+            <text x="70" y="49" fill="#6ee7b7" font-size="14" font-weight="bold">1. Nœud Entier (Candidat)</text>
+            <text x="30" y="80" fill="#e2e8f0" font-size="12">Toutes les coordonnées sont entières :</text>
+            <text x="30" y="102" fill="#fde047" font-size="13" font-weight="bold" font-family="monospace">(x₁, x₂) ∈ ℕ × ℕ</text>
+            <text x="30" y="130" fill="#cbd5e1" font-size="11.5">• Inutile de séparer ce nœud !</text>
+            <text x="30" y="150" fill="#cbd5e1" font-size="11.5">• S'il bat le record actuel ẑ, il devient</text>
+            <text x="30" y="168" fill="#6ee7b7" font-size="11.5" font-weight="bold">  la nouvelle meilleure solution entière ẑ.</text>
+
+            <!-- Carte 2 : Stérilisation par Infaisabilité -->
+            <rect x="320" y="15" width="280" height="190" rx="12" fill="#4c0519" fill-opacity="0.4" stroke="#f43f5e" stroke-width="2"/>
+            <circle cx="350" cy="45" r="14" fill="#f43f5e"/>
+            <text x="350" y="50" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">✗</text>
+            <text x="375" y="49" fill="#fda4af" font-size="14" font-weight="bold">2. Nœud Irréalisable (∅)</text>
+            <text x="335" y="80" fill="#e2e8f0" font-size="12">La nouvelle contrainte contredit</text>
+            <text x="335" y="98" fill="#e2e8f0" font-size="12">les contraintes du problème :</text>
+            <text x="335" y="122" fill="#fda4af" font-size="13" font-weight="bold" font-family="monospace">Domaine réalisable = ∅</text>
+            <text x="335" y="150" fill="#cbd5e1" font-size="11.5">• Ex 1 : 9x₁ + 5x₂ ≤ 45 avec x₁≥4, x₂≥2</text>
+            <text x="335" y="168" fill="#fda4af" font-size="11.5" font-weight="bold">  donne 36 + 10 = 46 &gt; 45 (Impossible !)</text>
+
+            <!-- Carte 3 : Stérilisation par Borne (Min vs Max) -->
+            <rect x="625" y="15" width="280" height="190" rx="12" fill="#422006" fill-opacity="0.4" stroke="#fbbf24" stroke-width="2"/>
+            <circle cx="655" cy="45" r="14" fill="#fbbf24"/>
+            <text x="655" y="50" fill="#0f172a" font-size="14" font-weight="bold" text-anchor="middle">✂</text>
+            <text x="680" y="49" fill="#fde047" font-size="14" font-weight="bold">3. Élagage par Borne</text>
+            <text x="640" y="78" fill="#e2e8f0" font-size="12">La borne continue ne peut pas battre ẑ :</text>
+            <rect x="640" y="90" width="250" height="44" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+            <text x="650" y="108" fill="#7dd3fc" font-size="11" font-weight="bold">• En MINIMISATION (Ex 1) :</text>
+            <text x="650" y="125" fill="#ffffff" font-size="11" font-family="monospace">On coupe si  z_nœud ≥ ẑ_entier</text>
+            <rect x="640" y="142" width="250" height="44" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.2"/>
+            <text x="650" y="160" fill="#6ee7b7" font-size="11" font-weight="bold">• En MAXIMISATION (Ex 2) :</text>
+            <text x="650" y="177" fill="#ffffff" font-size="11" font-family="monospace">On coupe si  z_nœud ≤ ẑ_entier</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 1. EXERCICE 1 : MIN z = -8x1 - 5x2 ================= -->
+    <section id="sec-ex1" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Exercice 1 — Minimisation par Séparation et Évaluation</span>
+          <h2 class="text-2xl font-extrabold text-white">Résolution de $\min z = -8x_1 - 5x_2$ sous $x_1 + x_2 \le 6$ et $9x_1 + 5x_2 \le 45$</h2>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-bold mono">
+          Astuce : min(-8x₁ - 5x₂) ⇔ max(8x₁ + 5x₂)
+        </span>
+      </div>
+
+      <!-- Barre de contrôle pas à pas de l'Exercice 1 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Explorer les Nœuds :</span>
+            <button id="btn-ex1-0" onclick="setEx1Step(0)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₀ (Racine)</button>
+            <button id="btn-ex1-1" onclick="setEx1Step(1)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₁ (x₁≤3)</button>
+            <button id="btn-ex1-2" onclick="setEx1Step(2)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₂ (x₁≥4)</button>
+            <button id="btn-ex1-3" onclick="setEx1Step(3)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₃ (x₂≥2)</button>
+            <button id="btn-ex1-4" onclick="setEx1Step(4)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₄ (x₂≤1)</button>
+            <button id="btn-ex1-5" onclick="setEx1Step(5)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₅ (x₁≤4)</button>
+            <button id="btn-ex1-6" onclick="setEx1Step(6)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₆ (Optimum ★)</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="prevEx1Step()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition">⏮ Préc.</button>
+            <button onclick="nextEx1Step()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-xs font-bold text-slate-950 transition">Suiv. ⏭</button>
+          </div>
+        </div>
+
+        <!-- Bulle d'explication dynamique de l'étape active -->
+        <div id="ex1-banner" class="p-4 rounded-xl bg-sky-950/40 border border-sky-500/40 text-xs sm:text-sm text-sky-100 leading-relaxed">
+          <!-- Rempli par JS -->
+        </div>
+
+        <!-- Double Visualisation SVG : Arbre de Branch & Bound (Gauche) + Graphique 2D (Droite) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+
+          <!-- ARBRE SVG INTERACTIF EXERCICE 1 (7 colonnes) -->
+          <div class="lg:col-span-7 w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <div class="text-xs font-bold text-slate-400 mb-2 flex justify-between">
+              <span>🌳 Arbre de Séparation et Évaluation (Clique sur un nœud)</span>
+              <span class="mono text-amber-400">Record entier : z* = -40 en (5, 0)</span>
+            </div>
+            <svg viewBox="0 0 680 430" class="w-full h-auto min-w-[540px]" xmlns="http://www.w3.org/2000/svg">
+              <!-- Arêtes de l'arbre -->
+              <!-- P0 -> P1 et P0 -> P2 -->
+              <g id="ex1-edge-1" class="node-transition">
+                <line x1="280" y1="74" x2="150" y2="128" stroke="#38bdf8" stroke-width="2.5"/>
+                <rect x="155" y="84" width="75" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+                <text x="192" y="98" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ 3</text>
+              </g>
+
+              <g id="ex1-edge-2" class="node-transition">
+                <line x1="360" y1="74" x2="470" y2="128" stroke="#38bdf8" stroke-width="2.5"/>
+                <rect x="385" y="84" width="75" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+                <text x="422" y="98" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ 4</text>
+              </g>
+
+              <!-- P2 -> P3 et P2 -> P4 -->
+              <g id="ex1-edge-3" class="node-transition">
+                <line x1="435" y1="192" x2="310" y2="245" stroke="#f43f5e" stroke-width="2.5"/>
+                <rect x="325" y="203" width="75" height="20" rx="5" fill="#0f172a" stroke="#f43f5e" stroke-width="1"/>
+                <text x="362" y="217" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≥ 2</text>
+              </g>
+
+              <g id="ex1-edge-4" class="node-transition">
+                <line x1="505" y1="192" x2="555" y2="245" stroke="#38bdf8" stroke-width="2.5"/>
+                <rect x="500" y="203" width="75" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+                <text x="537" y="217" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≤ 1</text>
+              </g>
+
+              <!-- P4 -> P5 et P4 -> P6 -->
+              <g id="ex1-edge-5" class="node-transition">
+                <line x1="515" y1="309" x2="385" y2="355" stroke="#94a3b8" stroke-width="2.5"/>
+                <rect x="400" y="318" width="75" height="20" rx="5" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+                <text x="437" y="332" fill="#cbd5e1" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ 4</text>
+              </g>
+
+              <g id="ex1-edge-6" class="node-transition">
+                <line x1="575" y1="309" x2="585" y2="355" stroke="#10b981" stroke-width="3" class="svg-dash-anim"/>
+                <rect x="550" y="318" width="75" height="20" rx="5" fill="#064e3b" stroke="#10b981" stroke-width="1.2"/>
+                <text x="587" y="332" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ 5</text>
+              </g>
+
+              <!-- NŒUD P0 (Racine) -->
+              <g id="ex1-node-0" class="cursor-pointer node-transition" onclick="setEx1Step(0)">
+                <rect x="210" y="10" width="220" height="64" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+                <text x="320" y="29" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">P₀ (Relaxation Continue)</text>
+                <text x="320" y="47" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 3,75  |  x₂ = 2,25</text>
+                <text x="320" y="64" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">z₀ = -41,25 (Non entier)</text>
+              </g>
+
+              <!-- NŒUD P1 (x1 <= 3) -->
+              <g id="ex1-node-1" class="cursor-pointer node-transition" onclick="setEx1Step(1)">
+                <rect x="35" y="128" width="220" height="68" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+                <text x="145" y="147" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">P₁ : x₁ ≤ 3 (Entier ✓)</text>
+                <text x="145" y="165" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 3  |  x₂ = 3</text>
+                <text x="145" y="183" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">z₁ = -39 (1er Candidat ẑ=-39)</text>
+              </g>
+
+              <!-- NŒUD P2 (x1 >= 4) -->
+              <g id="ex1-node-2" class="cursor-pointer node-transition" onclick="setEx1Step(2)">
+                <rect x="360" y="128" width="220" height="64" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                <text x="470" y="147" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P₂ : x₁ ≥ 4</text>
+                <text x="470" y="165" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 4  |  x₂ = 9/5 = 1,8</text>
+                <text x="470" y="182" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">z₂ = -41 &lt; -39 (On sépare x₂)</text>
+              </g>
+
+              <!-- NŒUD P3 (x2 >= 2) -->
+              <g id="ex1-node-3" class="cursor-pointer node-transition" onclick="setEx1Step(3)">
+                <rect x="195" y="245" width="215" height="64" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2"/>
+                <text x="302" y="264" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">P₃ : x₁ ≥ 4 et x₂ ≥ 2</text>
+                <text x="302" y="283" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">9(4) + 5(2) = 46 &gt; 45</text>
+                <text x="302" y="300" fill="#fda4af" font-size="11.5" font-weight="bold" text-anchor="middle">✗ Irréalisable (P₃ = ∅)</text>
+              </g>
+
+              <!-- NŒUD P4 (x2 <= 1) -->
+              <g id="ex1-node-4" class="cursor-pointer node-transition" onclick="setEx1Step(4)">
+                <rect x="435" y="245" width="230" height="64" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                <text x="550" y="264" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P₄ : x₁ ≥ 4 et x₂ ≤ 1</text>
+                <text x="550" y="282" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 40/9 (4,44) | x₂ = 1</text>
+                <text x="550" y="299" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">z₄ = -365/9 ≈ -40,56 (Sépare x₁)</text>
+              </g>
+
+              <!-- NŒUD P5 (x1 <= 4) -->
+              <g id="ex1-node-5" class="cursor-pointer node-transition" onclick="setEx1Step(5)">
+                <rect x="265" y="355" width="205" height="65" rx="10" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+                <text x="367" y="374" fill="#cbd5e1" font-size="12" font-weight="bold" text-anchor="middle">P₅ : x₁ = 4 et x₂ ≤ 1</text>
+                <text x="367" y="392" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 4  |  x₂ = 1 (Entier)</text>
+                <text x="367" y="409" fill="#94a3b8" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">z₅ = -37 &gt; -39 (Moins bon)</text>
+              </g>
+
+              <!-- NŒUD P6 (x1 >= 5 : OPTIMUM) -->
+              <g id="ex1-node-6" class="cursor-pointer node-transition glow-green" onclick="setEx1Step(6)">
+                <rect x="490" y="355" width="180" height="65" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+                <text x="580" y="374" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">★ P₆ : x₁ ≥ 5, x₂ ≤ 1</text>
+                <text x="580" y="392" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁* = 5  |  x₂* = 0</text>
+                <text x="580" y="409" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">z* = -40 (OPTIMUM)</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- GRAPHIQUE 2D SVG EXERCICE 1 (5 colonnes) -->
+          <!-- Échelle SVG : Origine (0,0) -> (55, 340) ; 1 unité = 42 px -->
+          <div class="lg:col-span-5 w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <div class="text-xs font-bold text-slate-400 mb-2 flex justify-between">
+              <span>📐 Domaine Géométrique $(x_1, x_2)$</span>
+              <span id="ex1-graph-label" class="mono text-sky-400">Point actif : P₀(3,75 ; 2,25)</span>
+            </div>
+            <svg viewBox="0 0 380 390" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grille entière (pas de 1 unité = 42px) -->
+              <g stroke="#1e293b" stroke-width="1">
+                <line x1="97" y1="30" x2="97" y2="340"/>
+                <line x1="139" y1="30" x2="139" y2="340"/>
+                <line x1="181" y1="30" x2="181" y2="340"/>
+                <line x1="223" y1="30" x2="223" y2="340"/>
+                <line x1="265" y1="30" x2="265" y2="340"/>
+                <line x1="307" y1="30" x2="307" y2="340"/>
+                <line x1="55" y1="298" x2="345" y2="298"/>
+                <line x1="55" y1="256" x2="345" y2="256"/>
+                <line x1="55" y1="214" x2="345" y2="214"/>
+                <line x1="55" y1="172" x2="345" y2="172"/>
+                <line x1="55" y1="130" x2="345" y2="130"/>
+                <line x1="55" y1="88" x2="345" y2="88"/>
+              </g>
+
+              <!-- Polygone du domaine réalisable continu P0 :
+                   O(0,0)->(55,340), (5,0)->(265,340), P0(3.75, 2.25)->(212.5, 245.5), (0,6)->(55, 88) -->
+              <polygon points="55,340 265,340 212.5,245.5 55,88" fill="rgba(56, 189, 248, 0.14)" stroke="none"/>
+
+              <!-- Bande exclue 3 < x1 < 4 (x de 181 à 223) -->
+              <rect id="ex1-band-x1" x="181" y="60" width="42" height="280" fill="rgba(244, 63, 94, 0.22)" stroke="#f43f5e" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+              <text x="202" y="75" fill="#fda4af" font-size="9" font-family="monospace" text-anchor="middle">]3, 4[</text>
+
+              <!-- Droite Contrainte 1 : x1 + x2 = 6 -> (0,6)=(55,88) à (6,0)=(307,340) -->
+              <line x1="55" y1="88" x2="307" y2="340" stroke="#38bdf8" stroke-width="2"/>
+              <text x="85" y="108" fill="#38bdf8" font-size="10.5" font-weight="bold" font-family="monospace">x₁ + x₂ ≤ 6</text>
+
+              <!-- Droite Contrainte 2 : 9x1 + 5x2 = 45 -> (1.67, 6)=(125,88) à (5,0)=(265,340) -->
+              <line x1="125" y1="88" x2="265" y2="340" stroke="#818cf8" stroke-width="2.5"/>
+              <text x="225" y="210" fill="#a5b4fc" font-size="10.5" font-weight="bold" font-family="monospace">9x₁ + 5x₂ ≤ 45</text>
+
+              <!-- Axes -->
+              <line x1="40" y1="340" x2="355" y2="340" stroke="#94a3b8" stroke-width="2"/>
+              <line x1="55" y1="355" x2="55" y2="25" stroke="#94a3b8" stroke-width="2"/>
+              <text x="345" y="362" fill="#f8fafc" font-size="12" font-weight="bold">x₁</text>
+              <text x="35" y="35" fill="#f8fafc" font-size="12" font-weight="bold">x₂</text>
+
+              <!-- Graduations -->
+              <g fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="middle">
+                <text x="97" y="355">1</text>
+                <text x="139" y="355">2</text>
+                <text x="181" y="355">3</text>
+                <text x="223" y="355">4</text>
+                <text x="265" y="355">5</text>
+                <text x="307" y="355">6</text>
+                <text x="42" y="302">1</text>
+                <text x="42" y="260">2</text>
+                <text x="42" y="218">3</text>
+                <text x="42" y="176">4</text>
+                <text x="42" y="134">5</text>
+                <text x="42" y="92">6</text>
+              </g>
+
+              <!-- Grille des points entiers réalisables -->
+              <g fill="#475569">
+                <circle cx="55" cy="340" r="3.5"/><circle cx="97" cy="340" r="3.5"/><circle cx="139" cy="340" r="3.5"/><circle cx="181" cy="340" r="3.5"/><circle cx="223" cy="340" r="3.5"/>
+                <circle cx="55" cy="298" r="3.5"/><circle cx="97" cy="298" r="3.5"/><circle cx="139" cy="298" r="3.5"/><circle cx="181" cy="298" r="3.5"/>
+                <circle cx="55" cy="256" r="3.5"/><circle cx="97" cy="256" r="3.5"/><circle cx="139" cy="256" r="3.5"/><circle cx="181" cy="256" r="3.5"/>
+                <circle cx="55" cy="214" r="3.5"/><circle cx="97" cy="214" r="3.5"/><circle cx="139" cy="214" r="3.5"/>
+                <circle cx="55" cy="172" r="3.5"/><circle cx="97" cy="172" r="3.5"/><circle cx="139" cy="172" r="3.5"/>
+                <circle cx="55" cy="130" r="3.5"/><circle cx="97" cy="130" r="3.5"/><circle cx="55" cy="88" r="3.5"/>
+              </g>
+
+              <!-- Sommets des sous-problèmes -->
+              <!-- P0(3.75, 2.25) -> (212.5, 245.5) -->
+              <circle cx="212.5" cy="245.5" r="5.5" fill="#f43f5e" stroke="#fff" stroke-width="1.5"/>
+              <text x="222" y="242" fill="#fda4af" font-size="10" font-weight="bold" font-family="monospace">P₀(3.75, 2.25)</text>
+
+              <!-- P1(3, 3) -> (181, 214) -->
+              <circle cx="181" cy="214" r="6" fill="#34d399" stroke="#052e16" stroke-width="1.5"/>
+              <text x="122" y="206" fill="#6ee7b7" font-size="10" font-weight="bold" font-family="monospace">P₁(3,3) [z=-39]</text>
+
+              <!-- P2(4, 1.8) -> (223, 264.4) -->
+              <circle cx="223" cy="264.4" r="5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5"/>
+              <text x="232" y="268" fill="#fde047" font-size="9.5" font-family="monospace">P₂(4 ; 1,8)</text>
+
+              <!-- P4(4.44, 1) -> (241.6, 298) -->
+              <circle cx="241.6" cy="298" r="5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5"/>
+              <text x="250" y="296" fill="#fde047" font-size="9.5" font-family="monospace">P₄(40/9 ; 1)</text>
+
+              <!-- P5(4, 1) -> (223, 298) -->
+              <circle cx="223" cy="298" r="5.5" fill="#94a3b8" stroke="#0f172a" stroke-width="1.5"/>
+              <text x="170" y="312" fill="#cbd5e1" font-size="9.5" font-family="monospace">P₅(4,1) [z=-37]</text>
+
+              <!-- P6(5, 0) OPTIMUM -> (265, 340) -->
+              <circle cx="265" cy="340" r="8" fill="#10b981" stroke="#fef08a" stroke-width="2.5" class="glow-green"/>
+              <text x="255" y="325" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">★ P₆(5,0) [z*=-40]</text>
+
+              <!-- Anneau de sélection dynamique -->
+              <circle id="ex1-active-marker" cx="212.5" cy="245.5" r="12" fill="none" stroke="#fde047" stroke-width="3" class="svg-dash-anim"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rédaction complète sur la copie pour l'Exercice 1 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full bg-sky-500 text-slate-950 font-extrabold text-xs uppercase">Rédaction Examen — Exercice 1</span>
+          <h3 class="text-lg font-bold text-white">Détail des calculs de chaque sous-problème (de $P_0$ à $P_6$)</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+          <!-- Nœud 0 et Nœud 1 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-sky-400">1. Nœud Racine $(P_0)$ — Relaxation continue :</div>
+            <p class="text-slate-300 leading-relaxed">
+              Minimiser $z = -8x_1 - 5x_2$ revient à pousser $x_1$ et $x_2$ au maximum dans le domaine réalisable. Le point optimal continu est à l'intersection des deux droites saturées :
+              $$\begin{cases} x_1 + x_2 = 6 \\ 9x_1 + 5x_2 = 45 \end{cases} \implies 4x_1 = 15 \implies \mathbf{x_1 = \frac{15}{4} = 3,75} \text{ et } \mathbf{x_2 = \frac{9}{4} = 2,25}$$
+              Valeur de l'objectif : $\mathbf{z_0 = -8(3,75) - 5(2,25) = -41,25}$.
+              <br>Comme $x_1 = 3,75 \notin \mathbb{N}$, on sépare suivant $x_1$ en deux sous-problèmes :
+              <strong>$P_1 : x_1 \le 3$</strong> et <strong>$P_2 : x_1 \ge 4$</strong>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2">
+            <div class="font-bold text-emerald-400">2. Sous-problème $(P_1)$ : $P_0 \cup \{x_1 \le 3\}$</div>
+            <p class="text-slate-300 leading-relaxed">
+              Pour minimiser $z = -8x_1 - 5x_2$ avec $x_1 \le 3$, on prend $x_1 = 3$. La contrainte $x_1 + x_2 \le 6$ donne $x_2 \le 3$ (et $9(3)+5(3) = 42 \le 45$ est vérifiée).
+              $$\mathbf{x_1 = 3, \quad x_2 = 3 \quad \implies \quad z_1 = -8(3) - 5(3) = -39}$$
+              <strong>Conclusion $P_1$ :</strong> La solution $(3, 3)$ est <strong>entière</strong> ! On stérilise ce nœud et on retient notre première meilleure solution entière : $\mathbf{\hat{z} = -39}$.
+            </p>
+          </div>
+
+          <!-- Nœud 2 et Nœud 3 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-amber-400">3. Sous-problème $(P_2)$ : $P_0 \cup \{x_1 \ge 4\}$</div>
+            <p class="text-slate-300 leading-relaxed">
+              Pour $x_1 \ge 4$, la contrainte $9x_1 + 5x_2 \le 45$ est la plus restrictive. En posant $x_1 = 4$, on obtient $5x_2 = 45 - 36 = 9 \implies x_2 = \frac{9}{5} = 1,8$.
+              $$\mathbf{x_1 = 4, \quad x_2 = 1,8 \quad \implies \quad z_2 = -8(4) - 5(1,8) = -41}$$
+              Comme $z_2 = -41 < \hat{z} = -39$ (meilleure borne) et $x_2 = 1,8 \notin \mathbb{N}$, on sépare suivant $x_2$ : <strong>$P_3 : x_2 \ge 2$</strong> et <strong>$P_4 : x_2 \le 1$</strong>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-950 border border-rose-500/30 space-y-2">
+            <div class="font-bold text-rose-400">4. Sous-problèmes $(P_3)$ et $(P_4)$ :</div>
+            <p class="text-slate-300 leading-relaxed">
+              • <strong>Pour $(P_3)$ ($x_1 \ge 4, x_2 \ge 2$) :</strong> $9x_1 + 5x_2 \ge 9(4) + 5(2) = 46 > 45$. C'est <strong>irréalisable ($P_3 = \emptyset$)</strong> $\rightarrow$ nœud stérilisé.
+              <br>• <strong>Pour $(P_4)$ ($x_1 \ge 4, x_2 \le 1$) :</strong> On sature $x_2 = 1$ et $9x_1 + 5(1) = 45 \implies \mathbf{x_1 = \frac{40}{9} \approx 4,44}$ et $\mathbf{x_2 = 1}$, soit $\mathbf{z_4 = -\frac{365}{9} \approx -40,56 < -39}$.
+              <br>Comme $x_1 = 4,44 \notin \mathbb{N}$, on sépare suivant $x_1$ : <strong>$P_5 : x_1 \le 4$</strong> et <strong>$P_6 : x_1 \ge 5$</strong>.
+            </p>
+          </div>
+
+          <!-- Nœuds 5 et 6 + Conclusion Finale -->
+          <div class="md:col-span-2 p-4 rounded-xl bg-emerald-950/30 border-2 border-emerald-500/50 space-y-2">
+            <div class="font-bold text-emerald-300 text-base">5. Dénouement aux feuilles $(P_5)$ et $(P_6)$ — Solution Optimale :</div>
+            <p class="text-slate-200 leading-relaxed">
+              • <strong>Nœud $(P_5)$ ($x_1 \ge 4, x_2 \le 1, x_1 \le 4$) :</strong> Impose $x_1 = 4$ et $x_2 = 1$ (entier), ce qui donne $z_5 = -8(4) - 5(1) = -37 > -39$ (moins bon que $-39$, stérilisé).
+              <br>• <strong>Nœud $(P_6)$ ($x_1 \ge 5, x_2 \le 1$) :</strong> Avec $x_1 \ge 5$, la contrainte $9x_1 + 5x_2 \le 45$ impose $9(5) + 5x_2 \le 45 \implies x_1 = 5$ et $x_2 = 0$. C'est une <strong>solution entière</strong> donnant $z_6 = -8(5) - 5(0) = \mathbf{-40} < -39$ !
+              <br><span class="text-amber-300 font-bold">★ Conclusion Exercice 1 :</span> L'unique solution optimale entière est $\mathbf{x_1^* = 5, \; x_2^* = 0}$ avec $\mathbf{z^* = -40}$.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 2. EXERCICE 2 : MAX z = 4x1 - x2 ================= -->
+    <section id="sec-ex2" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Exercice 2 — Maximisation par Séparation et Évaluation</span>
+          <h2 class="text-2xl font-extrabold text-white">Résolution de $\max z = 4x_1 - x_2$ sous $7x_1 - 2x_2 \le 14$, $x_2 \le 3$ et $2x_1 - 2x_2 \le 3$</h2>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold mono">
+          Attention au signe -x₂ dans z = 4x₁ - x₂ !
+        </span>
+      </div>
+
+      <!-- Barre de contrôle pas à pas de l'Exercice 2 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Explorer les Nœuds :</span>
+            <button id="btn-ex2-0" onclick="setEx2Step(0)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₀ (Racine)</button>
+            <button id="btn-ex2-1" onclick="setEx2Step(1)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₂ (x₁≥3 : ∅)</button>
+            <button id="btn-ex2-2" onclick="setEx2Step(2)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₁ (x₁≤2)</button>
+            <button id="btn-ex2-3" onclick="setEx2Step(3)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₄ (x₂≥1 : Optimum ★)</button>
+            <button id="btn-ex2-4" onclick="setEx2Step(4)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Nœud P₃ (x₂≤0 : Élagué)</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="prevEx2Step()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition">⏮ Préc.</button>
+            <button onclick="nextEx2Step()" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-slate-950 transition">Suiv. ⏭</button>
+          </div>
+        </div>
+
+        <!-- Bulle d'explication dynamique de l'Exercice 2 -->
+        <div id="ex2-banner" class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs sm:text-sm text-emerald-100 leading-relaxed">
+          <!-- Rempli par JS -->
+        </div>
+
+        <!-- Double Visualisation SVG : Arbre de Branch & Bound (Gauche) + Graphique 2D (Droite) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+
+          <!-- ARBRE SVG INTERACTIF EXERCICE 2 (7 colonnes) -->
+          <div class="lg:col-span-7 w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <div class="text-xs font-bold text-slate-400 mb-2 flex justify-between">
+              <span>🌳 Arbre de Séparation et Évaluation (Clique sur un nœud)</span>
+              <span class="mono text-emerald-400">Optimum entier : z* = 7 en (2, 1)</span>
+            </div>
+            <svg viewBox="0 0 680 350" class="w-full h-auto min-w-[540px]" xmlns="http://www.w3.org/2000/svg">
+              <!-- Arêtes P0 -> P1 et P0 -> P2 -->
+              <g id="ex2-edge-1" class="node-transition">
+                <line x1="290" y1="80" x2="185" y2="145" stroke="#38bdf8" stroke-width="2.5"/>
+                <rect x="180" y="96" width="80" height="22" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+                <text x="220" y="111" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ 2</text>
+              </g>
+
+              <g id="ex2-edge-2" class="node-transition">
+                <line x1="390" y1="80" x2="495" y2="145" stroke="#f43f5e" stroke-width="2.5"/>
+                <rect x="415" y="96" width="80" height="22" rx="5" fill="#0f172a" stroke="#f43f5e" stroke-width="1.2"/>
+                <text x="455" y="111" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ 3</text>
+              </g>
+
+              <!-- Arêtes P1 -> P3 et P1 -> P4 -->
+              <g id="ex2-edge-3" class="node-transition">
+                <line x1="150" y1="213" x2="120" y2="268" stroke="#fbbf24" stroke-width="2.5"/>
+                <rect x="82" y="228" width="80" height="22" rx="5" fill="#0f172a" stroke="#fbbf24" stroke-width="1.2"/>
+                <text x="122" y="243" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≤ 0</text>
+              </g>
+
+              <g id="ex2-edge-4" class="node-transition">
+                <line x1="220" y1="213" x2="345" y2="268" stroke="#10b981" stroke-width="3" class="svg-dash-anim"/>
+                <rect x="255" y="228" width="80" height="22" rx="5" fill="#064e3b" stroke="#10b981" stroke-width="1.2"/>
+                <text x="295" y="243" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≥ 1</text>
+              </g>
+
+              <!-- NŒUD P0 (Racine) -->
+              <g id="ex2-node-0" class="cursor-pointer node-transition" onclick="setEx2Step(0)">
+                <rect x="220" y="12" width="240" height="68" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+                <text x="340" y="32" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">P₀ (Relaxation Continue)</text>
+                <text x="340" y="51" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 20/7 (2,86) | x₂ = 3</text>
+                <text x="340" y="69" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">z₀ = 59/7 ≈ 8,43 (Sépare x₁)</text>
+              </g>
+
+              <!-- NŒUD P1 (x1 <= 2) -->
+              <g id="ex2-node-2" class="cursor-pointer node-transition" onclick="setEx2Step(2)">
+                <rect x="65" y="145" width="240" height="68" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                <text x="185" y="165" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P₁ : x₁ ≤ 2</text>
+                <text x="185" y="184" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 2  |  x₂ = 1/2 = 0,5</text>
+                <text x="185" y="202" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">z₁ = 7,5 (On sépare x₂)</text>
+              </g>
+
+              <!-- NŒUD P2 (x1 >= 3 : Irréalisable) -->
+              <g id="ex2-node-1" class="cursor-pointer node-transition" onclick="setEx2Step(1)">
+                <rect x="380" y="145" width="245" height="68" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2"/>
+                <text x="502" y="165" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">P₂ : x₁ ≥ 3</text>
+                <text x="502" y="184" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">7x₁ ≤ 14 + 2x₂ ≤ 20 ⇒ x₁ ≤ 2,86</text>
+                <text x="502" y="202" fill="#fda4af" font-size="11.5" font-weight="bold" text-anchor="middle">✗ Irréalisable (P₂ = ∅)</text>
+              </g>
+
+              <!-- NŒUD P3 (x1 <= 2, x2 <= 0) -->
+              <g id="ex2-node-4" class="cursor-pointer node-transition" onclick="setEx2Step(4)">
+                <rect x="15" y="268" width="225" height="68" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+                <text x="127" y="288" fill="#fde047" font-size="12" font-weight="bold" text-anchor="middle">P₃ : x₁ ≤ 2 et x₂ = 0</text>
+                <text x="127" y="307" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 1,5  |  x₂ = 0</text>
+                <text x="127" y="325" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">✂ z₃ = 6 &lt; ẑ = 7 (Stérilisé !)</text>
+              </g>
+
+              <!-- NŒUD P4 (x1 <= 2, x2 >= 1 : OPTIMUM) -->
+              <g id="ex2-node-3" class="cursor-pointer node-transition glow-green" onclick="setEx2Step(3)">
+                <rect x="265" y="268" width="245" height="68" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+                <text x="387" y="288" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">★ P₄ : x₁ ≤ 2 et x₂ ≥ 1</text>
+                <text x="387" y="307" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁* = 2  |  x₂* = 1 (Entier ✓)</text>
+                <text x="387" y="325" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">z* = 4(2) - 1 = 7 (OPTIMUM)</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- GRAPHIQUE 2D SVG EXERCICE 2 (5 colonnes) -->
+          <!-- Échelle SVG : Origine (0,0) -> (60, 310) ; 1 unité = 72 px -->
+          <div class="lg:col-span-5 w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+            <div class="text-xs font-bold text-slate-400 mb-2 flex justify-between">
+              <span>📐 Domaine Géométrique $(x_1, x_2)$</span>
+              <span id="ex2-graph-label" class="mono text-emerald-400">Point actif : P₀(20/7 ; 3)</span>
+            </div>
+            <svg viewBox="0 0 380 360" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grille entière (1 unité = 72px) -->
+              <g stroke="#1e293b" stroke-width="1">
+                <line x1="132" y1="35" x2="132" y2="310"/>
+                <line x1="204" y1="35" x2="204" y2="310"/>
+                <line x1="276" y1="35" x2="276" y2="310"/>
+                <line x1="348" y1="35" x2="348" y2="310"/>
+                <line x1="60" y1="238" x2="355" y2="238"/>
+                <line x1="60" y1="166" x2="355" y2="166"/>
+                <line x1="60" y1="94" x2="355" y2="94"/>
+              </g>
+
+              <!-- Domaine réalisable continu P0 :
+                   O(0,0)->(60,310)
+                   P3(1.5, 0)->(168, 310)
+                   P1(2, 0.5)->(204, 274)
+                   P0(20/7 = 2.857, 3)->(265.7, 94)
+                   (0, 3)->(60, 94) -->
+              <polygon points="60,310 168,310 204,274 265.7,94 60,94" fill="rgba(16, 185, 129, 0.14)" stroke="none"/>
+
+              <!-- Bande exclue 2 < x1 < 3 (x de 204 à 276) -->
+              <rect x="204" y="55" width="72" height="255" fill="rgba(244, 63, 94, 0.2)" stroke="#f43f5e" stroke-width="1" stroke-dasharray="3,3"/>
+              <text x="240" y="72" fill="#fda4af" font-size="9.5" font-family="monospace" text-anchor="middle">Exclu ]2,3[</text>
+
+              <!-- Contrainte C2 : x2 = 3 -> y = 94 -->
+              <line x1="45" y1="94" x2="335" y2="94" stroke="#38bdf8" stroke-width="2"/>
+              <text x="80" y="84" fill="#38bdf8" font-size="10.5" font-weight="bold" font-family="monospace">x₂ ≤ 3</text>
+
+              <!-- Contrainte C1 : 7x1 - 2x2 = 14 -> passe par (2,0)=(204,310) et P0(20/7, 3)=(265.7, 94) -->
+              <line x1="204" y1="310" x2="275" y2="61" stroke="#818cf8" stroke-width="2.5"/>
+              <text x="272" y="150" fill="#a5b4fc" font-size="10" font-weight="bold" font-family="monospace">7x₁-2x₂≤14</text>
+
+              <!-- Contrainte C3 : 2x1 - 2x2 = 3 -> passe par (1.5, 0)=(168,310) et (3.5, 2)=(312,166) -->
+              <line x1="168" y1="310" x2="312" y2="166" stroke="#f59e0b" stroke-width="2"/>
+              <text x="242" y="268" fill="#fbbf24" font-size="10" font-weight="bold" font-family="monospace">2x₁-2x₂≤3</text>
+
+              <!-- Axes -->
+              <line x1="45" y1="310" x2="360" y2="310" stroke="#94a3b8" stroke-width="2"/>
+              <line x1="60" y1="325" x2="60" y2="30" stroke="#94a3b8" stroke-width="2"/>
+              <text x="350" y="330" fill="#f8fafc" font-size="12" font-weight="bold">x₁</text>
+              <text x="38" y="42" fill="#f8fafc" font-size="12" font-weight="bold">x₂</text>
+
+              <!-- Graduations -->
+              <g fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="middle">
+                <text x="132" y="326">1</text>
+                <text x="204" y="326">2</text>
+                <text x="276" y="326">3</text>
+                <text x="45" y="242">1</text>
+                <text x="45" y="170">2</text>
+                <text x="45" y="98">3</text>
+              </g>
+
+              <!-- Points entiers réalisables -->
+              <g fill="#64748b">
+                <circle cx="60" cy="310" r="4"/><circle cx="132" cy="310" r="4"/>
+                <circle cx="60" cy="238" r="4"/><circle cx="132" cy="238" r="4"/>
+                <circle cx="60" cy="166" r="4"/><circle cx="132" cy="166" r="4"/><circle cx="204" cy="166" r="4"/>
+                <circle cx="60" cy="94" r="4"/><circle cx="132" cy="94" r="4"/><circle cx="204" cy="94" r="4"/>
+              </g>
+
+              <!-- Sommets clés des sous-problèmes -->
+              <!-- P0(20/7, 3) -> (265.7, 94) -->
+              <circle cx="265.7" cy="94" r="6" fill="#f43f5e" stroke="#fff" stroke-width="1.5"/>
+              <text x="255" y="78" fill="#fda4af" font-size="10" font-weight="bold" font-family="monospace">P₀(20/7 ; 3)</text>
+
+              <!-- P1(2, 0.5) -> (204, 274) -->
+              <circle cx="204" cy="274" r="5.5" fill="#38bdf8" stroke="#fff" stroke-width="1.5"/>
+              <text x="138" y="282" fill="#7dd3fc" font-size="10" font-weight="bold" font-family="monospace">P₁(2 ; 0,5)</text>
+
+              <!-- P3(1.5, 0) -> (168, 310) -->
+              <circle cx="168" cy="310" r="5.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5"/>
+              <text x="145" y="342" fill="#fde047" font-size="10" font-weight="bold" font-family="monospace">P₃(1,5 ; 0) [z=6]</text>
+
+              <!-- P4(2, 1) OPTIMUM -> (204, 238) -->
+              <circle cx="204" cy="238" r="8" fill="#10b981" stroke="#fef08a" stroke-width="2.5" class="glow-green"/>
+              <text x="125" y="226" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">★ P₄(2,1) [z*=7]</text>
+
+              <!-- Anneau de sélection dynamique -->
+              <circle id="ex2-active-marker" cx="265.7" cy="94" r="12" fill="none" stroke="#fde047" stroke-width="3" class="svg-dash-anim"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rédaction complète sur la copie pour l'Exercice 2 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-xs uppercase">Rédaction Examen — Exercice 2</span>
+          <h3 class="text-lg font-bold text-white">Détail des calculs de chaque sous-problème (de $P_0$ à $P_4$)</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+          <!-- Nœud 0 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-sky-400">1. Nœud Racine $(P_0)$ — Relaxation continue :</div>
+            <p class="text-slate-300 leading-relaxed">
+              On maximise $z = 4x_1 - x_2$. Sur la droite $7x_1 - 2x_2 = 14$, on a $x_1 = 2 + \frac{2}{7}x_2$, donc $z = 4(2 + \frac{2}{7}x_2) - x_2 = 8 + \frac{1}{7}x_2$, qui croît avec $x_2$. Le maximum continu est donc atteint lorsque $x_2$ touche son plafond $x_2 = 3$ :
+              $$7x_1 - 2(3) = 14 \implies 7x_1 = 20 \implies \mathbf{x_1 = \frac{20}{7} \approx 2,86} \text{ et } \mathbf{x_2 = 3}$$
+              *(La 3<sup>e</sup> contrainte est bien vérifiée car $2(\frac{20}{7}) - 2(3) = -\frac{2}{7} \le 3$).*
+              <br>Profit continu : $\mathbf{z_0 = 4\left(\frac{20}{7}\right) - 3 = \frac{59}{7} \approx 8,43}$.
+              <br>Comme $x_1 = \frac{20}{7} = 2,86 \notin \mathbb{N}$ (alors que $x_2 = 3 \in \mathbb{N}$), on sépare obligatoirement suivant $x_1$ : <strong>$P_1 : x_1 \le 2$</strong> et <strong>$P_2 : x_1 \ge 3$</strong>.
+            </p>
+          </div>
+
+          <!-- Nœud 2 et Nœud 1 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-rose-400">2. Évaluation de $(P_2)$ et $(P_1)$ :</div>
+            <p class="text-slate-300 leading-relaxed">
+              • <strong>Sous-problème $(P_2)$ ($x_1 \ge 3$) :</strong> D'après les contraintes $7x_1 \le 14 + 2x_2$ et $x_2 \le 3$, on a toujours $7x_1 \le 20 \implies x_1 \le \frac{20}{7} \approx 2,86$. C'est incompatible avec $x_1 \ge 3$ : <strong>$P_2 = \emptyset$ (irréalisable, nœud stérilisé)</strong>.
+              <br>• <strong>Sous-problème $(P_1)$ ($x_1 \le 2$) :</strong> Pour maximiser $4x_1 - x_2$, on veut $x_1$ le plus grand possible ($x_1 = 2$) et $x_2$ le plus petit possible ! Or, pour $x_1 = 2$, la contrainte $2x_1 - 2x_2 \le 3$ impose $4 - 2x_2 \le 3 \implies 2x_2 \ge 1 \implies \mathbf{x_2 \ge \frac{1}{2} = 0,5}$.
+              <br>L'optimum de $P_1$ est donc $\mathbf{x_1 = 2, \; x_2 = \frac{1}{2}}$ avec $\mathbf{z_1 = 4(2) - 0,5 = 7,5}$.
+              <br>Comme $x_2 = 0,5 \notin \mathbb{N}$, on sépare suivant $x_2$ : <strong>$P_3 : x_2 \le 0$</strong> et <strong>$P_4 : x_2 \ge 1$</strong>.
+            </p>
+          </div>
+
+          <!-- Nœuds 3 et 4 + Conclusion Finale -->
+          <div class="md:col-span-2 p-4 rounded-xl bg-emerald-950/30 border-2 border-emerald-500/50 space-y-2">
+            <div class="font-bold text-emerald-300 text-base">3. Évaluation de $(P_4)$ et $(P_3)$ — Solution Optimale Entière :</div>
+            <p class="text-slate-200 leading-relaxed">
+              • <strong>Sous-problème $(P_4)$ ($x_1 \le 2, \; x_2 \ge 1$) :</strong> On maximise $4x_1 - x_2$ en prenant le plus grand $x_1$ autorisé ($x_1 = 2$) et le plus petit $x_2$ autorisé ($x_2 = 1$). Vérifions les 3 contraintes en $(2, 1)$ : $7(2)-2(1)=12 \le 14$ ✓, $1 \le 3$ ✓ et $2(2)-2(1)=2 \le 3$ ✓.
+              <br>On obtient la solution <strong>entière</strong> $\mathbf{(x_1 = 2, \; x_2 = 1)}$ avec $\mathbf{z_4 = 4(2) - 1 = 7}$ $\rightarrow$ on retient $\mathbf{\hat{z} = 7}$.
+              <br>• <strong>Sous-problème $(P_3)$ ($x_1 \le 2, \; x_2 \le 0 \implies x_2 = 0$) :</strong> La contrainte $2x_1 - 2(0) \le 3$ impose $x_1 \le 1,5$. L'optimum continu de $P_3$ est $\mathbf{(x_1 = 1,5 ; \; x_2 = 0)}$ avec $\mathbf{z_3 = 4(1,5) - 0 = 6}$.
+              <br>Comme la borne supérieure $z_3 = 6 < \hat{z} = 7$, aucune solution entière de la branche $P_3$ ne peut dépasser $6$ : <strong>$P_3$ est stérilisé par borne !</strong>
+              <br><span class="text-amber-300 font-bold">★ Conclusion Exercice 2 :</span> L'unique solution optimale entière est $\mathbf{x_1^* = 2, \; x_2^* = 1}$ avec $\mathbf{z^* = 7}$.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= SCRIPTS INTERACTIFS ================= -->
+  <script>
+    // --- DONNÉES PAS À PAS DE L'EXERCICE 1 ---
+    const ex1Steps = [
+      {
+        title: "Nœud P₀ (3,75 ; 2,25)",
+        cx: 212.5, cy: 245.5,
+        banner: "<strong>Étape 0 — Nœud Racine $P_0$ (Relaxation continue) :</strong> En résolvant le système $x_1+x_2=6$ et $9x_1+5x_2=45$, le minimum continu est atteint en <strong>$x_1 = 15/4 = 3,75$ et $x_2 = 9/4 = 2,25$</strong> avec <strong>$z_0 = -41,25$</strong>. Comme $x_1 = 3,75 \\notin \\mathbb{N}$, on sépare en deux branches : $x_1 \\le 3$ ($P_1$) et $x_1 \\ge 4$ ($P_2$)."
+      },
+      {
+        title: "Nœud P₁ (3 ; 3) [Entier]",
+        cx: 181, cy: 214,
+        banner: "<strong>Étape 1 — Nœud $P_1$ ($x_1 \\le 3$) :</strong> En fixant $x_1 = 3$, la contrainte $x_1 + x_2 \\le 6$ permet d'aller jusqu'à $x_2 = 3$ (car $9(3)+5(3) = 42 \\le 45$). On obtient <strong>$(x_1 = 3, x_2 = 3)$</strong> avec <strong>$z_1 = -39$</strong>. C'est une <strong>solution entière</strong> ! Ce nœud est stérilisé et fixe notre premier record entier : $\\hat{z} = -39$."
+      },
+      {
+        title: "Nœud P₂ (4 ; 1,8)",
+        cx: 223, cy: 264.4,
+        banner: "<strong>Étape 2 — Nœud $P_2$ ($x_1 \\ge 4$) :</strong> En posant $x_1 = 4$ dans $9x_1 + 5x_2 = 45$, on trouve <strong>$x_1 = 4, \\; x_2 = 9/5 = 1,8$</strong> et <strong>$z_2 = -41$</strong>. Comme $z_2 = -41 < \\hat{z} = -39$, cette branche peut contenir une meilleure solution entière ! On sépare sur $x_2 = 1,8$ : $x_2 \\ge 2$ ($P_3$) et $x_2 \\le 1$ ($P_4$)."
+      },
+      {
+        title: "Nœud P₃ (Irréalisable ∅)",
+        cx: 223, cy: 256,
+        banner: "<strong>Étape 3 — Nœud $P_3$ ($x_1 \\ge 4$ et $x_2 \\ge 2$) :</strong> En remplaçant dans la 2<sup>e</sup> contrainte, on a $9x_1 + 5x_2 \\ge 9(4) + 5(2) = 46 > 45$. Aucune solution ne respecte les contraintes : <strong>$P_3 = \\emptyset$ (nœud stérilisé pour infaisabilité)</strong>."
+      },
+      {
+        title: "Nœud P₄ (40/9 ; 1)",
+        cx: 241.6, cy: 298,
+        banner: "<strong>Étape 4 — Nœud $P_4$ ($x_1 \\ge 4$ et $x_2 \\le 1$) :</strong> Avec $x_2 = 1$, la contrainte $9x_1 + 5(1) \\le 45$ donne <strong>$x_1 = 40/9 \\approx 4,44$ et $x_2 = 1$</strong>, d'où <strong>$z_4 = -365/9 \\approx -40,56 < -39$</strong>. Comme $x_1 = 4,44 \\notin \\mathbb{N}$, on sépare sur $x_1$ : $x_1 \\le 4$ ($P_5$) et $x_1 \\ge 5$ ($P_6$)."
+      },
+      {
+        title: "Nœud P₅ (4 ; 1) [z = -37]",
+        cx: 223, cy: 298,
+        banner: "<strong>Étape 5 — Nœud $P_5$ ($x_1 \\ge 4, x_2 \\le 1, x_1 \\le 4$) :</strong> On a $x_1 = 4$ et $x_2 = 1$. C'est une solution entière donnant <strong>$z_5 = -8(4) - 5(1) = -37$</strong>. Comme $-37 > -39$, elle est moins bonne que $P_1(-39)$ : nœud stérilisé."
+      },
+      {
+        title: "★ Optimum P₆ (5 ; 0) [z* = -40]",
+        cx: 265, cy: 340,
+        banner: "<strong>Étape 6 — Nœud $P_6$ ($x_1 \\ge 5, x_2 \\le 1$) — SOLUTION OPTIMALE :</strong> Pour $x_1 \\ge 5$, la contrainte $9x_1 + 5x_2 \\le 45$ impose $45 + 5x_2 \\le 45 \\implies$ <strong>$x_1^* = 5$ et $x_2^* = 0$</strong>. Cette solution est entière et donne <strong>$z^* = -40 < -39$</strong> ! Plus aucun nœud n'est ouvert : l'optimum est $(5, 0)$."
+      }
+    ];
+
+    let currentEx1 = 0;
+
+    function setEx1Step(idx) {
+      currentEx1 = idx;
+      for (let i = 0; i <= 6; i++) {
+        const btn = document.getElementById(`btn-ex1-${i}`);
+        btn.className = i === idx
+          ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 shadow transition"
+          : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800/80 text-slate-400 hover:text-white transition";
+
+        const node = document.getElementById(`ex1-node-${i}`);
+        node.setAttribute("opacity", i <= idx ? "1" : "0.28");
+        if (i >= 1) {
+          const edge = document.getElementById(`ex1-edge-${i}`);
+          edge.setAttribute("opacity", i <= idx ? "1" : "0.22");
+        }
+      }
+
+      const step = ex1Steps[idx];
+      const banner = document.getElementById("ex1-banner");
+      banner.innerHTML = step.banner;
+      document.getElementById("ex1-graph-label").textContent = "Point actif : " + step.title;
+
+      const marker = document.getElementById("ex1-active-marker");
+      marker.setAttribute("cx", step.cx);
+      marker.setAttribute("cy", step.cy);
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    function nextEx1Step() {
+      setEx1Step((currentEx1 + 1) % ex1Steps.length);
+    }
+    function prevEx1Step() {
+      setEx1Step((currentEx1 - 1 + ex1Steps.length) % ex1Steps.length);
+    }
+
+    // --- DONNÉES PAS À PAS DE L'EXERCICE 2 ---
+    const ex2Steps = [
+      {
+        title: "Nœud P₀ (20/7 ; 3)",
+        cx: 265.7, cy: 94,
+        banner: "<strong>Étape 0 — Nœud Racine $P_0$ (Relaxation continue) :</strong> Le maximum continu de $z = 4x_1 - x_2$ est atteint à l'intersection de $7x_1 - 2x_2 = 14$ et $x_2 = 3$, soit <strong>$x_1 = 20/7 \\approx 2,86$ et $x_2 = 3$</strong> avec <strong>$z_0 = 59/7 \\approx 8,43$</strong>. Seul $x_1$ est fractionnaire : on sépare en $x_1 \\le 2$ ($P_1$) et $x_1 \\ge 3$ ($P_2$)."
+      },
+      {
+        title: "Nœud P₂ (x₁ ≥ 3 : ∅)",
+        cx: 276, cy: 94,
+        banner: "<strong>Étape 1 — Nœud $P_2$ ($x_1 \\ge 3$) :</strong> Comme $x_2 \\le 3$ et $7x_1 \\le 14 + 2x_2$, on a obligatoirement $7x_1 \\le 20 \\implies x_1 \\le 20/7 \\approx 2,86$. Il est donc impossible d'avoir $x_1 \\ge 3$ : <strong>$P_2 = \\emptyset$ (nœud stérilisé par infaisabilité)</strong>."
+      },
+      {
+        title: "Nœud P₁ (2 ; 0,5)",
+        cx: 204, cy: 274,
+        banner: "<strong>Étape 2 — Nœud $P_1$ ($x_1 \\le 2$) :</strong> Pour maximiser $4x_1 - x_2$, on prend $x_1$ maximal ($x_1 = 2$) et $x_2$ minimal ! En $x_1 = 2$, la contrainte $2x_1 - 2x_2 \\le 3$ impose $4 - 2x_2 \\le 3 \\implies x_2 \\ge 0,5$. D'où <strong>$x_1 = 2, \\; x_2 = 0,5$</strong> et <strong>$z_1 = 7,5$</strong>. On sépare sur $x_2$ : $x_2 \\le 0$ ($P_3$) et $x_2 \\ge 1$ ($P_4$)."
+      },
+      {
+        title: "★ Optimum P₄ (2 ; 1) [z* = 7]",
+        cx: 204, cy: 238,
+        banner: "<strong>Étape 3 — Nœud $P_4$ ($x_1 \\le 2$ et $x_2 \\ge 1$) — CANDIDAT ENTIER :</strong> Avec $x_1$ le plus grand possible ($2$) et $x_2$ le plus petit possible ($1$), le point <strong>$(x_1 = 2, x_2 = 1)$</strong> vérifie toutes les contraintes et donne <strong>$z_4 = 4(2) - 1 = 7$</strong>. C'est une solution entière : on pose $\\hat{z} = 7$ !"
+      },
+      {
+        title: "Nœud P₃ (1,5 ; 0) [Élagué z₃=6 < 7]",
+        cx: 168, cy: 310,
+        banner: "<strong>Étape 4 — Nœud $P_3$ ($x_1 \\le 2$ et $x_2 \\le 0$) — STÉRILISATION PAR BORNE :</strong> Comme $x_2 = 0$, la contrainte $2x_1 - 2(0) \\le 3$ impose $x_1 \\le 1,5$. Le maximum continu de $P_3$ est <strong>$(1,5 ; 0)$ avec $z_3 = 6$</strong>. Or $z_3 = 6 < \\hat{z} = 7$ : inutile de séparer $P_3$, il est élagué ! L'optimum entier final est <strong>$x_1^* = 2, x_2^* = 1, z^* = 7$</strong>."
+      }
+    ];
+
+    let currentEx2 = 0;
+
+    function setEx2Step(idx) {
+      currentEx2 = idx;
+      for (let i = 0; i <= 4; i++) {
+        const btn = document.getElementById(`btn-ex2-${i}`);
+        btn.className = i === idx
+          ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 shadow transition"
+          : "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800/80 text-slate-400 hover:text-white transition";
+
+        const node = document.getElementById(`ex2-node-${i}`);
+        node.setAttribute("opacity", i <= idx ? "1" : "0.28");
+        if (i >= 1) {
+          const edge = document.getElementById(`ex2-edge-${i}`);
+          edge.setAttribute("opacity", i <= idx ? "1" : "0.22");
+        }
+      }
+
+      const step = ex2Steps[idx];
+      const banner = document.getElementById("ex2-banner");
+      banner.innerHTML = step.banner;
+      document.getElementById("ex2-graph-label").textContent = "Point actif : " + step.title;
+
+      const marker = document.getElementById("ex2-active-marker");
+      marker.setAttribute("cx", step.cx);
+      marker.setAttribute("cy", step.cy);
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    function nextEx2Step() {
+      setEx2Step((currentEx2 + 1) % ex2Steps.length);
+    }
+    function prevEx2Step() {
+      setEx2Step((currentEx2 - 1 + ex2Steps.length) % ex2Steps.length);
+    }
+
+    window.onload = function () {
+      setEx1Step(6);
+      setEx2Step(4);
+    };
+  </script>
+</body>
+</html>
