@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision par Ordinateur — Segmentation d'Images (Cours Interactif & SVG)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- KaTeX for Rendered Mathematical Expressions -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e32',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .math-box {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.78), rgba(15, 23, 42, 0.94));
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.55);
+        }
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #1e293b;
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            border: 2px solid #020617;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.65);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.5);
+            border-color: #38bdf8;
+        }
+        .svg-cell {
+            transition: all 0.25s ease;
+        }
+        .svg-cell:hover {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+
+    <!-- =========================================================================
+         STICKY HEADER & MODULE NAVIGATION
+         ========================================================================= -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/90 border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 via-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">Séance 7 • Pages 1 à 52</span>
+                            <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">@svg-explained + Code Python</span>
+                        </div>
+                        <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white mt-0.5">
+                            Segmentation d'Images : Régions, Seuillage d'Otsu, Graphes & Quadtree
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Color Semantics Legend -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-950/80 border border-sky-700/50 text-sky-300">
+                        <span class="w-2 h-2 rounded-full bg-sky-400"></span> Pixels / Entrée
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Région Homogène / Prédicat VRAI
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-700/50 text-amber-300">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span> Seuil / Front d'onde / Centre
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-950/80 border border-rose-700/50 text-rose-300">
+                        <span class="w-2 h-2 rounded-full bg-rose-400"></span> Hétérogène (Split) / Chemin Optimal
+                    </span>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex overflow-x-auto gap-2 mt-3 pb-1 no-scrollbar" aria-label="Modules">
+                <button onclick="switchTab(1)" id="tab-btn-1" class="tab-active whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-sky-400 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">1</span>
+                    Fondements & K-Means (p.1-8)
+                </button>
+                <button onclick="switchTab(2)" id="tab-btn-2" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">2</span>
+                    Seuillage, Otsu & Local (p.9-21)
+                </button>
+                <button onclick="switchTab(3)" id="tab-btn-3" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">3</span>
+                    Graphes & Coût Minimal (p.22-27)
+                </button>
+                <button onclick="switchTab(4)" id="tab-btn-4" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">4</span>
+                    Croissance de Régions (p.28-39)
+                </button>
+                <button onclick="switchTab(5)" id="tab-btn-5" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">5</span>
+                    Split & Merge, Quadtree & Voronoï (p.40-52)
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- =========================================================================
+         MAIN CONTENT CONTAINER
+         ========================================================================= -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- =====================================================================
+             MODULE 1 : FONDEMENTS, PARTITION MATHÉMATIQUE & K-MEANS (Pages 1-8)
+             ===================================================================== -->
+        <section id="module-1" class="space-y-8">
+
+            <!-- Quoi / Pourquoi / Comment / Monde Réel Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/40 to-slate-900 border border-sky-500/30 shadow-xl space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
+                        🎯 Comprendre l'essentiel • Pages 1 à 8 du cours
+                    </span>
+                    <span class="text-xs font-mono text-slate-400">Dualité Contours / Régions & Partitionnement</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30">
+                        <div class="text-xs font-bold text-sky-400 uppercase mb-1">1. Quoi ? (Définition)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Segmenter une image, c'est la <strong>découper en zones homogènes</strong> appelées <strong>Régions ($R_i$)</strong>. Au lieu de voir des millions de pixels isolés, l'ordinateur regroupe les pixels qui se ressemblent (même niveau de gris, couleur, texture ou mouvement) pour obtenir une description simplifiée en <strong>objets</strong>.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 uppercase mb-1">2. Pourquoi ? (Le Problème)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Dans le chapitre précédent, les <strong>détecteurs de contours</strong> (Sobel, Canny) donnaient souvent des frontières interrompues (non fermées). Or, pour mesurer la surface ou le volume d'un organe, on a besoin d'une <strong>région pleine et fermée</strong> (Dualité : l'intérieur d'un contour fermé = une région, p.2).
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                        <div class="text-xs font-bold text-amber-400 uppercase mb-1">3. Comment ? (Le Mécanisme)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Soit par <strong>Classification (Clustering K-Means)</strong> qui regroupe les pixels autour de $K$ niveaux de gris moyens (sans regarder leur position), soit par des méthodes spatiales basées sur un <strong>prédicat logique $P(R_i)$</strong> (variance faible, proximité de couleur).
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-purple-500/30">
+                        <div class="text-xs font-bold text-purple-400 uppercase mb-1">4. Où dans le monde réel ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Médecine (p.4 & 8) :</strong> Calculer le volume exact d'une tumeur du foie sur IRM ($18\,127\text{ pixels} = 101{,}96\text{ cm}^3$) avant chirurgie.<br>
+                            • <strong>Biologie (p.6) :</strong> Isoler et compter des chromosomes.<br>
+                            • <strong>Industrie (p.7) :</strong> Trier des pièces mécaniques (clés, outils) sur un tapis roulant.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mathematical Definition of a Partition & Predicate (Pages 1, 2, 30) -->
+                <div class="math-box rounded-xl p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <span>📐 Définition Mathématique d'une Partition en Régions & Prédicat $\mathcal{P}$ (Pages 1, 2 & 30)</span>
+                        </h3>
+                        <span class="text-xs font-mono text-sky-400">Une région = pixels connexes + similaires</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-sky-400 mb-1">1. Couverture Totale</div>
+                            <div class="text-sm py-1 text-center">$$I = \bigcup_{i=1}^{M} R_i \quad \text{et} \quad R_i \neq \emptyset$$</div>
+                            <p class="text-slate-400 mt-1">La réunion de toutes les $M$ régions reconstitue l'image entière $I$. Chaque pixel appartient à une région.</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-rose-400 mb-1">2. Régions Disjointes</div>
+                            <div class="text-sm py-1 text-center">$$\forall i \neq j, \quad R_i \cap R_j = \emptyset$$</div>
+                            <p class="text-slate-400 mt-1">Deux régions distinctes ne se chevauchent jamais : aucun pixel ne peut appartenir à 2 régions à la fois.</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-emerald-400 mb-1">3. Prédicat d'Homogénéité VRAI</div>
+                            <div class="text-sm py-1 text-center">$$\forall i, \quad \mathcal{P}(R_i) = 1 \text{ (VRAI)}$$</div>
+                            <p class="text-slate-400 mt-1">Chaque région respecte le critère d'uniformité choisi (ex: variance $\sigma^2(R_i) < \text{seuil}$).</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-amber-400 mb-1">4. Maximalité (Fusion finale)</div>
+                            <div class="text-sm py-1 text-center">$$\mathcal{P}(R_i \cup R_j) = 0 \text{ (FAUX)}$$</div>
+                            <p class="text-slate-400 mt-1">Si deux régions sont voisines mais séparées, leur fusion doit violer le prédicat (sinon il faut les fusionner !).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 1: Simulateur K-Means (K-Moyennes) Pas-à-Pas (Pages 6, 7, 8) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-5">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Labo Interactif 1.1 • Pages 6, 7 & 8 du cours</span>
+                        <h3 class="text-xl font-bold text-white">Clustering K-Means (K-Moyennes) : De l'Initialisation à la Convergence</h3>
+                        <p class="text-xs text-slate-300 mt-1">
+                            L'algorithme alterne entre <strong>Étape 2 : Attribution</strong> de chaque pixel au centre $C_k$ le plus proche ($|NdG - C_k|$ minimal) et <strong>Étape 3 : Recalcul</strong> de chaque centre comme la moyenne $\mu_k$ des pixels de sa classe, jusqu'à ce que les centres ne bougent plus !
+                        </p>
+                    </div>
+                    <!-- Scenario Selector -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setKMeansScenario('chromosomes')" id="km-btn-chromosomes" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400">
+                            K=2 : Chromosomes (p.6 : Pf=32, Pc=217)
+                        </button>
+                        <button onclick="setKMeansScenario('wrench')" id="km-btn-wrench" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700">
+                            K=2 : Outils / Clé (p.7 : 6 itérations)
+                        </button>
+                        <button onclick="setKMeansScenario('tumor3')" id="km-btn-tumor3" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700">
+                            K=3 : IRM Tumeur Cérébrale (p.8)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Controls Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="stepKMeans()" id="btn-km-step" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+                            <span>▶ Étape Suivante (Itération K-Means)</span>
+                        </button>
+                        <button onclick="runAllKMeans()" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition">
+                            ⏩ Converger automatiquement
+                        </button>
+                        <button onclick="resetKMeansBadInit()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-semibold text-xs transition">
+                            🎲 Initialisation Décentrée (Voir les 6 itérations de la p.7)
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 font-mono text-sky-400" id="km-iter-badge">Itération : 0 (Initialisation)</span>
+                        <span class="px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 font-mono text-emerald-300" id="km-status-badge">Prêt à itérer</span>
+                    </div>
+                </div>
+
+                <!-- Visual Grid: 1D Grayscale Axis & Centroids + 2D Segmented Image -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- Left 7 cols: 1D Histogram + Moving Centroids SVG -->
+                    <div class="lg:col-span-7 bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-200">1. Axe des Niveaux de Gris $[0..255]$ & Centres de Clusters $C_k$</span>
+                            <span class="text-slate-400">Astuce : Cliquez sur l'axe pour déplacer le centre $C_1$ !</span>
+                        </div>
+                        <svg id="svg-kmeans-1d" viewBox="0 0 560 220" class="w-full h-auto cursor-pointer" onclick="handleKMeansAxisClick(event)">
+                            <!-- Background Regions Coloring -->
+                            <g id="km-zones-bg"></g>
+                            <!-- Histogram Bars -->
+                            <g id="km-hist-bars"></g>
+                            <!-- X-Axis Line -->
+                            <line x1="30" y1="165" x2="530" y2="165" stroke="#64748b" stroke-width="2"/>
+                            <text x="30" y="182" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">0 (Noir)</text>
+                            <text x="155" y="182" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">64</text>
+                            <text x="280" y="182" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">128</text>
+                            <text x="405" y="182" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">192</text>
+                            <text x="530" y="182" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">255 (Blanc)</text>
+
+                            <!-- Decision Boundaries & Centroid Markers -->
+                            <g id="km-centroids-layer"></g>
+                        </svg>
+                        <div id="km-math-readout" class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 flex flex-wrap justify-between gap-2">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right 5 cols: 2D Spatial Preview (Original vs Clustered) -->
+                    <div class="lg:col-span-5 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-200 mb-2" id="km-2d-title">2. Résultat Spatial de la Segmentation K-Means</span>
+                        <div class="grid grid-cols-2 gap-3 w-full">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[11px] text-slate-400 mb-1">Image Originale NdG</span>
+                                <canvas id="canvas-km-orig" width="160" height="160" class="w-full max-w-[160px] aspect-square rounded-lg border border-slate-700 bg-black"></canvas>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[11px] text-emerald-400 font-semibold mb-1">Classes Attribuées</span>
+                                <canvas id="canvas-km-seg" width="160" height="160" class="w-full max-w-[160px] aspect-square rounded-lg border border-emerald-500/40 bg-black"></canvas>
+                            </div>
+                        </div>
+                        <p id="km-2d-caption" class="text-[11px] text-slate-300 mt-3 text-center leading-relaxed">
+                            Chaque pixel $p$ reçoit l'étiquette du centre $C_k$ qui minimise la distance $|I(p) - C_k|$.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Module 1: K-Means -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="ml-2 text-xs font-mono font-semibold text-sky-400">kmeans_segmentation.py — Algorithme exact du cours (Pages 6 à 8) + OpenCV</span>
+                    </div>
+                    <button onclick="copyCode('code-mod-1', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-1" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-purple-400">def</span> <span class="text-sky-400">kmeans_manuel_1D</span>(image_gray, centres_initiaux):
+    <span class="text-slate-400"># 1. Convertir l'image en float32 pour calculer les distances sans débordement</span>
+    img = image_gray.astype(np.float32)
+    <span class="text-slate-400"># Initialiser les K centres de clusters CC (ex: Page 6 -> Pf=32, Pc=217)</span>
+    centres = np.array(centres_initiaux, dtype=np.float32)
+    
+    <span class="text-purple-400">while</span> <span class="text-purple-400">True</span>:
+        <span class="text-slate-400"># 2. Pour chaque pixel, calculer sa distance |NdG - C_k| à chaque centre CC</span>
+        <span class="text-slate-400"># img[..., None] a pour forme (H, W, 1) et centres a pour forme (K,) -> résultat (H, W, K)</span>
+        distances = np.abs(img[:, :, <span class="text-purple-400">None</span>] - centres)
+        
+        <span class="text-slate-400"># Attribuer à chaque pixel l'indice k (0, 1, ..., K-1) de distance minimale</span>
+        labels = np.argmin(distances, axis=<span class="text-amber-400">2</span>)
+        
+        <span class="text-slate-400"># 3. Pour chaque cluster k, calculer le niveau de gris moyen = nouveaux CC</span>
+        nouveaux_centres = np.copy(centres)
+        <span class="text-purple-400">for</span> k <span class="text-purple-400">in</span> range(len(centres)):
+            pixels_du_cluster = img[labels == k]
+            <span class="text-purple-400">if</span> len(pixels_du_cluster) &gt; <span class="text-amber-400">0</span>:
+                nouveaux_centres[k] = np.mean(pixels_du_cluster)
+        
+        <span class="text-slate-400"># Test d'arrêt : les nouveaux CC sont-ils différents des anciens CC ?</span>
+        <span class="text-purple-400">if</span> np.allclose(centres, nouveaux_centres, atol=<span class="text-amber-400">0.5</span>):
+            <span class="text-purple-400">break</span>  <span class="text-slate-400"># Si non, STOP (convergence atteinte !)</span>
+        centres = nouveaux_centres  <span class="text-slate-400"># Si oui, retour à l'étape 2</span>
+
+    <span class="text-slate-400"># Remplacer chaque pixel par le niveau de gris moyen de son centre final</span>
+    image_segmentee = np.uint8(centres[labels])
+    <span class="text-purple-400">return</span> image_segmentee, centres
+
+<span class="text-slate-400"># --- ÉQUIVALENT OPTIMISÉ AVEC OPENCV (Page 8 : IRM Tumeur en K=3 classes) ---</span>
+<span class="text-slate-400"># Aplatir l'image 2D (H, W) en un vecteur colonne 1D de N pixels (N, 1) en float32</span>
+pixels_1d = np.float32(image_gray.reshape(-<span class="text-amber-400">1</span>, <span class="text-amber-400">1</span>))
+<span class="text-slate-400"># Critère d'arrêt : stop après 100 itérations OU si les centres bougent de moins de 0.2</span>
+critere = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, <span class="text-amber-400">100</span>, <span class="text-amber-400">0.2</span>)
+<span class="text-slate-400"># Exécuter K-Means avec K=3 classes (Fond noir, Cerveau gris, Tumeur blanche)</span>
+_, labels, centres = cv2.kmeans(pixels_1d, K=<span class="text-amber-400">3</span>, bestLabels=<span class="text-purple-400">None</span>, criteria=critere, attempts=<span class="text-amber-400">10</span>, flags=cv2.KMEANS_PP_CENTERS)
+<span class="text-slate-400"># Reconstruire l'image 2D segmentée avec les valeurs des centres</span>
+irm_segmentee = np.uint8(centres)[labels.flatten()].reshape(image_gray.shape)</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 2 : SEUILLAGE GLOBAL, HYSTÉRÉSIS, OTSU (1979) & SEUILLAGE LOCAL (Pages 9-21)
+             ===================================================================== -->
+        <section id="module-2" class="space-y-8 hidden">
+
+            <!-- Quoi / Pourquoi / Comment / Monde Réel Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 shadow-xl space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                        📊 Analyse d'Histogramme & Seuillage Automatique • Pages 9 à 21
+                    </span>
+                    <span class="text-xs font-mono text-slate-400">Méthode d'Otsu (1979), Hystérésis & Seuillage Local</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30">
+                        <div class="text-xs font-bold text-sky-400 uppercase mb-1">1. Quoi ? (Le Seuillage)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Lorsque les objets et le fond ont des niveaux de gris distincts, l'<strong>histogramme</strong> présente plusieurs bosses (modes) séparées par des vallées. Placer un seuil $T$ dans le creux de la vallée sépare instantanément l'image !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 uppercase mb-1">2. Pourquoi Otsu & Local ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            1) <strong>Otsu (1979) :</strong> Choisir $T$ à la main est impossible sur 10 000 images en usine. Otsu trouve le $T$ optimal automatiquement !<br>
+                            2) <strong>Hystérésis & Local (p.12 & 20) :</strong> Si l'éclairage est en pente (ombre sur la clé à molette, p.21), un seuil unique échoue : il faut découper l'image en blocs locaux $T_{i,j}$ !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                        <div class="text-xs font-bold text-amber-400 uppercase mb-1">3. Comment fonctionne Otsu ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Otsu teste chaque seuil $T \in [0..255]$ et cherche celui qui <strong>minimise l'étalement à l'intérieur de chaque groupe</strong> (variance intra-classe $\sigma_W^2$) ce qui équivaut exactement à <strong>écarter au maximum les deux moyennes</strong> (maximiser la variance inter-classe $\sigma_B^2$).
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-purple-500/30">
+                        <div class="text-xs font-bold text-purple-400 uppercase mb-1">4. Où dans le monde réel ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Scanners de documents & OCR :</strong> Seuillage local adaptatif pour lire un texte photographié avec une ombre.<br>
+                            • <strong>Inspection industrielle (p.12 & 19) :</strong> Détourage de clés mécaniques.<br>
+                            • <strong>Néphrologie / IRM (p.13) :</strong> Parenchyme rénal par hystérésis.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 2A: Explorateur Mathématique d'Otsu (Pages 14 à 19) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 2.1 • Pages 14 à 19 du cours</span>
+                        <h3 class="text-xl font-bold text-white">Méthode d'Otsu (1979) : Maximisation de $\sigma_B^2(T)$ et Minimisation de $\sigma_W^2(T)$</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setOtsuOptimal()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition">
+                            ✨ Placer sur le Seuil Optimal d'Otsu (T* = 118)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Threshold Slider -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center text-xs sm:text-sm font-semibold">
+                        <span class="text-amber-400">Déplacez le Seuil candidat $T$ le long de l'histogramme :</span>
+                        <span id="otsu-val-t" class="font-mono text-white bg-slate-800 px-3 py-1 rounded border border-amber-500/40">Seuil T = 118 (Optimal !)</span>
+                    </div>
+                    <input type="range" id="slider-otsu-t" min="15" max="240" step="1" value="118" class="w-full" oninput="updateOtsuLab()">
+                </div>
+
+                <!-- Dual SVG Graphs: Histogram P(i) + Variance Curves sigma_B^2(T) & sigma_W^2(T) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Graph 1: Histogram P(i) split at T -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4">
+                        <div class="flex justify-between items-center text-xs mb-2">
+                            <span class="font-bold text-slate-200">1. Histogramme Normalisé $P(i)$ : Fond $[0..T]$ vs Objet $[T+1..255]$</span>
+                            <span class="font-mono text-sky-400">q_b(T) + q_o(T) = 1</span>
+                        </div>
+                        <svg id="svg-otsu-hist" viewBox="0 0 500 210" class="w-full h-auto">
+                            <g id="otsu-hist-bars"></g>
+                            <line x1="30" y1="175" x2="480" y2="175" stroke="#64748b" stroke-width="1.5"/>
+                            <!-- Mean markers mu_b, mu_o, mu_total -->
+                            <g id="otsu-means-markers"></g>
+                            <!-- Threshold Vertical Line T -->
+                            <line id="otsu-line-t1" x1="238" y1="15" x2="238" y2="180" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,3"/>
+                            <text id="otsu-txt-t1" x="238" y="12" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="bold">T = 118</text>
+                        </svg>
+                    </div>
+
+                    <!-- Graph 2: Inter-class Variance sigma_B^2(T) (Page 19) -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4">
+                        <div class="flex justify-between items-center text-xs mb-2">
+                            <span class="font-bold text-slate-200">2. Courbe de Variance Inter-Classe $\sigma_B^2(T)$ (Page 19) & Intra $\sigma_W^2(T)$</span>
+                            <span class="font-mono text-emerald-400">σ² = σ²_W(T) + σ²_B(T) = Cste</span>
+                        </div>
+                        <svg id="svg-otsu-var" viewBox="0 0 500 210" class="w-full h-auto">
+                            <line x1="30" y1="175" x2="480" y2="175" stroke="#64748b" stroke-width="1.5"/>
+                            <!-- Curves -->
+                            <path id="path-otsu-inter" d="" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" stroke-width="2.8"/>
+                            <path id="path-otsu-intra" d="" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,3"/>
+                            <!-- Current T marker on curves -->
+                            <line id="otsu-line-t2" x1="238" y1="15" x2="238" y2="180" stroke="#f59e0b" stroke-width="2"/>
+                            <circle id="otsu-dot-inter" cx="238" cy="40" r="6" fill="#10b981" stroke="#020617" stroke-width="2"/>
+                            <circle id="otsu-dot-intra" cx="238" cy="140" r="5" fill="#f43f5e" stroke="#020617" stroke-width="2"/>
+                            <!-- Labels -->
+                            <text x="470" y="35" text-anchor="end" fill="#10b981" font-size="10" font-weight="bold">━━ σ²_B(T) Inter-classe (À MAXIMISER)</text>
+                            <text x="470" y="52" text-anchor="end" fill="#f43f5e" font-size="10" font-weight="bold">┅┅ σ²_W(T) Intra-classe (À MINIMISER)</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Live Calculated Values Readout -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                    <div class="p-3 rounded-xl bg-slate-950 border border-sky-500/30">
+                        <div class="text-[11px] text-sky-400 font-semibold">Proportions $q_b, q_o$</div>
+                        <div id="otsu-read-q" class="text-xs sm:text-sm font-mono font-bold text-white mt-1">0.48 / 0.52</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950 border border-sky-500/30">
+                        <div class="text-[11px] text-sky-400 font-semibold">Moyennes $\mu_b, \mu_o$</div>
+                        <div id="otsu-read-mu" class="text-xs sm:text-sm font-mono font-bold text-white mt-1">62.1 / 178.4</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <div class="text-[11px] text-slate-400 font-semibold">Variances $\sigma_b^2, \sigma_o^2$</div>
+                        <div id="otsu-read-sig" class="text-xs sm:text-sm font-mono font-bold text-slate-200 mt-1">310 / 340</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950 border border-rose-500/40">
+                        <div class="text-[11px] text-rose-400 font-semibold">Intra $\sigma_W^2(T)$ (Min)</div>
+                        <div id="otsu-read-intra" class="text-sm font-mono font-extrabold text-rose-400 mt-1">325.6</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40">
+                        <div class="text-[11px] text-emerald-400 font-semibold">Inter $\sigma_B^2(T)$ (Max)</div>
+                        <div id="otsu-read-inter" class="text-sm font-mono font-extrabold text-emerald-400 mt-1">3376.8</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950 border border-purple-500/40">
+                        <div class="text-[11px] text-purple-400 font-semibold">Totale $\sigma^2 = \sigma_W^2 + \sigma_B^2$</div>
+                        <div id="otsu-read-total" class="text-sm font-mono font-bold text-purple-300 mt-1">3702.4 (Cste)</div>
+                    </div>
+                </div>
+
+                <!-- Mathematical Derivation Cards (Pages 15-18) -->
+                <div class="math-box rounded-xl p-5 space-y-4">
+                    <h4 class="text-sm font-bold text-sky-400 uppercase tracking-wider">Détail des Formules Mathématiques d'Otsu (Pages 15 à 18)</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-white mb-1">1. Proportions & Moyennes (Page 15)</div>
+                            $$q_b(T) = \sum_{i=0}^{T} P(i), \quad q_o(T) = \sum_{i=T+1}^{L-1} P(i)$$
+                            $$\mu_b(T) = \frac{1}{q_b(T)}\sum_{i=0}^{T} i\,P(i), \quad \mu_o(T) = \frac{1}{q_o(T)}\sum_{i=T+1}^{L-1} i\,P(i)$$
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-slate-800">
+                            <div class="font-bold text-rose-400 mb-1">2. Variance Intra-Classe $\sigma_W^2$ (Pages 16-17)</div>
+                            $$\sigma_b^2(T) = \frac{1}{q_b(T)}\sum_{i=0}^{T}(i - \mu_b)^2 P(i)$$
+                            $$\sigma_W^2(T) = q_b(T)\sigma_b^2(T) + q_o(T)\sigma_o^2(T) \quad \text{(À minimiser)}$$
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-lg border border-emerald-500/30">
+                            <div class="font-bold text-emerald-400 mb-1">3. Variance Inter-Classe $\sigma_B^2$ (Pages 17-18)</div>
+                            $$\sigma_B^2(T) = q_b(T)(\mu_b(T)-\mu)^2 + q_o(T)(\mu_o(T)-\mu)^2$$
+                            $$= q_b(T)\,q_o(T)\,\big[\mu_b(T) - \mu_o(T)\big]^2 \quad \text{(À maximiser)}$$
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 2B: Comparateur Seuillage Simple vs Hystérésis vs Local (Pages 10-13 & 20-21) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div>
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Labo Interactif 2.2 • Pages 10 à 13 & 20 à 21</span>
+                        <h3 class="text-lg font-bold text-white">Pourquoi le Seuillage Global échoue sous éclairage dégradé : Hystérésis & Seuillage Local ($T_{i,j}$)</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Card 1: Simple Global Thresholding Failure (Page 12 & 21) -->
+                    <div class="bg-slate-950 rounded-xl border border-rose-500/30 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-rose-400 mb-2">1. Seuillage Global Unique (Échec • p.12 & 21)</span>
+                        <svg viewBox="0 0 240 135" class="w-full h-auto rounded border border-slate-800 bg-slate-900">
+                            <!-- Simulated global threshold spill on left shadow -->
+                            <rect x="0" y="0" width="240" height="135" fill="#f8fafc"/>
+                            <!-- Shadow blob吞eating the wrench head on the left -->
+                            <path d="M 0 0 L 105 0 Q 95 67 105 135 L 0 135 Z" fill="#0f172a"/>
+                            <!-- Wrench handle on the right -->
+                            <rect x="85" y="54" width="135" height="26" rx="10" fill="#0f172a"/>
+                            <text x="120" y="125" text-anchor="middle" fill="#e11d48" font-size="9" font-weight="bold">L'ombre à gauche fusionne avec la clé !</text>
+                        </svg>
+                        <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                            À cause d'un dégradé d'éclairage, le fond sombre à gauche a le même niveau de gris que la clé : un seuil unique noie toute la tête de l'outil (Page 21).
+                        </p>
+                    </div>
+
+                    <!-- Card 2: Hysteresis Thresholding (Pages 10-13) -->
+                    <div class="bg-slate-950 rounded-xl border border-amber-500/30 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-amber-400 mb-2">2. Seuillage par Hystérésis ($t_1, t_2$ • p.11-13)</span>
+                        <svg viewBox="0 0 240 135" class="w-full h-auto rounded border border-slate-800 bg-slate-900">
+                            <rect x="0" y="0" width="240" height="135" fill="#f8fafc"/>
+                            <!-- Sure core (code 1) + connected weak closure (code 2) -->
+                            <path d="M 30 30 L 75 30 L 75 48 L 52 48 L 52 82 L 75 82 L 75 100 L 30 100 Z" fill="#0f172a"/>
+                            <rect x="72" y="42" width="32" height="46" rx="4" fill="#0f172a"/>
+                            <rect x="102" y="54" width="115" height="26" rx="10" fill="#10b981"/>
+                            <text x="120" y="20" text-anchor="middle" fill="#0f172a" font-size="9" font-weight="bold">Coeur sûr (1) + Adjacents sauvés (2→1)</text>
+                        </svg>
+                        <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                            Deux seuils : les pixels très sombres sont codés à <strong>1 (objet sûr)</strong>. Les pixels intermédiaires $[t_1, t_2]$ codés à <strong>2</strong> ne sont gardés que s'ils touchent un pixel à 1 !
+                        </p>
+                    </div>
+
+                    <!-- Card 3: Local Adaptive Otsu Thresholding (Pages 20-21) -->
+                    <div class="bg-slate-950 rounded-xl border border-emerald-500/30 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-emerald-400 mb-2">3. Seuillage Local par Blocs $T_{i,j}$ (p.20-21)</span>
+                        <svg viewBox="0 0 240 135" class="w-full h-auto rounded border border-slate-800 bg-slate-900">
+                            <rect x="0" y="0" width="240" height="135" fill="#f8fafc"/>
+                            <!-- Clean segmented wrench -->
+                            <path d="M 30 30 L 75 30 L 75 48 L 52 48 L 52 82 L 75 82 L 75 100 L 30 100 Z" fill="#0f172a"/>
+                            <rect x="72" y="42" width="32" height="46" rx="4" fill="#0f172a"/>
+                            <rect x="102" y="54" width="115" height="26" rx="10" fill="#0f172a"/>
+                            <!-- 2x3 Grid Subdivisions (Page 20) -->
+                            <line x1="80" y1="0" x2="80" y2="135" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2"/>
+                            <line x1="160" y1="0" x2="160" y2="135" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2"/>
+                            <line x1="0" y1="67" x2="240" y2="67" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2"/>
+                            <text x="40" y="15" text-anchor="middle" fill="#059669" font-size="9" font-weight="bold">T₁,₁=52</text>
+                            <text x="120" y="15" text-anchor="middle" fill="#059669" font-size="9" font-weight="bold">T₁,₂=88</text>
+                            <text x="200" y="15" text-anchor="middle" fill="#059669" font-size="9" font-weight="bold">T₁,₃=115</text>
+                        </svg>
+                        <p class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                            On découpe l'image en sous-images ($T_{1,1} \dots T_{2,3}$, Page 20). Chaque bloc possède un histogramme bimodal simple où la méthode d'Otsu réussit parfaitement !
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Module 2 -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">otsu_et_seuillage_local.py — Otsu, Multi-Seuils, Hystérésis & Seuillage Local (Pages 9 à 21)</span>
+                    <button onclick="copyCode('code-mod-2', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-2" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+<span class="text-purple-400">from</span> scipy.ndimage <span class="text-purple-400">import</span> binary_dilation
+
+<span class="text-slate-400"># 1. MÉTHODE D'OTSU AUTOMATIQUE (Pages 14 à 19)</span>
+<span class="text-slate-400"># Le flag cv2.THRESH_OTSU parcourt tous les seuils T de 0 à 255 et choisit celui qui maximise sigma_B^2(T)</span>
+seuil_optimal_T, img_otsu = cv2.threshold(image_gray, <span class="text-amber-400">0</span>, <span class="text-amber-400">255</span>, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+<span class="text-slate-400"># 2. SEUILLAGE MULTIPLE À 3 CLASSES (Page 9 : T1 et T2 dans les creux de l'histogramme)</span>
+T1, T2 = <span class="text-amber-400">75</span>, <span class="text-amber-400">160</span>
+img_multi = np.zeros_like(image_gray)        <span class="text-slate-400"># Par défaut : else f(x,y) = 0</span>
+img_multi[image_gray &lt; T1] = <span class="text-amber-400">255</span>             <span class="text-slate-400"># If f(x,y) < T1 then 255</span>
+img_multi[(image_gray &gt;= T1) &amp; (image_gray &lt; T2)] = <span class="text-amber-400">128</span>  <span class="text-slate-400"># Else if T1 <= f(x,y) < T2 then 128</span>
+
+<span class="text-slate-400"># 3. SEUILLAGE PAR HYSTÉRÉSIS SUR RÉGIONS (Pages 10 à 13)</span>
+seuil_bas, seuil_haut = <span class="text-amber-400">65</span>, <span class="text-amber-400">95</span>
+regions_sures = (image_gray &gt; seuil_haut)    <span class="text-slate-400"># Code 1 : pixels sûrs (> seuil haut)</span>
+regions_faibles = (image_gray &gt;= seuil_bas)  <span class="text-slate-400"># Code 2 : pixels candidats (>= seuil bas)</span>
+<span class="text-slate-400"># Propager les régions sûres (1) aux candidats adjacents (2) par dilatation géodésique jusqu'à stabilité</span>
+img_hysteresis = binary_dilation(regions_sures, iterations=-<span class="text-amber-400">1</span>, mask=regions_faibles).astype(np.uint8) * <span class="text-amber-400">255</span>
+
+<span class="text-slate-400"># 4. SEUILLAGE LOCAL PAR SOUS-BLOCS (Pages 20 & 21 : Otsu appliqué sur chaque bloc T_i,j)</span>
+H, W = image_gray.shape
+img_locale = np.zeros_like(image_gray)
+<span class="text-slate-400"># Découper l'image en une grille de 2 lignes x 3 colonnes (comme sur la Page 20)</span>
+<span class="text-purple-400">for</span> r <span class="text-purple-400">in</span> range(<span class="text-amber-400">2</span>):
+    <span class="text-purple-400">for</span> c <span class="text-purple-400">in</span> range(<span class="text-amber-400">3</span>):
+        y1, y2 = (r * H) // <span class="text-amber-400">2</span>, ((r + <span class="text-amber-400">1</span>) * H) // <span class="text-amber-400">2</span>
+        x1, x2 = (c * W) // <span class="text-amber-400">3</span>, ((c + <span class="text-amber-400">1</span>) * W) // <span class="text-amber-400">3</span>
+        <span class="text-slate-400"># Calculer le seuil d'Otsu propre au sous-bloc T_{r,c}</span>
+        _, bloc_binaire = cv2.threshold(image_gray[y1:y2, x1:x2], <span class="text-amber-400">0</span>, <span class="text-amber-400">255</span>, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        img_locale[y1:y2, x1:x2] = bloc_binaire</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 3 : TECHNIQUE DE GRAPHE & CHEMIN DE COÛT MINIMAL (Pages 22-27)
+             ===================================================================== -->
+        <section id="module-3" class="space-y-8 hidden">
+
+            <!-- Quoi / Pourquoi / Comment / Monde Réel Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 shadow-xl space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30">
+                        <div class="text-xs font-bold text-sky-400 uppercase mb-1">1. Quoi ? (Image = Graphe)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Un graphe est un ensemble de <strong>nœuds (les pixels)</strong> reliés par des <strong>liens (les voisinages)</strong> (Page 22). Chaque lien entre deux pixels voisins $p$ et $q$ reçoit un <strong>coût $C(p,q)$</strong>.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 uppercase mb-1">2. Pourquoi un Graphe ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Sur une image très bruitée ou floue (ex: vaisseau sanguin Page 27), un seuillage local casse la frontière. Le graphe garantit de trouver une <strong>frontière continue de bout en bout</strong> qui minimise le coût global !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                        <div class="text-xs font-bold text-amber-400 uppercase mb-1">3. Comment calculer le coût ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            On veut que le chemin passe par les forts contrastes (contours) :<br>
+                            • <strong>Zone uniforme :</strong> $|I(p)-I(q)| \approx 0 \Rightarrow$ <strong>Coût ÉLEVÉ</strong>.<br>
+                            • <strong>Zone de contour :</strong> $|I(p)-I(q)|$ grand $\Rightarrow$ <strong>Coût FAIBLE</strong> !<br>
+                            Formule (p.24) : $C(p,q) = I_{\max} - |I(p) - I(q)|$.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-purple-500/30">
+                        <div class="text-xs font-bold text-purple-400 uppercase mb-1">4. Où dans le monde réel ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Outil "Lasso Magnétique" (LiveWire) :</strong> Détourage intelligent dans Photoshop et logiciels de radiologie.<br>
+                            • <strong>Imagerie vasculaire (p.27) :</strong> Suivi des parois artérielles.<br>
+                            • <strong>Seam Carving :</strong> Redimensionnement intelligent d'images.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 3: L'Exemple Exact 3x3 de Gonzalez & Woods (Pages 24, 25, 26) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 3.1 • Exemple exact de Gonzalez & Woods (Pages 24, 25 & 26)</span>
+                        <h3 class="text-xl font-bold text-white">Recherche du Chemin de Coût Minimal par Programmation Dynamique</h3>
+                        <p class="text-xs text-slate-300 mt-1">
+                            Modifiez les intensités $[0..7]$ de la grille $3 \times 3$ ci-dessous (initialisée avec les valeurs exactes de la Page 24) : la matrice de coût $C(p,q) = I_{\max} - |I(p)-I(q)|$ et le <strong>chemin rouge de coût minimal (Page 25)</strong> se recalculent en direct !
+                        </p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="resetGraphCourseExample()" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition">
+                            🔄 Valeurs exactes du Cours (p.24)
+                        </button>
+                        <button onclick="setGraphStraightExample()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
+                            Ligne droite verticale
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- Col 1 (4 cols): Editable 3x3 Pixel Grid -->
+                    <div class="lg:col-span-4 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center space-y-3">
+                        <span class="text-xs font-bold text-slate-200">1. Intensités $I(p)$ des Pixels $3\times 3$ ($I_{\max}=7$)</span>
+                        <div class="grid grid-cols-3 gap-3 p-4 bg-slate-900 rounded-xl border border-slate-700">
+                            <input type="number" id="gpx-00" min="0" max="7" value="5" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-sky-500/40 text-sky-300">
+                            <input type="number" id="gpx-01" min="0" max="7" value="6" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-sky-500/40 text-sky-300">
+                            <input type="number" id="gpx-02" min="0" max="7" value="1" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-amber-500/40 text-amber-300">
+
+                            <input type="number" id="gpx-10" min="0" max="7" value="6" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-sky-500/40 text-sky-300">
+                            <input type="number" id="gpx-11" min="0" max="7" value="7" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-sky-500/40 text-sky-300">
+                            <input type="number" id="gpx-12" min="0" max="7" value="0" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-amber-500/40 text-amber-300">
+
+                            <input type="number" id="gpx-20" min="0" max="7" value="7" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-sky-500/40 text-sky-300">
+                            <input type="number" id="gpx-21" min="0" max="7" value="1" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-amber-500/40 text-amber-300">
+                            <input type="number" id="gpx-22" min="0" max="7" value="3" oninput="updateGraphLab()" class="w-16 h-14 text-center font-mono font-bold text-base rounded bg-slate-950 border border-amber-500/40 text-amber-300">
+                        </div>
+                        <div class="text-[11px] text-slate-400 text-center">
+                            Remarquez l'objet clair à gauche (`5, 6, 7`) et la région sombre à droite (`1, 0, 1, 3`).
+                        </div>
+                    </div>
+
+                    <!-- Col 2 (5 cols): SVG Graph with Edge Costs & Red Minimum Cost Boundary Path (Page 25) -->
+                    <div class="lg:col-span-5 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-200 mb-2">2. Graphe des Coûts & Chemin Optimal Rouge (Page 25)</span>
+                        <svg id="svg-graph-path" viewBox="0 0 340 260" class="w-full h-auto">
+                            <!-- Filled dynamically by JS -->
+                        </svg>
+                    </div>
+
+                    <!-- Col 3 (3 cols): Cost Matrix Image Representation (Page 26) & Path Cost Comparison -->
+                    <div class="lg:col-span-3 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col justify-between space-y-3">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs font-bold text-slate-200 mb-2">3. Image de Coût (Page 26)</span>
+                            <svg id="svg-cost-matrix" viewBox="0 0 180 140" class="w-full h-auto"></svg>
+                            <span class="text-[10px] text-slate-400 mt-1 text-center">Noir = Coût faible (Fort contour)<br>Blanc = Coût élevé (Zone plate)</span>
+                        </div>
+                        <div id="graph-paths-summary" class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Module 3: Graph Minimum Cost Path -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">graphe_chemin_cout_minimal.py — Matrice de Coût & Programmation Dynamique (Pages 22 à 27)</span>
+                    <button onclick="copyCode('code-mod-3', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-3" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-slate-400"># 1. Définir la grille 3x3 de niveaux de gris de l'exemple de Gonzalez & Woods (Page 24)</span>
+I = np.array([[<span class="text-amber-400">5</span>, <span class="text-amber-400">6</span>, <span class="text-amber-400">1</span>],
+              [<span class="text-amber-400">6</span>, <span class="text-amber-400">7</span>, <span class="text-amber-400">0</span>],
+              [<span class="text-amber-400">7</span>, <span class="text-amber-400">1</span>, <span class="text-amber-400">3</span>]], dtype=np.float32)
+
+I_max = np.max(I)  <span class="text-slate-400"># Valeur maximale d'intensité (ici I_max = 7)</span>
+
+<span class="text-slate-400"># 2. Construire la matrice de coût horizontal entre colonnes adjacentes p=(r, c) et q=(r, c+1)</span>
+<span class="text-slate-400"># Formule de la Page 24 : C(p,q) = I_max - |I(p) - I(q)| (Faible coût = fort contour !)</span>
+cout_frontiere = I_max - np.abs(I[:, :-<span class="text-amber-400">1</span>] - I[:, <span class="text-amber-400">1</span>:])
+
+<span class="text-slate-400"># 3. PROGRAMMATION DYNAMIQUE (Page 25) pour trouver le chemin vertical de coût minimal</span>
+H, W_liens = cout_frontiere.shape
+dp_cumul = np.zeros_like(cout_frontiere)     <span class="text-slate-400"># Table des coûts cumulés minimaux</span>
+parent_col = np.zeros_like(cout_frontiere, dtype=int)  <span class="text-slate-400"># Pour reconstruire le chemin optimal</span>
+
+<span class="text-slate-400"># Initialiser la première ligne (r = 0)</span>
+dp_cumul[<span class="text-amber-400">0</span>, :] = cout_frontiere[<span class="text-amber-400">0</span>, :]
+
+<span class="text-slate-400"># Propager de haut en bas (r = 1 jusqu'à H-1)</span>
+<span class="text-purple-400">for</span> r <span class="text-purple-400">in</span> range(<span class="text-amber-400">1</span>, H):
+    <span class="text-purple-400">for</span> c <span class="text-purple-400">in</span> range(W_liens):
+        <span class="text-slate-400"># Choisir le voisin précédent c_prev à l'étage r-1 qui minimise le coût total</span>
+        meilleur_prev = np.argmin(dp_cumul[r - <span class="text-amber-400">1</span>, :])
+        dp_cumul[r, c] = cout_frontiere[r, c] + dp_cumul[r - <span class="text-amber-400">1</span>, meilleur_prev]
+        parent_col[r, c] = meilleur_prev
+
+<span class="text-slate-400"># 4. Remonter (Backtracking) depuis la dernière ligne pour extraire la frontière optimale</span>
+chemin_optimal = [int(np.argmin(dp_cumul[-<span class="text-amber-400">1</span>, :]))]
+<span class="text-purple-400">for</span> r <span class="text-purple-400">in</span> range(H - <span class="text-amber-400">1</span>, <span class="text-amber-400">0</span>, -<span class="text-amber-400">1</span>):
+    chemin_optimal.append(int(parent_col[r, chemin_optimal[-<span class="text-amber-400">1</span>]]))
+chemin_optimal.reverse()  <span class="text-slate-400"># Résultat : [1, 1, 0] -> passe entre [6|1], [7|0], puis [7|1] !</span></code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 4 : CROISSANCE DE RÉGIONS (REGION GROWING • Pages 28-39)
+             ===================================================================== -->
+        <section id="module-4" class="space-y-8 hidden">
+
+            <!-- Quoi / Pourquoi / Comment / Monde Réel Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-teal-950/40 to-slate-900 border border-teal-500/30 shadow-xl space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30">
+                        <div class="text-xs font-bold text-sky-400 uppercase mb-1">1. Quoi ? (Tache d'Huile)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            La <strong>Croissance de Régions (Region Growing)</strong> est une méthode <strong>ascendante (Bottom-Up, p.28 & 32)</strong> : on part d'un petit point de départ appelé <strong>Germe (Seed)</strong> et on agrège de proche en proche tous les pixels voisins qui lui ressemblent.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 uppercase mb-1">2. Pourquoi ? (Connexité garantie)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Contrairement au K-Means ou au seuillage qui peuvent éparpiller une classe aux 4 coins de l'image, la croissance de régions garantit à 100% que l'objet extrait est <strong>un seul bloc topologiquement connexe</strong> autour du germe choisi !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                        <div class="text-xs font-bold text-amber-400 uppercase mb-1">3. Comment choisir le Germe ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Humain (p.35) :</strong> Clic sur le pétale d'une fleur ou dans une lésion.<br>
+                            • <strong>Automatique (p.35) :</strong> Dans une zone plate en évitant les forts gradients.<br>
+                            • <strong>Piège (p.34) :</strong> L'appel récursif pur fait déborder la pile mémoire (`Stack Overflow`) $\rightarrow$ en Python on utilise une <strong>File FIFO (`deque`)</strong> !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-purple-500/30">
+                        <div class="text-xs font-bold text-purple-400 uppercase mb-1">4. Où dans le monde réel ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Baguette Magique (Photoshop) :</strong> Sélectionner un ciel ou un vêtement en 1 clic.<br>
+                            • <strong>Radiologie 3D :</strong> Extraire un organe à partir d'un point germe.<br>
+                            • <strong>Biologie (p.39) :</strong> Croissance simultanée à plusieurs germes pour segmenter des cellules.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 4: Simulateur de Croissance de Régions (Pages 32 à 39) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-5">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Labo Interactif 4.1 • Pages 32 à 39 du cours</span>
+                        <h3 class="text-xl font-bold text-white">Simulateur d'Agrégation de Pixels : Germe (Seed), Prédicat & Fuite (Leaking)</h3>
+                        <p class="text-xs text-slate-300 mt-1">
+                            <strong>Cliquez sur n'importe quelle cellule de la grille $10\times 10$</strong> pour poser un Germe $\star$, réglez le seuil de tolérance $\sigma$ du prédicat $|I(k,l) - I(\text{germe})| \le \sigma$, et observez la croissance itérative !
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="stepRegionGrowing()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition">
+                            ▶ Étape d'Agrégation (+1 Anneau)
+                        </button>
+                        <button onclick="runFullRegionGrowing()" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition">
+                            ⏩ Croissance Complète
+                        </button>
+                        <button onclick="placeMultiSeeds()" class="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition">
+                            🌱 Multi-Germes (Page 39 : 3 germes)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Controls: Threshold Slider & Connectivity 4 vs 8 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div class="md:col-span-2 space-y-1.5">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-sky-400">Seuil du Prédicat d'Homogénéité $|I(k,l) - I(\text{germe})| \le \text{Seuil}$ :</span>
+                            <span id="rg-val-thresh" class="font-mono text-white bg-slate-800 px-2.5 py-0.5 rounded">Seuil = 25</span>
+                        </div>
+                        <input type="range" id="slider-rg-thresh" min="5" max="95" step="5" value="25" class="w-full" oninput="updateRgThreshold()">
+                        <div class="flex justify-between text-[11px] text-slate-400">
+                            <span>Strict (Sous-segmentation)</span>
+                            <span>Idéal (Seuil = 25)</span>
+                            <span>Trop large (Seuil ≥ 55 : Fuite par le pont de bruit !)</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-between bg-slate-900 p-3 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-300 font-semibold">Voisinage (p.38) :</span>
+                            <select id="rg-conn-select" onchange="runFullRegionGrowing()" class="bg-slate-950 text-sky-400 font-mono text-xs px-2 py-1 rounded border border-slate-700">
+                                <option value="4">4-Connexité (Haut/Bas/G/D)</option>
+                                <option value="8" selected>8-Connexité (Diagonales incl.)</option>
+                            </select>
+                        </div>
+                        <div id="rg-stats-box" class="text-xs font-mono text-emerald-400 mt-2">
+                            Pixels agrégés : 1 • Front d'onde : 0
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid + Explanation Side by Side -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-7 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <svg id="svg-region-growing" viewBox="0 0 420 420" class="w-full max-w-[400px] h-auto select-none"></svg>
+                    </div>
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                            <h4 class="text-sm font-bold text-white">Légende Interactive du Processus (Page 32)</h4>
+                            <ul class="text-xs text-slate-300 space-y-2">
+                                <li class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-amber-500 inline-block border border-white"></span> <strong>Germe initial (Seed Pixel $\star$) :</strong> Point de départ cliqué.</li>
+                                <li class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-emerald-600 inline-block"></span> <strong>Pixels Agrégés (Grown Pixels) :</strong> Voisins ayant validé le prédicat $\mathcal{P}=1$.</li>
+                                <li class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-sky-500 inline-block"></span> <strong>Front d'onde (Pixels Being Considered) :</strong> Voisins dans la file d'attente à tester à la prochaine itération.</li>
+                                <li class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-rose-900/80 border border-rose-500 inline-block"></span> <strong>Frontière rejetée ($\mathcal{P}=0$) :</strong> Écart d'intensité trop fort, la croissance s'arrête ici !</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-rose-950/25 border border-rose-500/30 text-xs text-slate-300 space-y-1.5">
+                            <div class="font-bold text-rose-400">⚠️ Expérience à tester (Page 37 : Sensibilité au seuil & bruit) :</div>
+                            <p>
+                                Sur la grille, un <strong>pont de dégradé bruité</strong> (intensités `155, 130`) relie l'objet central clair (`180`) au petit bloc en bas à droite (`175`).
+                            </p>
+                            <p>
+                                • Avec <strong>Seuil = 25</strong>, la croissance s'arrête proprement aux bords de l'objet.<br>
+                                • Montez à <strong>Seuil = 55</strong> : la région "fuit" à travers le pont et envahit toute l'image (<strong>sous-segmentation</strong>) !
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Module 4 -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">croissance_regions.py — Algorithme Sans Débordement de Pile (Pages 34 & 38)</span>
+                    <button onclick="copyCode('code-mod-4', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-4" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+<span class="text-purple-400">from</span> collections <span class="text-purple-400">import</span> deque
+
+<span class="text-purple-400">def</span> <span class="text-sky-400">croissance_region</span>(image_gray, germe_y, germe_x, seuil=<span class="text-amber-400">20</span>):
+    <span class="text-slate-400"># Astuce Pro (Page 34) : Au lieu d'appels récursifs qui font planter Python (Stack Overflow),</span>
+    <span class="text-slate-400"># on utilise une File d'attente FIFO (deque) pour explorer les voisins proprement !</span>
+    H, W = image_gray.shape
+    masque_region = np.zeros((H, W), dtype=np.uint8)
+    visite = np.zeros((H, W), dtype=bool)
+    
+    <span class="text-slate-400"># Valeur de référence du germe (Seed Pixel)</span>
+    intensite_germe = float(image_gray[germe_y, germe_x])
+    
+    <span class="text-slate-400"># Initialiser la file avec les coordonnées (y, x) du germe</span>
+    file_attente = deque([(germe_y, germe_x)])
+    visite[germe_y, germe_x] = <span class="text-purple-400">True</span>
+    
+    <span class="text-slate-400"># Déplacements vers les 8 pixels adjacents (Connexité-8 de la Page 38)</span>
+    voisins_8 = [(-<span class="text-amber-400">1</span>,-<span class="text-amber-400">1</span>), (-<span class="text-amber-400">1</span>,<span class="text-amber-400">0</span>), (-<span class="text-amber-400">1</span>,<span class="text-amber-400">1</span>), (<span class="text-amber-400">0</span>,-<span class="text-amber-400">1</span>), (<span class="text-amber-400">0</span>,<span class="text-amber-400">1</span>), (<span class="text-amber-400">1</span>,-<span class="text-amber-400">1</span>), (<span class="text-amber-400">1</span>,<span class="text-amber-400">0</span>), (<span class="text-amber-400">1</span>,<span class="text-amber-400">1</span>)]
+    
+    <span class="text-purple-400">while</span> file_attente:
+        y, x = file_attente.popleft()          <span class="text-slate-400"># Extraire le prochain pixel à traiter</span>
+        masque_region[y, x] = <span class="text-amber-400">255</span>              <span class="text-slate-400"># L'intégrer officiellement à la région</span>
+        
+        <span class="text-slate-400"># Pour tout pixel (k, l) adjacent à I(y, x) (Page 38) :</span>
+        <span class="text-purple-400">for</span> dy, dx <span class="text-purple-400">in</span> voisins_8:
+            k, l = y + dy, x + dx
+            <span class="text-slate-400"># Vérifier que (k, l) est dans l'image et n'a pas déjà été traité</span>
+            <span class="text-purple-400">if</span> <span class="text-amber-400">0</span> &lt;= k &lt; H <span class="text-purple-400">and</span> <span class="text-amber-400">0</span> &lt;= l &lt; W <span class="text-purple-400">and</span> <span class="text-purple-400">not</span> visite[k, l]:
+                visite[k, l] = <span class="text-purple-400">True</span>
+                <span class="text-slate-400"># Tester le Prédicat d'homogénéité : |I(k,l) - I(germe)| <= seuil</span>
+                <span class="text-purple-400">if</span> abs(float(image_gray[k, l]) - intensite_germe) &lt;= seuil:
+                    file_attente.append((k, l)) <span class="text-slate-400"># Ajouter à la file pour poursuivre la croissance</span>
+                    
+    <span class="text-purple-400">return</span> masque_region</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 5 : SPLIT & MERGE (DIVISION-FUSION), QUADTREE & VORONOÏ (Pages 40-52)
+             ===================================================================== -->
+        <section id="module-5" class="space-y-8 hidden">
+
+            <!-- Quoi / Pourquoi / Comment / Monde Réel Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950/40 to-slate-900 border border-purple-500/30 shadow-xl space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30">
+                        <div class="text-xs font-bold text-sky-400 uppercase mb-1">1. Quoi ? (Split & Merge)</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Une méthode hybride en 2 temps (Pages 40-50) :<br>
+                            • <strong>Phase 1 Descendante (Split) :</strong> On part de l'image entière. Tout bloc non-homogène est coupé en <strong>4 sous-blocs (Quadtree)</strong>.<br>
+                            • <strong>Phase 2 Ascendante (Merge) :</strong> On fusionne les blocs adjacents similaires !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 uppercase mb-1">2. Pourquoi Split PUIS Merge ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Pas besoin de choisir des germes manuellement ! La division est <strong>globale</strong> (vue d'ensemble) et la fusion est <strong>locale</strong> (Page 51). Sans l'étape de fusion, un objet à cheval sur 2 quadrants resterait coupé en carrés artificiels (Page 50).
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                        <div class="text-xs font-bold text-amber-400 uppercase mb-1">3. Structures : Quadtree & RAG</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Tétra-arbre (Quadtree, p.49) :</strong> Chaque nœud non-homogène a exactement 4 fils (NO, NE, SO, SE).<br>
+                            • <strong>Graphe d'Adjacence (RAG, p.48) :</strong> Relie les feuilles voisines pour faciliter la fusion.<br>
+                            • <strong>Voronoï (p.51-52) :</strong> Remplace les carrés par des polygones épousant les courbes !
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-950/90 border border-purple-500/30">
+                        <div class="text-xs font-bold text-purple-400 uppercase mb-1">4. Où dans le monde réel ?</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            • <strong>Compression vidéo (HEVC / H.265) :</strong> Découpage Quadtree des images en grands blocs sur le fond uni et petits blocs sur les détails (Lena p.45).<br>
+                            • <strong>Cartographie & Urbain (p.47) :</strong> Segmentation de routes et façades.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Les 5 Prédicats d'Hétérogénéité de la Page 42 -->
+                <div class="math-box rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider mb-3 border-b border-slate-800 pb-2">
+                        📐 Les 5 Prédicats d'Hétérogénéité du Cours (Page 42) — La région $\mathcal{R}_i$ est divisée en 4 si $\mathcal{P}(\mathcal{R}_i) = \text{VRAI}$ :
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                        <div class="bg-slate-950/90 p-3 rounded-lg border border-slate-800">
+                            <div class="font-bold text-amber-400">1. Contraste (Max-Min)</div>
+                            <div class="py-1">$$\max_{\mathcal{R}_i} I(p) - \min_{\mathcal{R}_i} I(p) > \sigma$$</div>
+                            <p class="text-slate-400 text-[11px]">Très rapide (utilisé dans l'exemple $8\times 8$ de la Page 43 avec $\sigma=1$).</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-lg border border-slate-800">
+                            <div class="font-bold text-sky-400">2. Écart-Type (Page 45)</div>
+                            <div class="py-1">$$\sqrt{\frac{1}{N}\sum_{\mathcal{R}_i}(I(x,y)-\mu)^2} > \sigma$$</div>
+                            <p class="text-slate-400 text-[11px]">Beaucoup plus robuste à un pixel isolé bruité que Max-Min.</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-lg border border-slate-800">
+                            <div class="font-bold text-emerald-400">3. Dist. Interquartile $D$</div>
+                            <div class="py-1">$$Q_{75\%}(\mathcal{R}_i) - Q_{25\%}(\mathcal{R}_i) > \sigma$$</div>
+                            <p class="text-slate-400 text-[11px]">Écart entre les 25% inférieurs et 25% supérieurs de l'histogramme.</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-lg border border-slate-800">
+                            <div class="font-bold text-rose-400">4. Différences Limitées</div>
+                            <div class="py-1">$$\exists(p,q)\text{ voisins}, |I(p)-I(q)| > \sigma$$</div>
+                            <p class="text-slate-400 text-[11px]">Vérifie les sauts brusques locaux entre pixels voisins.</p>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-lg border border-slate-800">
+                            <div class="font-bold text-purple-400">5. Entropie de Shannon</div>
+                            <div class="py-1">$$-\sum_{I} p(I)\log p(I) > \sigma$$</div>
+                            <p class="text-slate-400 text-[11px]">Mesure le désordre / la richesse de texture dans le bloc $\mathcal{R}_i$.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 5: L'Exemple Exact 8x8 de la Page 43 + Quadtree Synchronisé + Fusion -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 5.1 • Exemple exact de la Page 43 + Arbre Quadtree (Pages 46-50)</span>
+                        <h3 class="text-xl font-bold text-white">Simulation Pas-à-Pas : Division Quadtree sur la Matrice $8 \times 8$ & Fusion Finale</h3>
+                        <p class="text-xs text-slate-300 mt-1">
+                            Critère d'homogénéité de la Page 43 : un bloc est homogène si $\max(I) - \min(I) \le \sigma$ (avec $\sigma = 1$). Cliquez sur les étapes pour voir le bloc haut-droit composé uniquement de `7` rester intact dès la Division 1 pendant que les autres se subdivisent !
+                        </p>
+                    </div>
+                    <!-- Step Buttons matching Page 43 & 50 -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setQuadtreeStep(0)" id="qt-btn-0" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            0. Image Initiale (8×8)
+                        </button>
+                        <button onclick="setQuadtreeStep(1)" id="qt-btn-1" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            1. Division 1 (Blocs 4×4)
+                        </button>
+                        <button onclick="setQuadtreeStep(2)" id="qt-btn-2" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400">
+                            2. Division 2 (Blocs 2×2)
+                        </button>
+                        <button onclick="setQuadtreeStep(3)" id="qt-btn-3" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            3. Division 3 (Feuilles 1×1)
+                        </button>
+                        <button onclick="setQuadtreeStep(4)" id="qt-btn-4" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-400 shadow-lg shadow-emerald-600/20">
+                            4. Phase 2 : FUSION (Merge • p.46 & 50)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tolerance Slider sigma -->
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <div class="flex items-center gap-3 flex-grow max-w-md">
+                        <span class="text-xs font-semibold text-amber-400 whitespace-nowrap">Seuil $\sigma$ ($\max - \min \le \sigma$) :</span>
+                        <input type="range" id="slider-qt-sigma" min="0" max="4" step="1" value="1" class="w-full" oninput="updateQuadtreeLab()">
+                        <span id="qt-val-sigma" class="font-mono text-xs text-white bg-slate-800 px-2.5 py-1 rounded">σ = 1 (Cours p.43)</span>
+                    </div>
+                    <div id="qt-summary-badge" class="text-xs font-mono text-emerald-400">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Side-by-Side: 8x8 Matrix Grid with Quadtree Cuts + Synchronized Quadtree Hierarchy Diagram -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- Left 6 cols: 8x8 Matrix from Page 43 -->
+                    <div class="lg:col-span-6 bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-200 mb-2">1. Découpage Spatial de la Matrice $8 \times 8$ (Page 43)</span>
+                        <svg id="svg-qt-grid" viewBox="0 0 360 360" class="w-full max-w-[360px] h-auto"></svg>
+                    </div>
+
+                    <!-- Right 6 cols: Quadtree Structure & Voronoï Comparison -->
+                    <div class="lg:col-span-6 space-y-4">
+                        <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                            <span class="text-xs font-bold text-slate-200 mb-2">2. Arbre Quadtree Synchronisé (Racine → 4 Quadrants NO, NE, SO, SE)</span>
+                            <svg id="svg-qt-tree" viewBox="0 0 460 220" class="w-full h-auto"></svg>
+                        </div>
+
+                        <!-- Voronoï Improvement Card (Pages 51 & 52) -->
+                        <div class="p-4 rounded-xl bg-slate-950 border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
+                            <svg viewBox="0 0 120 95" class="w-28 h-24 flex-shrink-0 rounded bg-slate-900 border border-slate-800">
+                                <!-- Voronoi polygons illustration (Page 51) -->
+                                <polygon points="10,10 65,10 55,45 10,55" fill="rgba(56,189,248,0.15)" stroke="#38bdf8" stroke-width="1.5"/>
+                                <polygon points="65,10 110,10 110,50 80,55 55,45" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="1.5"/>
+                                <polygon points="10,55 55,45 60,85 10,85" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="1.5"/>
+                                <polygon points="55,45 80,55 110,50 110,85 60,85" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="1.5"/>
+                                <!-- Seeds -->
+                                <circle cx="35" cy="32" r="2.5" fill="#fff"/>
+                                <circle cx="85" cy="30" r="2.5" fill="#fff"/>
+                                <circle cx="35" cy="68" r="2.5" fill="#fff"/>
+                                <circle cx="85" cy="68" r="2.5" fill="#fff"/>
+                            </svg>
+                            <div class="text-xs space-y-1">
+                                <div class="font-bold text-purple-300">🚀 Au-delà des carrés du Quadtree : Partitions de Voronoï (Pages 51-52)</div>
+                                <p class="text-slate-300 leading-relaxed">
+                                    Le défaut du Quadtree est son découpage <strong>strictement rectangulaire</strong> (effet d'escalier sur les objets ronds). L'approche de <em>Chassery et al. (1991, p.52)</em> place des germes et découpe l'image en <strong>polygones de Voronoï</strong> : on divise les polygones non-homogènes (13 → 60 → 268 → 781 germes) puis on les fusionne (490 germes) pour épouser parfaitement la géométrie des objets !
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Module 5 -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">split_and_merge_quadtree.py — Algorithme Récursif Quadtree de la Page 44 en Python</span>
+                    <button onclick="copyCode('code-mod-5', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-5" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-purple-400">def</span> <span class="text-sky-400">quadtree_split</span>(image, i_res, ligne1, ligne2, col1, col2, seuil=<span class="text-amber-400">10.0</span>, taille_min=<span class="text-amber-400">4</span>):
+    <span class="text-slate-400">"""Traduction Python directe de l'algorithme récursif Quadtree de la Page 44."""</span>
+    <span class="text-slate-400"># Extraire la sous-image (bloc courant R_i)</span>
+    bloc = image[ligne1:ligne2, col1:col2]
+    taille = (ligne2 - ligne1) * (col2 - col1)
+    
+    <span class="text-slate-400"># Calculer le critère d'hétérogénéité (Page 42 & 45 : Écart-type ou Max-Min)</span>
+    critere = np.std(bloc)  <span class="text-slate-400"># Ou np.max(bloc) - np.min(bloc) comme en Page 43</span>
+    
+    <span class="text-slate-400"># Si le bloc est HÉTÉROGÈNE (Crit > seuil) et assez grand, on le divise en 4 fils !</span>
+    <span class="text-purple-400">if</span> critere &gt; seuil <span class="text-purple-400">and</span> taille &gt; taille_min <span class="text-purple-400">and</span> (ligne2 - ligne1) &gt; <span class="text-amber-400">1</span> <span class="text-purple-400">and</span> (col2 - col1) &gt; <span class="text-amber-400">1</span>:
+        milieu_ligne = (ligne1 + ligne2) // <span class="text-amber-400">2</span>
+        milieu_col = (col1 + col2) // <span class="text-amber-400">2</span>
+        
+        <span class="text-slate-400"># Appels récursifs sur les 4 quadrants (11: Nord-Ouest, 12: Nord-Est, 13: Sud-Ouest, 14: Sud-Est)</span>
+        quadtree_split(image, i_res, ligne1, milieu_ligne, col1, milieu_col, seuil, taille_min)
+        quadtree_split(image, i_res, ligne1, milieu_ligne, milieu_col, col2, seuil, taille_min)
+        quadtree_split(image, i_res, milieu_ligne, ligne2, col1, milieu_col, seuil, taille_min)
+        quadtree_split(image, i_res, milieu_ligne, ligne2, milieu_col, col2, seuil, taille_min)
+    <span class="text-purple-400">else</span>:
+        <span class="text-slate-400"># Sinon le bloc est HOMOGÈNE (Feuille du Quadtree) : on le remplit avec sa moyenne (Page 44)</span>
+        moyenne = np.mean(bloc)
+        i_res[ligne1:ligne2, col1:col2] = moyenne</code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+            <span>Spécialiste Vision par Ordinateur • Cours Interactif Segmentation (Séance 7 — Pages 1 à 52)</span>
+            <span>Rendu Mathématique KaTeX • Visualisations @svg-explained • Code Python & OpenCV</span>
+        </div>
+    </footer>
+
+    <!-- =========================================================================
+         JAVASCRIPT ENGINE FOR ALL 5 INTERACTIVE SEGMENTATION LABS
+         ========================================================================= -->
+    <script>
+        // -------------------------------------------------------------------------
+        // 0. NAVIGATION & CLIPBOARD
+        // -------------------------------------------------------------------------
+        function switchTab(tabIndex) {
+            for (let i = 1; i <= 5; i++) {
+                const sec = document.getElementById(`module-${i}`);
+                const btn = document.getElementById(`tab-btn-${i}`);
+                if (i === tabIndex) {
+                    sec.classList.remove('hidden');
+                    btn.className = "tab-active whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-sky-400 transition-all flex items-center gap-2";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2";
+                }
+            }
+        }
+
+        function copyCode(preId, btnEl) {
+            const text = document.getElementById(preId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            const orig = btnEl.innerText;
+            btnEl.innerText = "✓ Copié !";
+            btnEl.classList.add('bg-emerald-600', 'text-white');
+            setTimeout(() => {
+                btnEl.innerText = orig;
+                btnEl.classList.remove('bg-emerald-600', 'text-white');
+            }, 1800);
+        }
+
+        // -------------------------------------------------------------------------
+        // 1. MODULE 1: K-MEANS CLUSTERING SIMULATOR (Pages 6-8)
+        // -------------------------------------------------------------------------
+        let kmScenario = 'chromosomes';
+        let kmCentroids = [32, 217];
+        let kmIteration = 0;
+        let kmConverged = false;
+        let kmHistData = new Array(256).fill(0);
+        let kmImageGrid = []; // 40x40 synthetic image
+
+        function generateKMeansData(scenario) {
+            kmHistData.fill(0);
+            kmImageGrid = [];
+            const N = 40;
+            for (let r = 0; r < N; r++) {
+                const row = [];
+                for (let c = 0; c < N; c++) {
+                    let val = 40;
+                    const dx = c - 20, dy = r - 20;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const noise = Math.sin(r * 1.7 + c * 2.3) * 10 + Math.cos(r * 3.1 - c * 1.3) * 8;
+
+                    if (scenario === 'chromosomes') {
+                        // Dark background (~45) + several bright chromosome blobs (~210) (Page 6)
+                        const b1 = Math.hypot(c - 12, r - 12) < 5.5;
+                        const b2 = Math.hypot(c - 28, r - 14) < 6;
+                        const b3 = Math.hypot(c - 18, r - 27) < 6.5;
+                        const b4 = Math.hypot(c - 30, r - 29) < 5;
+                        val = (b1 || b2 || b3 || b4) ? 208 + noise : 44 + noise;
+                    } else if (scenario === 'wrench') {
+                        // Bright background (~185) + dark pliers/wrench (~55) with slight shading gradient (Page 7)
+                        const isWrench = (c >= 8 && c <= 13 && r >= 6 && r <= 32) ||
+                                         (Math.abs((c - 24) + (r - 20) * 0.35) < 4.2 && r >= 5 && r <= 35) ||
+                                         (Math.abs((c - 26) - (r - 16) * 0.45) < 3.5 && r >= 6 && r <= 24);
+                        val = isWrench ? 52 + noise + r * 0.6 : 185 + noise - r * 0.8;
+                    } else {
+                        // Brain MRI 3 classes (Page 8): Background (15), Brain tissue (115), Hyper-intense Tumor (228)
+                        if (dist > 16.5) {
+                            val = 14 + Math.abs(noise) * 0.6;
+                        } else if (c >= 21 && c <= 30 && r >= 13 && r <= 25 && (c - 21) + (r - 13) * 0.6 < 9) {
+                            val = 228 + noise * 0.7;
+                        } else {
+                            val = 114 + noise;
+                        }
+                    }
+                    val = Math.max(2, Math.min(253, Math.round(val)));
+                    row.push(val);
+                    kmHistData[val]++;
+                }
+                kmImageGrid.push(row);
+            }
+        }
+
+        function setKMeansScenario(scen) {
+            kmScenario = scen;
+            ['chromosomes', 'wrench', 'tumor3'].forEach(s => {
+                const btn = document.getElementById(`km-btn-${s}`);
+                btn.className = (s === scen)
+                    ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400"
+                    : "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700";
+            });
+            generateKMeansData(scen);
+            kmIteration = 0;
+            kmConverged = false;
+            if (scen === 'chromosomes') {
+                kmCentroids = [32, 217]; // Exact Page 6 values: Pf=32, Pc=217
+            } else if (scen === 'wrench') {
+                kmCentroids = [110, 145]; // Close initial centers to show multi-step convergence like Page 7
+            } else {
+                kmCentroids = [20, 95, 195]; // 3 classes for Brain MRI Page 8
+            }
+            renderKMeansLab();
+        }
+
+        function resetKMeansBadInit() {
+            kmIteration = 0;
+            kmConverged = false;
+            if (kmCentroids.length === 2) {
+                kmCentroids = [125, 140]; // Very poorly separated initial centers -> takes ~5-6 steps to converge
+            } else {
+                kmCentroids = [60, 80, 100];
+            }
+            renderKMeansLab();
+        }
+
+        function handleKMeansAxisClick(evt) {
+            const svg = document.getElementById('svg-kmeans-1d');
+            const rect = svg.getBoundingClientRect();
+            const clickX = ((evt.clientX - rect.left) / rect.width) * 560;
+            const gray = Math.max(0, Math.min(255, Math.round(((clickX - 30) / 500) * 255)));
+            kmCentroids[0] = gray;
+            kmCentroids.sort((a, b) => a - b);
+            kmIteration = 0;
+            kmConverged = false;
+            renderKMeansLab();
+        }
+
+        function stepKMeans() {
+            if (kmConverged) return;
+            const K = kmCentroids.length;
+            const sums = new Array(K).fill(0);
+            const counts = new Array(K).fill(0);
+
+            for (let g = 0; g < 256; g++) {
+                if (kmHistData[g] === 0) continue;
+                let bestK = 0, minDist = Infinity;
+                for (let k = 0; k < K; k++) {
+                    const d = Math.abs(g - kmCentroids[k]);
+                    if (d < minDist) { minDist = d; bestK = k; }
+                }
+                sums[bestK] += g * kmHistData[g];
+                counts[bestK] += kmHistData[g];
+            }
+
+            const nextCentroids = kmCentroids.map((c, k) => counts[k] > 0 ? sums[k] / counts[k] : c);
+            const maxShift = Math.max(...nextCentroids.map((nc, k) => Math.abs(nc - kmCentroids[k])));
+            kmCentroids = nextCentroids;
+            kmIteration++;
+            if (maxShift < 0.4) {
+                kmConverged = true;
+            }
+            renderKMeansLab();
+        }
+
+        function runAllKMeans() {
+            let guard = 0;
+            while (!kmConverged && guard < 25) {
+                stepKMeans();
+                guard++;
+            }
+        }
+
+        function renderKMeansLab() {
+            const valToX = (v) => 30 + (v / 255) * 500;
+            const K = kmCentroids.length;
+            const colors = ['#38bdf8', '#10b981', '#f43f5e'];
+
+            // 1. Decision boundaries (midpoints between sorted centroids)
+            const bounds = [0];
+            for (let k = 0; k < K - 1; k++) {
+                bounds.push((kmCentroids[k] + kmCentroids[k + 1]) / 2);
+            }
+            bounds.push(255);
+
+            // Render background zones
+            let zonesHtml = "";
+            for (let k = 0; k < K; k++) {
+                const x1 = valToX(bounds[k]);
+                const x2 = valToX(bounds[k + 1]);
+                zonesHtml += `<rect x="${x1.toFixed(1)}" y="20" width="${(x2 - x1).toFixed(1)}" height="145" fill="${colors[k]}" fill-opacity="0.1"/>`;
+                if (k > 0) {
+                    zonesHtml += `
+                        <line x1="${x1.toFixed(1)}" y1="20" x2="${x1.toFixed(1)}" y2="165" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+                        <text x="${x1.toFixed(1)}" y="32" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">Frontière ${bounds[k].toFixed(0)}</text>
+                    `;
+                }
+            }
+            document.getElementById('km-zones-bg').innerHTML = zonesHtml;
+
+            // Render histogram bars (grouped by 4 gray levels for crisp display)
+            let barsHtml = "";
+            const maxCount = Math.max(...kmHistData, 1);
+            for (let g = 0; g < 256; g += 2) {
+                const cnt = kmHistData[g] + (kmHistData[g + 1] || 0);
+                if (cnt === 0) continue;
+                let bestK = 0, minDist = Infinity;
+                for (let k = 0; k < K; k++) {
+                    const d = Math.abs(g - kmCentroids[k]);
+                    if (d < minDist) { minDist = d; bestK = k; }
+                }
+                const h = Math.min(125, (cnt / (maxCount * 1.6)) * 125);
+                const x = valToX(g);
+                barsHtml += `<rect x="${x.toFixed(1)}" y="${(165 - h).toFixed(1)}" width="3.2" height="${h.toFixed(1)}" fill="${colors[bestK]}" opacity="0.85"/>`;
+            }
+            document.getElementById('km-hist-bars').innerHTML = barsHtml;
+
+            // Render Centroids markers
+            let centHtml = "";
+            kmCentroids.forEach((c, k) => {
+                const cx = valToX(c);
+                centHtml += `
+                    <line x1="${cx.toFixed(1)}" y1="42" x2="${cx.toFixed(1)}" y2="165" stroke="${colors[k]}" stroke-width="2.5"/>
+                    <circle cx="${cx.toFixed(1)}" cy="165" r="7" fill="${colors[k]}" stroke="#020617" stroke-width="2"/>
+                    <rect x="${(cx - 28).toFixed(1)}" y="190" width="56" height="20" rx="4" fill="#0f172a" stroke="${colors[k]}"/>
+                    <text x="${cx.toFixed(1)}" y="204" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold" font-family="monospace">C${k+1}=${c.toFixed(1)}</text>
+                `;
+            });
+            document.getElementById('km-centroids-layer').innerHTML = centHtml;
+
+            // Badges & Readout
+            document.getElementById('km-iter-badge').innerText = `Itération : ${kmIteration}`;
+            const statusEl = document.getElementById('km-status-badge');
+            if (kmConverged) {
+                statusEl.innerText = "✓ Convergence atteinte (Stop !)";
+                statusEl.className = "px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400 font-mono text-emerald-300 font-bold";
+            } else {
+                statusEl.innerText = "En cours : cliquez sur Étape Suivante";
+                statusEl.className = "px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-400 font-mono text-amber-300";
+            }
+
+            document.getElementById('km-math-readout').innerHTML = kmCentroids.map((c, k) =>
+                `<span>Centre <strong>C<sub>${k+1}</sub> = ${c.toFixed(1)}</strong></span>`
+            ).join(' <span>•</span> ');
+
+            // Render 2D Canvases
+            const cOrig = document.getElementById('canvas-km-orig');
+            const cSeg = document.getElementById('canvas-km-seg');
+            const ctxO = cOrig.getContext('2d');
+            const ctxS = cSeg.getContext('2d');
+            const N = kmImageGrid.length;
+            const cell = cOrig.width / N;
+
+            const segPalette = K === 2
+                ? [[15, 23, 42], [248, 250, 252]]
+                : [[15, 23, 42], [148, 163, 184], [255, 255, 255]];
+
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const g = kmImageGrid[r][c];
+                    ctxO.fillStyle = `rgb(${g},${g},${g})`;
+                    ctxO.fillRect(c * cell, r * cell, cell + 0.5, cell + 0.5);
+
+                    let bestK = 0, minDist = Infinity;
+                    for (let k = 0; k < K; k++) {
+                        const d = Math.abs(g - kmCentroids[k]);
+                        if (d < minDist) { minDist = d; bestK = k; }
+                    }
+                    const rgb = segPalette[bestK];
+                    ctxS.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+                    ctxS.fillRect(c * cell, r * cell, cell + 0.5, cell + 0.5);
+                }
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 2. MODULE 2: OTSU'S METHOD (1979) INTERACTIVE EXPLORER (Pages 14-19)
+        // -------------------------------------------------------------------------
+        const otsuP = new Array(256).fill(0);
+        const otsuSigmaB2 = new Array(256).fill(0);
+        const otsuSigmaW2 = new Array(256).fill(0);
+        let otsuTotalVar = 0;
+        let otsuBestT = 118;
+
+        function initOtsuHistogram() {
+            let sum = 0;
+            for (let i = 0; i < 256; i++) {
+                // Bimodal histogram: background peak at 60, object peak at 180
+                const p1 = 0.48 * Math.exp(-Math.pow(i - 60, 2) / (2 * 18 * 18));
+                const p2 = 0.52 * Math.exp(-Math.pow(i - 180, 2) / (2 * 20 * 20));
+                otsuP[i] = p1 + p2 + 0.002;
+                sum += otsuP[i];
+            }
+            for (let i = 0; i < 256; i++) otsuP[i] /= sum;
+
+            let muTotal = 0;
+            for (let i = 0; i < 256; i++) muTotal += i * otsuP[i];
+            otsuTotalVar = 0;
+            for (let i = 0; i < 256; i++) otsuTotalVar += Math.pow(i - muTotal, 2) * otsuP[i];
+
+            let maxB = -1;
+            for (let T = 0; T < 256; T++) {
+                const stats = computeOtsuAtT(T);
+                otsuSigmaB2[T] = stats.sigmaB2;
+                otsuSigmaW2[T] = stats.sigmaW2;
+                if (stats.sigmaB2 > maxB) {
+                    maxB = stats.sigmaB2;
+                    otsuBestT = T;
+                }
+            }
+        }
+
+        function computeOtsuAtT(T) {
+            let qb = 0, qo = 0, mub = 0, muo = 0;
+            for (let i = 0; i <= T; i++) { qb += otsuP[i]; mub += i * otsuP[i]; }
+            for (let i = T + 1; i < 256; i++) { qo += otsuP[i]; muo += i * otsuP[i]; }
+            mub = qb > 1e-6 ? mub / qb : 0;
+            muo = qo > 1e-6 ? muo / qo : 0;
+
+            let sigb2 = 0, sigo2 = 0;
+            for (let i = 0; i <= T; i++) sigb2 += Math.pow(i - mub, 2) * otsuP[i];
+            for (let i = T + 1; i < 256; i++) sigo2 += Math.pow(i - muo, 2) * otsuP[i];
+            sigb2 = qb > 1e-6 ? sigb2 / qb : 0;
+            sigo2 = qo > 1e-6 ? sigo2 / qo : 0;
+
+            const sigmaW2 = qb * sigb2 + qo * sigo2;
+            const sigmaB2 = qb * qo * Math.pow(mub - muo, 2);
+            return { qb, qo, mub, muo, sigb2, sigo2, sigmaW2, sigmaB2 };
+        }
+
+        function setOtsuOptimal() {
+            document.getElementById('slider-otsu-t').value = otsuBestT;
+            updateOtsuLab();
+        }
+
+        function updateOtsuLab() {
+            const T = parseInt(document.getElementById('slider-otsu-t').value);
+            const isOpt = Math.abs(T - otsuBestT) <= 1;
+            document.getElementById('otsu-val-t').innerText = isOpt
+                ? `Seuil T = ${T} (OPTIMAL D'OTSU !)`
+                : `Seuil T = ${T} (Optimum à T* = ${otsuBestT})`;
+
+            const st = computeOtsuAtT(T);
+            document.getElementById('otsu-read-q').innerText = `${st.qb.toFixed(2)} / ${st.qo.toFixed(2)}`;
+            document.getElementById('otsu-read-mu').innerText = `${st.mub.toFixed(1)} / ${st.muo.toFixed(1)}`;
+            document.getElementById('otsu-read-sig').innerText = `${st.sigb2.toFixed(0)} / ${st.sigo2.toFixed(0)}`;
+            document.getElementById('otsu-read-intra').innerText = st.sigmaW2.toFixed(1);
+            document.getElementById('otsu-read-inter').innerText = st.sigmaB2.toFixed(1);
+            document.getElementById('otsu-read-total').innerText = `${(st.sigmaW2 + st.sigmaB2).toFixed(1)}`;
+
+            const valToX = (v) => 30 + (v / 255) * 450;
+            const tx = valToX(T);
+
+            // Render Histogram Bars
+            const maxP = Math.max(...otsuP);
+            let hBars = "";
+            for (let i = 0; i < 256; i += 2) {
+                const x = valToX(i);
+                const h = (otsuP[i] / maxP) * 135;
+                const col = i <= T ? "#38bdf8" : "#10b981";
+                hBars += `<rect x="${x.toFixed(1)}" y="${(175 - h).toFixed(1)}" width="3" height="${h.toFixed(1)}" fill="${col}" opacity="0.85"/>`;
+            }
+            document.getElementById('otsu-hist-bars').innerHTML = hBars;
+
+            // Mean markers mu_b and mu_o
+            const xMub = valToX(st.mub), xMuo = valToX(st.muo);
+            document.getElementById('otsu-means-markers').innerHTML = `
+                <circle cx="${xMub.toFixed(1)}" cy="175" r="5" fill="#38bdf8" stroke="#020617" stroke-width="1.5"/>
+                <text x="${xMub.toFixed(1)}" y="195" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="bold">μ_b=${st.mub.toFixed(0)}</text>
+                <circle cx="${xMuo.toFixed(1)}" cy="175" r="5" fill="#10b981" stroke="#020617" stroke-width="1.5"/>
+                <text x="${xMuo.toFixed(1)}" y="195" text-anchor="middle" fill="#10b981" font-size="10" font-weight="bold">μ_o=${st.muo.toFixed(0)}</text>
+            `;
+
+            document.getElementById('otsu-line-t1').setAttribute('x1', tx);
+            document.getElementById('otsu-line-t1').setAttribute('x2', tx);
+            document.getElementById('otsu-txt-t1').setAttribute('x', tx);
+            document.getElementById('otsu-txt-t1').textContent = `T = ${T}`;
+
+            // Render Variance Curves on Graph 2
+            let dInter = "", dIntra = "";
+            for (let i = 0; i < 256; i += 2) {
+                const x = valToX(i);
+                const yB = 175 - (otsuSigmaB2[i] / otsuTotalVar) * 140;
+                const yW = 175 - (otsuSigmaW2[i] / otsuTotalVar) * 140;
+                const cmd = i === 0 ? "M" : "L";
+                dInter += `${cmd} ${x.toFixed(1)} ${yB.toFixed(1)} `;
+                dIntra += `${cmd} ${x.toFixed(1)} ${yW.toFixed(1)} `;
+            }
+            document.getElementById('path-otsu-inter').setAttribute('d', dInter);
+            document.getElementById('path-otsu-intra').setAttribute('d', dIntra);
+
+            const curYB = 175 - (st.sigmaB2 / otsuTotalVar) * 140;
+            const curYW = 175 - (st.sigmaW2 / otsuTotalVar) * 140;
+            document.getElementById('otsu-line-t2').setAttribute('x1', tx);
+            document.getElementById('otsu-line-t2').setAttribute('x2', tx);
+            document.getElementById('otsu-dot-inter').setAttribute('cx', tx);
+            document.getElementById('otsu-dot-inter').setAttribute('cy', curYB);
+            document.getElementById('otsu-dot-intra').setAttribute('cx', tx);
+            document.getElementById('otsu-dot-intra').setAttribute('cy', curYW);
+        }
+
+        // -------------------------------------------------------------------------
+        // 3. MODULE 3: GRAPH SEGMENTATION & DYNAMIC PROGRAMMING (Pages 24-26)
+        // -------------------------------------------------------------------------
+        function resetGraphCourseExample() {
+            const exact = [[5, 6, 1], [6, 7, 0], [7, 1, 3]]; // Exact Page 24 matrix
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    document.getElementById(`gpx-${r}${c}`).value = exact[r][c];
+                }
+            }
+            updateGraphLab();
+        }
+
+        function setGraphStraightExample() {
+            const straight = [[6, 6, 1], [7, 7, 0], [6, 6, 1]];
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    document.getElementById(`gpx-${r}${c}`).value = straight[r][c];
+                }
+            }
+            updateGraphLab();
+        }
+
+        function updateGraphLab() {
+            const I = [[0,0,0],[0,0,0],[0,0,0]];
+            let Imax = 7;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const v = parseFloat(document.getElementById(`gpx-${r}${c}`).value) || 0;
+                    I[r][c] = v;
+                    if (v > Imax) Imax = v;
+                }
+            }
+
+            // Compute horizontal cut costs between col 0|1 (cut 0) and col 1|2 (cut 1) for each row r
+            // Formula Page 24: C(p,q) = Imax - |I(p) - I(q)|
+            const vCosts = [
+                [Imax - Math.abs(I[0][0] - I[0][1]), Imax - Math.abs(I[0][1] - I[0][2])],
+                [Imax - Math.abs(I[1][0] - I[1][1]), Imax - Math.abs(I[1][1] - I[1][2])],
+                [Imax - Math.abs(I[2][0] - I[2][1]), Imax - Math.abs(I[2][1] - I[2][2])]
+            ];
+
+            // Horizontal transition costs between row r and row r+1 when switching cut column
+            const hCost01 = Imax - Math.abs(I[0][1] - I[1][1]);
+            const hCost12 = Imax - Math.abs(I[1][1] - I[2][1]);
+
+            // Evaluate candidate boundary paths from top to bottom:
+            // Path A: straight left cut (col 0|1 all the way)
+            const costLeft = vCosts[0][0] + vCosts[1][0] + vCosts[2][0];
+            // Path B: straight right cut (col 1|2 all the way)
+            const costRight = vCosts[0][1] + vCosts[1][1] + vCosts[2][1];
+            // Path C (Page 25 red path): top & mid at col 1|2, then turn left between row 1 & 2 to col 0|1
+            const costTurnBottomLeft = vCosts[0][1] + vCosts[1][1] + hCost12 + vCosts[2][0];
+            // Path D: top at col 0|1, then turn right to col 1|2
+            const costTurnBottomRight = vCosts[0][0] + vCosts[1][0] + hCost12 + vCosts[2][1];
+
+            const candidates = [
+                { name: "Chemin Rouge (Droite → Gauche, p.25)", cost: costTurnBottomLeft, points: "215,15 215,168 125,168 125,245" },
+                { name: "Coupe Droite Verticale", cost: costRight, points: "215,15 215,245" },
+                { name: "Coupe Gauche Verticale", cost: costLeft, points: "125,15 125,245" },
+                { name: "Coupe Gauche → Droite", cost: costTurnBottomRight, points: "125,15 125,168 215,168 215,245" }
+            ];
+            candidates.sort((a, b) => a.cost - b.cost);
+            const best = candidates[0];
+
+            // Render SVG Graph (Page 25 reproduction)
+            const svg = document.getElementById('svg-graph-path');
+            const xs = [80, 170, 260];
+            const ys = [45, 130, 215];
+            let html = "";
+
+            // Draw pixel nodes [I(r,c)]
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const x = xs[c], y = ys[r];
+                    html += `
+                        <circle cx="${x}" cy="${y - 12}" r="5.5" fill="#38bdf8"/>
+                        <text x="${x}" y="${y + 12}" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="bold" font-family="monospace">[${I[r][c]}]</text>
+                    `;
+                }
+            }
+
+            // Draw vertical cut cost badges between columns
+            const cutXs = [125, 215];
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 2; c++) {
+                    const cx = cutXs[c], cy = ys[r];
+                    const vc = vCosts[r][c];
+                    const isLow = vc <= 2;
+                    html += `
+                        <rect x="${cx - 12}" y="${cy - 18}" width="24" height="18" rx="3" fill="${isLow ? '#064e3b' : '#1e293b'}" stroke="${isLow ? '#10b981' : '#475569'}"/>
+                        <text x="${cx}" y="${cy - 5}" text-anchor="middle" fill="${isLow ? '#6ee7b7' : '#cbd5e1'}" font-size="11" font-weight="bold" font-family="monospace">${vc}</text>
+                    `;
+                }
+            }
+
+            // Draw horizontal turn cost badge between row 1 and row 2
+            html += `
+                <rect x="158" y="156" width="24" height="18" rx="3" fill="#311024" stroke="#f43f5e"/>
+                <text x="170" y="169" text-anchor="middle" fill="#fda4af" font-size="10" font-weight="bold" font-family="monospace">${hCost12}</text>
+            `;
+
+            // Draw Animated Optimal Red Boundary Path (Page 25)
+            html += `
+                <polyline points="${best.points}" fill="none" stroke="#f43f5e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+            `;
+            svg.innerHTML = html;
+
+            // Render Cost Matrix Grayscale Image (Page 26)
+            const costSvg = document.getElementById('svg-cost-matrix');
+            let cHtml = "";
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 2; c++) {
+                    const vc = vCosts[r][c];
+                    const gray = Math.round((vc / Imax) * 235);
+                    const x = 25 + c * 60, y = 10 + r * 40;
+                    const txtCol = gray > 128 ? "#020617" : "#f8fafc";
+                    cHtml += `
+                        <rect x="${x}" y="${y}" width="58" height="38" rx="4" fill="rgb(${gray},${gray},${gray})" stroke="#475569"/>
+                        <text x="${x + 29}" y="${y + 24}" text-anchor="middle" fill="${txtCol}" font-size="12" font-weight="bold" font-family="monospace">C=${vc}</text>
+                    `;
+                }
+            }
+            costSvg.innerHTML = cHtml;
+
+            // Summary list of paths
+            document.getElementById('graph-paths-summary').innerHTML = `
+                <div class="font-bold text-emerald-400">🏆 Optimal : ${best.name}</div>
+                <div class="font-mono text-white">Coût Minimal Total = <strong>${best.cost}</strong></div>
+                <div class="text-[11px] text-slate-400 pt-1">Autres chemins : ${candidates.slice(1,3).map(c => `${c.name} (${c.cost})`).join(' • ')}</div>
+            `;
+        }
+
+        // -------------------------------------------------------------------------
+        // 4. MODULE 4: REGION GROWING SIMULATOR (Pages 32-39)
+        // -------------------------------------------------------------------------
+        const rgGridIntensity = [
+            [30, 32, 28, 35, 30, 32, 30, 220, 225, 220],
+            [32, 175,180,178, 32, 30, 35, 218, 222, 224],
+            [28, 178,182,176, 35, 180,182, 32,  30,  35],
+            [30, 32, 35, 30, 178,184,185,180,  32,  28],
+            [35, 30, 28, 176,182,186,184,178,  30,  32],
+            [30, 32, 30, 180,185,188,182,175,  35,  30],
+            [28, 35, 32,  35,178,182,180, 32,  30,  28],
+            [32, 168,172, 30, 32, 35, 155, 30, 172, 175],
+            [30, 170,174, 28, 30, 32,  30,130, 176, 178],
+            [28,  30, 32, 35, 28, 30,  32, 30, 174, 175]
+        ];
+
+        let rgSeeds = [{ r: 4, c: 5, id: 1, color: '#10b981' }];
+        let rgState = []; // 0=unvisited, 1=grown, 2=wavefront queue, 3=rejected border
+        let rgOwner = [];
+        let rgQueue = [];
+
+        function initRegionGrowing(seeds) {
+            rgSeeds = seeds;
+            rgState = Array.from({ length: 10 }, () => new Array(10).fill(0));
+            rgOwner = Array.from({ length: 10 }, () => new Array(10).fill(0));
+            rgQueue = [];
+
+            seeds.forEach(s => {
+                rgState[s.r][s.c] = 1;
+                rgOwner[s.r][s.c] = s.id;
+                enqueueRgNeighbors(s.r, s.c, s.id, rgGridIntensity[s.r][s.c]);
+            });
+            renderRegionGrowingSvg();
+        }
+
+        function enqueueRgNeighbors(r, c, seedId, refVal) {
+            const conn = parseInt(document.getElementById('rg-conn-select').value);
+            const dirs = conn === 4
+                ? [[-1,0],[1,0],[0,-1],[0,1]]
+                : [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+            dirs.forEach(([dr, dc]) => {
+                const nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < 10 && nc >= 0 && nc < 10 && rgState[nr][nc] === 0) {
+                    rgState[nr][nc] = 2; // Wavefront candidate
+                    rgOwner[nr][nc] = seedId;
+                    rgQueue.push({ r: nr, c: nc, seedId, refVal });
+                }
+            });
+        }
+
+        function stepRegionGrowing() {
+            if (rgQueue.length === 0) return;
+            const thresh = parseFloat(document.getElementById('slider-rg-thresh').value);
+            const currentWave = [...rgQueue];
+            rgQueue = [];
+
+            currentWave.forEach(item => {
+                const val = rgGridIntensity[item.r][item.c];
+                if (Math.abs(val - item.refVal) <= thresh) {
+                    rgState[item.r][item.c] = 1; // Accepted into region!
+                    enqueueRgNeighbors(item.r, item.c, item.seedId, item.refVal);
+                } else {
+                    rgState[item.r][item.c] = 3; // Rejected border
+                }
+            });
+            renderRegionGrowingSvg();
+        }
+
+        function runFullRegionGrowing() {
+            initRegionGrowing(rgSeeds);
+            let guard = 0;
+            while (rgQueue.length > 0 && guard < 100) {
+                stepRegionGrowing();
+                guard++;
+            }
+        }
+
+        function updateRgThreshold() {
+            const val = document.getElementById('slider-rg-thresh').value;
+            document.getElementById('rg-val-thresh').innerText = `Seuil = ${val}`;
+            runFullRegionGrowing();
+        }
+
+        function placeMultiSeeds() {
+            initRegionGrowing([
+                { r: 4, c: 5, id: 1, color: '#10b981' },
+                { r: 1, c: 2, id: 2, color: '#38bdf8' },
+                { r: 8, c: 8, id: 3, color: '#a855f7' }
+            ]);
+            runFullRegionGrowing();
+        }
+
+        function handleRgCellClick(r, c) {
+            initRegionGrowing([{ r, c, id: 1, color: '#10b981' }]);
+        }
+
+        function renderRegionGrowingSvg() {
+            const svg = document.getElementById('svg-region-growing');
+            let html = "";
+            let grownCount = 0, waveCount = 0;
+            const ownerColors = { 1: '#059669', 2: '#0284c7', 3: '#7e22ce' };
+
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 10; c++) {
+                    const x = 10 + c * 40, y = 10 + r * 40;
+                    const val = rgGridIntensity[r][c];
+                    const st = rgState[r][c];
+                    const isSeed = rgSeeds.some(s => s.r === r && s.c === c);
+
+                    let fill = `rgb(${val * 0.6},${val * 0.65},${val * 0.75})`;
+                    let stroke = "#334155";
+                    let sw = "1";
+
+                    if (st === 1) {
+                        grownCount++;
+                        fill = ownerColors[rgOwner[r][c]] || '#059669';
+                        stroke = "#34d399";
+                        sw = "1.5";
+                    } else if (st === 2) {
+                        waveCount++;
+                        fill = "#0369a1";
+                        stroke = "#38bdf8";
+                        sw = "2";
+                    } else if (st === 3) {
+                        fill = "#4c0519";
+                        stroke = "#f43f5e";
+                        sw = "1.5";
+                    }
+
+                    if (isSeed) {
+                        stroke = "#f59e0b";
+                        sw = "3";
+                    }
+
+                    html += `
+                        <g class="svg-cell cursor-pointer" onclick="handleRgCellClick(${r},${c})">
+                            <rect x="${x}" y="${y}" width="37" height="37" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+                            <text x="${x + 18.5}" y="${y + 22}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="${isSeed ? '800' : '600'}" font-family="monospace">${isSeed ? '★' + val : val}</text>
+                        </g>
+                    `;
+                }
+            }
+            svg.innerHTML = html;
+            document.getElementById('rg-stats-box').innerText = `Pixels agrégés : ${grownCount} • File d'attente : ${waveCount}`;
+        }
+
+        // -------------------------------------------------------------------------
+        // 5. MODULE 5: SPLIT & MERGE (QUADTREE) ON EXACT PAGE 43 8x8 MATRIX
+        // -------------------------------------------------------------------------
+        const page43Matrix = [
+            [0, 1, 0, 0, 7, 7, 7, 7],
+            [1, 0, 2, 2, 7, 7, 7, 7],
+            [0, 2, 2, 2, 7, 7, 7, 7],
+            [4, 4, 2, 2, 7, 7, 7, 7],
+            [0, 0, 1, 1, 3, 3, 7, 7],
+            [1, 1, 2, 2, 3, 7, 7, 7],
+            [2, 4, 3, 0, 5, 7, 7, 7],
+            [2, 3, 3, 5, 5, 0, 7, 7]
+        ];
+
+        let qtCurrentStep = 2; // 0=init, 1=div1, 2=div2, 3=div3, 4=merge
+
+        function setQuadtreeStep(step) {
+            qtCurrentStep = step;
+            for (let s = 0; s <= 4; s++) {
+                const btn = document.getElementById(`qt-btn-${s}`);
+                if (s === step) {
+                    btn.className = s === 4
+                        ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-400 shadow-lg shadow-emerald-600/20"
+                        : "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700";
+                }
+            }
+            updateQuadtreeLab();
+        }
+
+        function getBlockStats(r1, r2, c1, c2) {
+            let minV = Infinity, maxV = -Infinity, sum = 0, count = 0;
+            for (let r = r1; r < r2; r++) {
+                for (let c = c1; c < c2; c++) {
+                    const v = page43Matrix[r][c];
+                    if (v < minV) minV = v;
+                    if (v > maxV) maxV = v;
+                    sum += v;
+                    count++;
+                }
+            }
+            return { minV, maxV, diff: maxV - minV, mean: sum / count };
+        }
+
+        function buildQuadtreeLeaves(r1, r2, c1, c2, depth, maxDepth, sigma, leaves) {
+            const st = getBlockStats(r1, r2, c1, c2);
+            const isHomogeneous = st.diff <= sigma;
+            if (depth >= maxDepth || isHomogeneous || (r2 - r1) <= 1) {
+                leaves.push({ r1, r2, c1, c2, depth, isHomogeneous, mean: st.mean, diff: st.diff });
+            } else {
+                const mr = (r1 + r2) >> 1;
+                const mc = (c1 + c2) >> 1;
+                buildQuadtreeLeaves(r1, mr, c1, mc, depth + 1, maxDepth, sigma, leaves);
+                buildQuadtreeLeaves(r1, mr, mc, c2, depth + 1, maxDepth, sigma, leaves);
+                buildQuadtreeLeaves(mr, r2, c1, mc, depth + 1, maxDepth, sigma, leaves);
+                buildQuadtreeLeaves(mr, r2, mc, c2, depth + 1, maxDepth, sigma, leaves);
+            }
+        }
+
+        function updateQuadtreeLab() {
+            const sigma = parseInt(document.getElementById('slider-qt-sigma').value);
+            document.getElementById('qt-val-sigma').innerText = `σ = ${sigma}`;
+
+            const maxDepth = qtCurrentStep === 4 ? 3 : qtCurrentStep;
+            const leaves = [];
+            buildQuadtreeLeaves(0, 8, 0, 8, 0, maxDepth, sigma, leaves);
+
+            // Render 8x8 Matrix SVG
+            const svgGrid = document.getElementById('svg-qt-grid');
+            let gHtml = "";
+            const cell = 42, pad = 12;
+
+            // Draw individual numbers first
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const v = page43Matrix[r][c];
+                    const x = pad + c * cell, y = pad + r * cell;
+                    let bg = "#0f172a";
+                    if (qtCurrentStep === 4) {
+                        // In Merge phase (Page 46 & 50), color connected homogeneous regions (e.g., all 7s merged together!)
+                        if (v === 7) bg = "rgba(16, 185, 129, 0.38)";
+                        else if (v <= 1) bg = "rgba(56, 189, 248, 0.25)";
+                        else if (v <= 3) bg = "rgba(245, 158, 11, 0.25)";
+                        else bg = "rgba(244, 63, 94, 0.28)";
+                    }
+                    gHtml += `
+                        <rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${bg}" stroke="#1e293b" stroke-width="1"/>
+                        <text x="${x + cell/2}" y="${y + cell/2 + 5}" text-anchor="middle" fill="${v === 7 ? '#6ee7b7' : '#e2e8f0'}" font-size="14" font-weight="bold" font-family="monospace">${v}</text>
+                    `;
+                }
+            }
+
+            // Overlay Quadtree Block Borders
+            leaves.forEach(lf => {
+                const x = pad + lf.c1 * cell;
+                const y = pad + lf.r1 * cell;
+                const w = (lf.c2 - lf.c1) * cell;
+                const h = (lf.r2 - lf.r1) * cell;
+                const strokeCol = qtCurrentStep === 4 ? "#10b981" : (lf.isHomogeneous ? "#10b981" : "#f43f5e");
+                const fillOverlay = (qtCurrentStep < 4 && lf.isHomogeneous) ? "rgba(16, 185, 129, 0.12)" : "none";
+                gHtml += `
+                    <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fillOverlay}" stroke="${strokeCol}" stroke-width="2.5"/>
+                `;
+            });
+            svgGrid.innerHTML = gHtml;
+
+            const homoCount = leaves.filter(l => l.isHomogeneous).length;
+            document.getElementById('qt-summary-badge').innerText = qtCurrentStep === 4
+                ? `Phase Fusion : ${leaves.length} feuilles regroupées en 4 grandes régions connexes !`
+                : `Feuilles Quadtree : ${leaves.length} blocs (${homoCount} homogènes verts, ${leaves.length - homoCount} à diviser en rouge)`;
+
+            // Render Quadtree Hierarchy Diagram (Page 46 & 49)
+            renderQuadtreeDiagram(maxDepth, sigma);
+        }
+
+        function renderQuadtreeDiagram(maxDepth, sigma) {
+            const svg = document.getElementById('svg-qt-tree');
+            let html = "";
+
+            // Root node (Level 0: 8x8)
+            const rootHomo = getBlockStats(0, 8, 0, 8).diff <= sigma;
+            html += `<circle cx="230" cy="28" r="14" fill="${rootHomo ? '#065f46' : '#1e293b'}" stroke="#38bdf8" stroke-width="2"/>`;
+            html += `<text x="230" y="32" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">I₀</text>`;
+
+            if (maxDepth >= 1 && !rootHomo) {
+                const qCoords = [
+                    { label: "NO", r1:0, r2:4, c1:0, c2:4, x: 75 },
+                    { label: "NE (7)", r1:0, r2:4, c1:4, c2:8, x: 180 },
+                    { label: "SO", r1:4, r2:8, c1:0, c2:4, x: 285 },
+                    { label: "SE", r1:4, r2:8, c1:4, c2:8, x: 390 }
+                ];
+
+                qCoords.forEach((q, idx) => {
+                    const st = getBlockStats(q.r1, q.r2, q.c1, q.c2);
+                    const isH = st.diff <= sigma;
+                    const col = isH ? "#10b981" : "#f59e0b";
+                    html += `<line x1="230" y1="42" x2="${q.x}" y2="88" stroke="#475569" stroke-width="1.5"/>`;
+                    html += `<circle cx="${q.x}" cy="100" r="14" fill="${isH ? '#064e3b' : '#1e293b'}" stroke="${col}" stroke-width="2"/>`;
+                    html += `<text x="${q.x}" y="104" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">${q.label}</text>`;
+
+                    // Level 2 children (2x2 blocks)
+                    if (maxDepth >= 2 && !isH) {
+                        const mr = (q.r1 + q.r2) >> 1, mc = (q.c1 + q.c2) >> 1;
+                        const subBlocks = [
+                            [q.r1, mr, q.c1, mc],
+                            [q.r1, mr, mc, q.c2],
+                            [mr, q.r2, q.c1, mc],
+                            [mr, q.r2, mc, q.c2]
+                        ];
+                        subBlocks.forEach((sb, sIdx) => {
+                            const sx = q.x - 33 + sIdx * 22;
+                            const sy = 175;
+                            const sbSt = getBlockStats(sb[0], sb[1], sb[2], sb[3]);
+                            const sbH = sbSt.diff <= sigma;
+                            html += `<line x1="${q.x}" y1="114" x2="${sx}" y2="${sy - 9}" stroke="#334155" stroke-width="1.2"/>`;
+                            html += `<circle cx="${sx}" cy="${sy}" r="8" fill="${sbH ? '#10b981' : '#f43f5e'}" stroke="#020617" stroke-width="1.5"/>`;
+                        });
+                    }
+                });
+            }
+
+            if (qtCurrentStep === 4) {
+                html += `
+                    <rect x="65" y="192" width="330" height="22" rx="6" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-dasharray="4,2"/>
+                    <text x="230" y="207" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="bold">🔗 Phase Fusion : Feuilles adjacentes de même niveau regroupées (p.46)</text>
+                `;
+            }
+            svg.innerHTML = html;
+        }
+
+        // -------------------------------------------------------------------------
+        // INITIALIZE ALL 5 MODULES ON WINDOW LOAD
+        // -------------------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+
+            // Init Module 1: K-Means
+            setKMeansScenario('chromosomes');
+            // Init Module 2: Otsu
+            initOtsuHistogram();
+            updateOtsuLab();
+            // Init Module 3: Graph Path
+            updateGraphLab();
+            // Init Module 4: Region Growing
+            runFullRegionGrowing();
+            // Init Module 5: Quadtree Split & Merge
+            updateQuadtreeLab();
+        });
+    </script>
+</body>
+</html>

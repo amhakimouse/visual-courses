@@ -42,7 +42,7 @@ Le **shell** est un programme qui sert d'intermédiaire entre **toi** et le **no
 ---
 # Flux et redirections
  
-Chaque commande est lancée avec **3 canaux** ouverts, numérotés (descripteurs) :
+Chaque commande est lancée avec **3 canaux** ouverts, numérotés (`descripteurs`) :
 
 ```
                   ┌───────────────┐
@@ -278,15 +278,18 @@ Quand tu lances un script avec des **arguments**, le shell les range dans des va
    $0     $1    $2     $3        $# = 3      $* = "un 2 trois"
 ```
 
-|Variable|Contenu|
-|---|---|
-|`$0`|nom du script|
-|`$1` … `$9`|1er … 9e argument|
-|`$#`|**nombre** d'arguments|
-|`$*`|**tous** les arguments|
-|`$$`|PID du processus courant|
-|`$!`|PID du dernier processus lancé en arrière-plan (`&`)|
-|`$?`|code de retour de la dernière commande (0 = succès)|
+| Variable    | Contenu                                                                                                                                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `$0`        | nom du script                                                                                                                             |
+| `$1` … `$9` | 1er … 9e argument                                                                                                                         |
+| `$#`        | **nombre** d'arguments                                                                                                                    |
+| `$*`        | **tous** les arguments                                                                                                                    |
+| `$$`        | PID du processus courant                                                                                                                  |
+| `$!`        | PID du dernier processus lancé en arrière-plan (`&`)                                                                                      |
+| `$?`        | code de retour de la dernière commande                         code **127** = « commande introuvable » (126 = non exécutable, 0 = succès) |
+
+
+
 ### `shift` : décaler les arguments
 
 `shift` supprime `$1` et fait glisser les autres vers la gauche.
@@ -371,14 +374,14 @@ echo $?              # affiche 0 si vrai, 1 si faux
 
 #### A) Fichiers : `-type fichier`
 
-|Option|Vrai si le fichier...|
-|---|---|
-|`-f`|existe et est un fichier **ordinaire**|
-|`-d`|est un **répertoire**|
-|`-r` / `-w` / `-x`|est lisible / modifiable / exécutable|
-|`-s`|existe et a une taille **> 0**|
-|`-c` / `-b` / `-p`|caractère / bloc / tube nommé|
-|`-u` / `-g` / `-k`|suid / sgid / sticky|
+| Option             | Vrai si le fichier...                  |
+| ------------------ | -------------------------------------- |
+| `-f`               | existe et est un fichier **ordinaire** |
+| `-d`               | est un **répertoire**                  |
+| `-r` / `-w` / `-x` | est lisible / modifiable / exécutable  |
+| `-s`               | existe et a une taille **> 0**         |
+| `-c` / `-b` / `-p` | caractère / bloc / tube nommé          |
+| `-u` / `-g` / `-k` | suid / sgid / sticky                   |
 
 ```bash
 [ -d /etc ]          # vrai : /etc est un répertoire
@@ -507,6 +510,17 @@ for n in 1 2 3 4                # n prend successivement 1, 2, 3, 4
 do
   cp fic1 /users/rep$n          # 1er tour : cp fic1 /users/rep1, etc.
 done                            # fin de la boucle
+```
+
+```bash
+# Répéter N fois 
+for i in {1..N}
+do
+    echo "$i th time"
+    sleep 3
+done
+
+echo "Au revoir"
 ```
 
 💡 La liste peut venir d’un motif : `for f in *.txt` (tous les `.txt`) ou d’une commande : `for u in $(cat users.txt)`.
@@ -713,6 +727,16 @@ do
 done < fichier                  # tout le bloc lit "fichier" au lieu du clavier
 ```
 
+```bash
+while true; do
+    # Demander à l'utilisateur de saisir un nombre i
+    read -p "Entrez le numéro de l'argument (i) : " i
+    
+    # Afficher l'argument correspondant grâce à l'indiçage indirect ${!i}
+    echo "Argument numéro $i : ${!i}"
+done
+```
+
 ```
  fichier ──► ligne 1 ──► x ──► corps
          ──► ligne 2 ──► x ──► corps
@@ -721,11 +745,31 @@ done < fichier                  # tout le bloc lit "fichier" au lieu du clavier
 
 Variante : `cat fichier | while read x` fait la même chose, mais le `while` tourne alors dans un sous-processus (le tube) : les variables modifiées dedans sont **perdues** après `done`. Préfère `done < fichier`.
 
+### Mettre en veille / bloquer un processus (`kill -STOP`)
 
+```bash
+killall -STOP command
+```
 
+### Reprendre un processus (`kill -CONT`)
 
+```bash
+killall -CONT command
+```
 
+### Arrêter un processus 
 
+```bash
+killall -KILL command
+```
+
+- **a) Qu'est-ce qu'une commande interne ?**
+    
+    - C'est une commande intégrée directement à l'intérieur du shell (ex: `cd`, `pwd`, `echo`). Le shell n'a pas besoin de chercher un fichier sur le disque pour l'exécuter.
+        
+- **b) Qu'est-ce qu'une commande externe ?**
+    
+    - C'est un programme indépendant stocké sous forme de fichier exécutable sur le disque (ex: `ls`, `grep`, `find`). Le shell doit lancer un nouveau processus pour l'exécuter.
 
 
 

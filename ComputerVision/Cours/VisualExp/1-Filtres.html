@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision par Ordinateur — Filtrage Fréquentiel & Détection de Contours</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- KaTeX for Rendered Mathematical Expressions -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e32',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Math Card Styling */
+        .math-box {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #1e293b;
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            border: 2px solid #020617;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        /* SVG Interactive transitions */
+        .svg-quadrant {
+            transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.5);
+            border-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Header & Navigation -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/85 border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">Chapitre 2 • Cours Interactif</span>
+                            <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">SVG-Explained + Python</span>
+                        </div>
+                        <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white mt-0.5">
+                            Filtrage Fréquentiel (Fourier) & Détection de Contours
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Legend Pills -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-950/80 border border-sky-700/50 text-sky-300">
+                        <span class="w-2 h-2 rounded-full bg-sky-400"></span> Spatial / Entrée
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Conservé / Contour Fort
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-700/50 text-amber-300">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span> Seuil / Hystérésis
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-950/80 border border-rose-700/50 text-rose-300">
+                        <span class="w-2 h-2 rounded-full bg-rose-400"></span> Bruit / Rejeté
+                    </span>
+                </div>
+            </div>
+
+            <!-- Interactive Module Tabs -->
+            <nav class="flex overflow-x-auto gap-2 mt-3 pb-1 no-scrollbar" aria-label="Modules">
+                <button onclick="switchTab(1)" id="tab-btn-1" class="tab-active whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-700/80 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">1</span>
+                    Fréquences & Fourier 2D
+                </button>
+                <button onclick="switchTab(2)" id="tab-btn-2" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">2</span>
+                    Filtres Fréquentiels (PB, PH, Notch)
+                </button>
+                <button onclick="switchTab(3)" id="tab-btn-3" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">3</span>
+                    Séparabilité & Dérivées 1D
+                </button>
+                <button onclick="switchTab(4)" id="tab-btn-4" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">4</span>
+                    Gradient 2D, Sobel & Laplacien
+                </button>
+                <button onclick="switchTab(5)" id="tab-btn-5" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold">5</span>
+                    Maxima Locaux (NMS) & Hystérésis
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- =====================================================================
+             MODULE 1 : FRÉQUENCES SPATIALES & TRANSFORMÉE DE FOURIER 2D (Pages 1-18)
+             ===================================================================== -->
+        <section id="module-1" class="space-y-8">
+            <!-- Hero Metaphor Banner -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/40 to-slate-900 border border-sky-500/30 shadow-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                    <div class="lg:col-span-2 space-y-3">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
+                            💡 Intuition Physique & Métaphore du Monde Réel (Pages 1 à 4)
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Pourquoi parler de « Fréquences » dans une image statique ?</h2>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            En acoustique, la fréquence mesure la vitesse de vibration dans le <strong>temps</strong> (un son grave varie lentement, un son aigu varie très vite). Dans une image, le temps est remplacé par l'<strong>espace $(x, y)$</strong> : on parle de <span class="text-sky-400 font-semibold">fréquence spatiale</span>, c'est-à-dire la vitesse à laquelle l'intensité lumineuse (niveau de gris) change d'un pixel au suivant !
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-emerald-500/30">
+                                <div class="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                                    <span>🌊 Basses Fréquences Spatiales</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1">
+                                    Variations lentes d'intensité : intérieur d'une pomme lisse, ciel dégagé, mur uni, zones floues. Contient <strong>90% de l'énergie globale</strong> de l'image.
+                                </p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-rose-500/30">
+                                <div class="font-bold text-rose-400 text-sm flex items-center gap-2">
+                                    <span>⚡ Hautes Fréquences Spatiales</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1">
+                                    Sauts brusques d'intensité : <strong>contours nets</strong> entre deux objets, pépins de kiwi, textures fines (briques) et <strong>bruit numérique</strong>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Prism Visual Metaphor SVG -->
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                        <span class="text-xs font-semibold text-slate-400 mb-2">La Transformée de Fourier = Un Prisme Mathématique</span>
+                        <svg viewBox="0 0 320 170" class="w-full h-auto">
+                            <defs>
+                                <linearGradient id="beamGrad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="#f8fafc" />
+                                    <stop offset="100%" stop-color="#38bdf8" />
+                                </linearGradient>
+                            </defs>
+                            <!-- Input Signal -->
+                            <rect x="10" y="55" width="55" height="55" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+                            <circle cx="37" cy="82" r="16" fill="#94a3b8"/>
+                            <text x="37" y="125" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="600">Image f(x,y)</text>
+                            <text x="37" y="137" text-anchor="middle" fill="#64748b" font-size="9">Domaine Spatial</text>
+
+                            <!-- Beam to Prism -->
+                            <line x1="65" y1="82" x2="122" y2="82" stroke="url(#beamGrad)" stroke-width="4"/>
+                            
+                            <!-- Prism (Fourier Transform) -->
+                            <polygon points="150,30 110,115 190,115" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2"/>
+                            <text x="150" y="98" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="bold">TFD / FFT</text>
+                            <text x="150" y="132" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="600">Décomposition</text>
+
+                            <!-- Output Frequency Rays -->
+                            <!-- DC / Low freq -->
+                            <path d="M 172 68 L 235 40" stroke="#10b981" stroke-width="3"/>
+                            <path d="M 235 40 Q 255 25, 275 40 T 310 40" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                            <text x="272" y="25" text-anchor="middle" fill="#10b981" font-size="9" font-weight="bold">Basse Fréq (Fond)</text>
+
+                            <!-- Mid freq -->
+                            <path d="M 178 82 L 235 82" stroke="#f59e0b" stroke-width="2.5"/>
+                            <path d="M 235 82 Q 245 70, 255 82 T 275 82 T 295 82 T 310 82" fill="none" stroke="#f59e0b" stroke-width="2"/>
+                            <text x="272" y="70" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">Moyenne Fréq</text>
+
+                            <!-- High freq -->
+                            <path d="M 184 98 L 235 125" stroke="#f43f5e" stroke-width="2"/>
+                            <path d="M 235 125 L 240 115 L 245 135 L 250 115 L 255 135 L 260 115 L 265 135 L 270 115 L 275 135 L 280 115 L 285 135 L 290 125 L 310 125" fill="none" stroke="#f43f5e" stroke-width="1.5"/>
+                            <text x="272" y="150" text-anchor="middle" fill="#f43f5e" font-size="9" font-weight="bold">Haute Fréq (Contours)</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 1A: Somme des Signaux (Pages 1-3) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-7 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                            <div>
+                                <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 1.1 • Pages 1 à 3 du cours</span>
+                                <h3 class="text-lg font-bold text-white">Synthèse Spatiale : Basse Fréquence + Haute Fréquence</h3>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-mono text-slate-300">f(x) = Σ sin(2π u x)</span>
+                        </div>
+                        <p class="text-xs text-slate-300 mb-4">
+                            Comme illustré en <strong>Page 1 du cours</strong>, une ligne horizontale d'une image complexe est simplement la <strong>somme</strong> d'ondes sinusoïdales de différentes fréquences. Ajustez les curseurs ci-dessous pour voir comment les contours et le bruit (hautes fréquences) se superposent aux formes douces (basses fréquences) :
+                        </p>
+
+                        <!-- Sliders for Signal Synthesis -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80">
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-emerald-400">Amplitude Basse Fréq</span>
+                                    <span id="val-low-amp" class="font-mono text-white">1.00</span>
+                                </div>
+                                <input type="range" id="slider-low-amp" min="0" max="1.5" step="0.05" value="1.0" class="w-full" oninput="updateSignalSynthesis()">
+                                <span class="text-[11px] text-slate-400">Forme globale (Pomme/Fond)</span>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-amber-400">Harmonique Moyenne</span>
+                                    <span id="val-mid-amp" class="font-mono text-white">0.45</span>
+                                </div>
+                                <input type="range" id="slider-mid-amp" min="0" max="1.2" step="0.05" value="0.45" class="w-full" oninput="updateSignalSynthesis()">
+                                <span class="text-[11px] text-slate-400">Détails moyens (Kiwi)</span>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-rose-400">Amplitude Haute Fréq</span>
+                                    <span id="val-high-amp" class="font-mono text-white">0.35</span>
+                                </div>
+                                <input type="range" id="slider-high-amp" min="0" max="1.0" step="0.05" value="0.35" class="w-full" oninput="updateSignalSynthesis()">
+                                <span class="text-[11px] text-slate-400">Contours brusques & Bruit</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic SVG Oscilloscope -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-3">
+                        <!-- Simulated 1D Pixel Strip -->
+                        <div class="mb-2">
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>Ligne de pixels 1D correspondante f(x) (Niveaux de gris 0 à 255) :</span>
+                                <span class="font-mono text-sky-400">Domaine Spatial (x)</span>
+                            </div>
+                            <canvas id="canvas-1d-strip" width="600" height="28" class="w-full h-7 rounded border border-slate-700"></canvas>
+                        </div>
+
+                        <svg id="svg-signal-synth" viewBox="0 0 600 230" class="w-full h-auto">
+                            <!-- Grid lines -->
+                            <line x1="40" y1="45" x2="585" y2="45" stroke="#1e293b" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="105" x2="585" y2="105" stroke="#1e293b" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="175" x2="585" y2="175" stroke="#334155" stroke-width="1"/>
+
+                            <!-- Labels -->
+                            <text x="10" y="48" fill="#10b981" font-size="10" font-weight="bold">Basse</text>
+                            <text x="10" y="108" fill="#f43f5e" font-size="10" font-weight="bold">Haute</text>
+                            <text x="10" y="175" fill="#38bdf8" font-size="10" font-weight="bold">Somme</text>
+                            <text x="10" y="187" fill="#94a3b8" font-size="9">f(x)</text>
+
+                            <!-- Dynamic Wave Paths -->
+                            <path id="path-low-freq" d="" fill="none" stroke="#10b981" stroke-width="2"/>
+                            <path id="path-high-freq" d="" fill="none" stroke="#f43f5e" stroke-width="1.5"/>
+                            <path id="path-sum-freq" d="" fill="none" stroke="#38bdf8" stroke-width="2.8"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Interactive Lab 1B: Inversion des Quadrants (fftshift) & Rotation (Pages 11-18) -->
+                <div class="lg:col-span-5 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                            <div>
+                                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Labo Interactif 1.2 • Pages 8, 13 & 18</span>
+                                <h3 class="text-lg font-bold text-white">Inversion des Quadrants & Rotation</h3>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">
+                            Par défaut, le calcul mathématique de la TFD place la <strong>fréquence zéro (Composante Continue DC = moyenne de l'image)</strong> aux 4 coins $(0,0)$. En pratique (Page 13), on intervertit les quadrants avec <code class="text-sky-400 font-mono">fftshift</code> pour ramener les basses fréquences au centre !
+                        </p>
+
+                        <!-- Controls for Quadrant Shift & Angle Rotation -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800 mb-3">
+                            <button onclick="toggleFftShift()" id="btn-fftshift" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+                                <span>🔄 État : Centré (fftshift ACTIF)</span>
+                            </button>
+                            <div class="flex items-center gap-2 flex-grow max-w-[200px]">
+                                <span class="text-xs text-slate-300 whitespace-nowrap">Rotation θ:</span>
+                                <input type="range" id="slider-fft-rot" min="0" max="90" step="5" value="0" class="w-full" oninput="updateFftRotation()">
+                                <span id="val-fft-rot" class="text-xs font-mono text-sky-400 w-9">0°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SVG Quadrant & Rotation Visualizer -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-3 flex flex-col items-center">
+                        <svg id="svg-quadrants" viewBox="0 0 380 210" class="w-full h-auto">
+                            <!-- Left: Spatial Image with Rotating Sinusoid/Brick Edges -->
+                            <text x="85" y="18" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">Image Spatiale f(x,y)</text>
+                            <g transform="translate(85, 105)">
+                                <g id="spatial-rot-group">
+                                    <rect x="-65" y="-65" width="130" height="130" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                                    <!-- Sinusoidal vertical bars (Page 18) -->
+                                    <rect x="-55" y="-58" width="12" height="116" fill="#94a3b8" opacity="0.85"/>
+                                    <rect x="-30" y="-58" width="12" height="116" fill="#94a3b8" opacity="0.85"/>
+                                    <rect x="-5" y="-58" width="12" height="116" fill="#94a3b8" opacity="0.85"/>
+                                    <rect x="20" y="-58" width="12" height="116" fill="#94a3b8" opacity="0.85"/>
+                                    <rect x="45" y="-58" width="12" height="116" fill="#94a3b8" opacity="0.85"/>
+                                </g>
+                            </g>
+                            <text x="85" y="192" text-anchor="middle" fill="#94a3b8" font-size="10">Barres périodiques (Sinus)</text>
+
+                            <!-- Arrow -->
+                            <path d="M 162 105 L 198 105" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowSky)"/>
+                            <text x="180" y="96" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="bold">TF 2D</text>
+
+                            <!-- Right: 2D Spectrum Quadrants -->
+                            <text x="285" y="18" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">Spectre log(1 + |F(u,v)|)</text>
+                            
+                            <!-- Spectrum Container centered at (285, 105) -->
+                            <g transform="translate(220, 40)">
+                                <rect x="0" y="0" width="130" height="130" fill="#090d16" stroke="#475569" stroke-width="2"/>
+                                
+                                <!-- Quadrant 1 (Top-Left) -->
+                                <g id="quad-tl" class="svg-quadrant" transform="translate(0, 0)">
+                                    <rect x="2" y="2" width="61" height="61" fill="#1e293b" stroke="#334155"/>
+                                    <text x="32" y="35" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Q1</text>
+                                    <circle id="dc-tl" cx="61" cy="61" r="10" fill="#10b981" opacity="0.9"/>
+                                </g>
+                                <!-- Quadrant 2 (Top-Right) -->
+                                <g id="quad-tr" class="svg-quadrant" transform="translate(65, 0)">
+                                    <rect x="2" y="2" width="61" height="61" fill="#0f172a" stroke="#334155"/>
+                                    <text x="32" y="35" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Q2</text>
+                                    <circle id="dc-tr" cx="2" cy="61" r="10" fill="#10b981" opacity="0.9"/>
+                                </g>
+                                <!-- Quadrant 3 (Bottom-Left) -->
+                                <g id="quad-bl" class="svg-quadrant" transform="translate(0, 65)">
+                                    <rect x="2" y="2" width="61" height="61" fill="#0f172a" stroke="#334155"/>
+                                    <text x="32" y="35" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Q3</text>
+                                    <circle id="dc-bl" cx="61" cy="2" r="10" fill="#10b981" opacity="0.9"/>
+                                </g>
+                                <!-- Quadrant 4 (Bottom-Right) -->
+                                <g id="quad-br" class="svg-quadrant" transform="translate(65, 65)">
+                                    <rect x="2" y="2" width="61" height="61" fill="#1e293b" stroke="#334155"/>
+                                    <text x="32" y="35" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Q4</text>
+                                    <circle id="dc-br" cx="2" cy="2" r="10" fill="#10b981" opacity="0.9"/>
+                                </g>
+
+                                <!-- Rotating Spectral Peaks (Page 18: 3 dots for sinusoid) -->
+                                <g transform="translate(65, 65)">
+                                    <g id="spectrum-rot-group">
+                                        <line x1="-50" y1="0" x2="50" y2="0" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2"/>
+                                        <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+                                        <circle cx="-32" cy="0" r="4.5" fill="#f43f5e"/>
+                                        <circle cx="32" cy="0" r="4.5" fill="#f43f5e"/>
+                                    </g>
+                                </g>
+                            </g>
+                            <text id="fftshift-caption" x="285" y="192" text-anchor="middle" fill="#10b981" font-size="10" font-weight="600">DC (0,0) au centre • Hautes fréq aux coins</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Foundations Cards (Pages 5, 6, 7, 9, 10) -->
+            <div class="math-box rounded-2xl p-6 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Formules Mathématiques Expliquées • Pages 5 à 10</span>
+                        <h3 class="text-xl font-bold text-white">Transformée de Fourier Discrète 2D (TFD) & Propriétés Fondamentales</h3>
+                    </div>
+                    <span class="text-xs text-slate-400">Variables : $(x,y)$ = pixels spatiaux • $(u,v)$ = fréquences spatiales • $w, h$ = largeur, hauteur</span>
+                </div>
+
+                <!-- Direct & Inverse DFT -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-sky-400 uppercase">1. TFD 2D Directe (Spatial → Fréquentiel)</span>
+                            <span class="text-[11px] font-mono text-slate-400">Page 5</span>
+                        </div>
+                        <div class="py-2 text-center text-base overflow-x-auto">
+                            $$F[u,v] = \sum_{x=0}^{w-1} \sum_{y=0}^{h-1} f[x,y] \cdot e^{-2i\pi \left(\frac{ux}{w} + \frac{vy}{h}\right)}$$
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            <strong>Lecture physique :</strong> Pour chaque fréquence $(u,v)$, on multiplie toute l'image $f[x,y]$ par une onde complexe $\cos(\dots) - i\sin(\dots)$ et on additionne tout. Si l'image contient une répétition qui correspond à la fréquence $(u,v)$, la somme $F[u,v]$ devient très grande !
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400 uppercase">2. TFD 2D Inverse (Fréquentiel → Spatial)</span>
+                            <span class="text-[11px] font-mono text-slate-400">Page 5</span>
+                        </div>
+                        <div class="py-2 text-center text-base overflow-x-auto">
+                            $$f[x,y] = \frac{1}{w \cdot h} \sum_{u=0}^{w-1} \sum_{v=0}^{h-1} F[u,v] \cdot e^{+2i\pi \left(\frac{ux}{w} + \frac{vy}{h}\right)}$$
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            <strong>Lecture physique :</strong> Aucune information n'est perdue ! En additionnant toutes les ondes fréquentielles $F[u,v]$ pondérées par $\frac{1}{w \cdot h}$ (et un signe $+$ dans l'exponentielle), on reconstruit exactement l'image originale $f[x,y]$.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Module, Phase, Log Spectrum & Theorems -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-amber-400 mb-1">Spectre d'Amplitude (Norme)</div>
+                        <div class="text-sm py-1">$$|F(u,v)| = \sqrt{R^2(u,v) + I^2(u,v)}$$</div>
+                        <p class="text-[11px] text-slate-300 mt-1">
+                            Où $F(u,v) = R(u,v) + i\,I(u,v)$. Indique <strong>combien</strong> d'énergie possède la fréquence $(u,v)$. Au centre : $F(0,0) = \text{moyenne (DC)}$.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-purple-400 mb-1">Spectre de Phase & Puissance</div>
+                        <div class="text-sm py-1">$$\varphi(u,v) = \arctan\left(\frac{I(u,v)}{R(u,v)}\right)$$</div>
+                        <p class="text-[11px] text-slate-300 mt-1">
+                            La phase $\varphi$ encode <strong>où</strong> se situent les objets dans l'image. Le spectre de puissance vaut $P(u,v) = |F(u,v)|^2 = R^2 + I^2$.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-sky-400 mb-1">Rehaussement Logarithmique</div>
+                        <div class="text-sm py-1">$$S_{\text{visu}}(u,v) = \log\big(1 + |F(u,v)|\big)$$</div>
+                        <p class="text-[11px] text-slate-300 mt-1">
+                            <strong>Page 7 :</strong> Le pic central $F(0,0)$ est des milliers de fois plus fort que les hautes fréquences. Sans $\log(1+|F|)$, l'image du spectre serait toute noire sauf un point blanc au centre !
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/90 p-4 rounded-xl border border-emerald-500/30">
+                        <div class="text-xs font-bold text-emerald-400 mb-1">Théorème Convolution ↔ Produit</div>
+                        <div class="text-sm py-1">$$f_1 * f_2 \iff F_1[u,v] \cdot F_2[u,v]$$</div>
+                        <p class="text-[11px] text-slate-300 mt-1">
+                            <strong>Page 6 & 19 :</strong> Une lourde convolution $*$ dans l'image devient une simple <strong>multiplication pixel par pixel</strong> $\cdot$ dans le domaine de Fourier !
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code Section for Module 1 (Pages 11-14) -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="ml-2 text-xs font-mono font-semibold text-sky-400">fourier_spectre_opencv.py — Implémentation officielle du cours (Pages 11 à 14)</span>
+                    </div>
+                    <button onclick="copyCode('code-mod-1', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">
+                        Copier le code
+                    </button>
+                </div>
+                <pre id="code-mod-1" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-slate-400"># 1. Charger l'image directement en niveaux de gris (Domaine Spatial f[x,y])</span>
+gray = cv2.imread(<span class="text-emerald-400">'fruits.jpg'</span>, cv2.IMREAD_GRAYSCALE)
+
+<span class="text-slate-400"># 2. (Optionnel - Page 12) Padding optimal en puissance de 2 (ou 2, 3, 5) pour accélérer la FFT</span>
+rows, cols = gray.shape
+opt_rows = cv2.getOptimalDFTSize(rows)
+opt_cols = cv2.getOptimalDFTSize(cols)
+padded = cv2.copyMakeBorder(gray, <span class="text-amber-400">0</span>, opt_rows - rows, <span class="text-amber-400">0</span>, opt_cols - cols, cv2.BORDER_CONSTANT, value=<span class="text-amber-400">0</span>)
+
+<span class="text-slate-400"># 3. Calcul de la Transformée de Fourier Discrète (Page 11)</span>
+<span class="text-slate-400"># L'entrée DOIT être convertie en float32. DFT_COMPLEX_OUTPUT génère 2 canaux :</span>
+<span class="text-slate-400"># Canal 0 = Partie Réelle R(u,v), Canal 1 = Partie Imaginaire I(u,v)</span>
+fourier = cv2.dft(np.float32(padded), flags=cv2.DFT_COMPLEX_OUTPUT)
+
+<span class="text-slate-400"># 4. Intervertir les 4 quadrants (Page 13) pour placer l'origine DC (0,0) au centre de l'image</span>
+fourier_shift = np.fft.fftshift(fourier)
+
+<span class="text-slate-400"># 5. Calculer la norme (amplitude) : |F(u,v)| = sqrt(Re^2 + Im^2) (Pages 9-11)</span>
+partie_reelle = fourier_shift[:, :, <span class="text-amber-400">0</span>]
+partie_imaginaire = fourier_shift[:, :, <span class="text-amber-400">1</span>]
+ norme_spectre = cv2.magnitude(partie_reelle, partie_imaginaire)
+
+<span class="text-slate-400"># 6. Rehaussement logarithmique (Page 7 & 11) : on ajoute +1 pour éviter log(0) = -inf</span>
+magnitude_log = <span class="text-amber-400">20</span> * np.log(<span class="text-amber-400">1.0</span> + norme_spectre)
+
+<span class="text-slate-400"># 7. Normaliser la magnitude entre [0, 255] en entiers 8-bits (CV_8UC1) pour l'affichage</span>
+magnitude_visu = cv2.normalize(magnitude_log, <span class="text-purple-400">None</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">255</span>, cv2.NORM_MINMAX, cv2.CV_8UC1)</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 2 : FILTRAGE DANS LE DOMAINE FRÉQUENTIEL (Pages 19-28)
+             ===================================================================== -->
+        <section id="module-2" class="space-y-8 hidden">
+            <!-- Overview Diagram (Pages 19-20) -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 shadow-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-5 space-y-3">
+                        <span class="text-xs font-bold uppercase px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Principe Général • Pages 19 à 21
+                        </span>
+                        <h2 class="text-2xl font-bold text-white">Filtrer = Masquer le Spectre de Fourier</h2>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Dans le domaine spatial, filtrer une image demande de faire glisser un noyau par <strong>convolution</strong> $f(x,y) * h(x,y)$. Dans le domaine fréquentiel, c'est beaucoup plus intuitif : on <strong>multiplie simplement le spectre $F(u,v)$ par un masque $H(u,v)$</strong> contenant des $1$ (fréquences gardées) et des $0$ (fréquences effacées) !
+                        </p>
+                        <ul class="text-xs text-slate-300 space-y-1.5 pt-1">
+                            <li class="flex items-center gap-2"><span class="text-emerald-400 font-bold">1.</span> Calculer $F(u,v) = \text{TF}\{f(x,y)\}$ et centrer avec <code class="text-sky-400">fftshift</code>.</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400 font-bold">2.</span> Multiplier point à point : $F_{\text{filtre}}(u,v) = F(u,v) \cdot H(u,v)$.</li>
+                            <li class="flex items-center gap-2"><span class="text-emerald-400 font-bold">3.</span> Dé-centrer et calculer l'inverse : $f_{\text{filtre}}(x,y) = \text{TF}^{-1}\{F_{\text{filtre}}(u,v)\}$.</li>
+                        </ul>
+                    </div>
+
+                    <!-- SVG Pipeline Diagram (Page 19 reproduction) -->
+                    <div class="lg:col-span-7 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                        <svg viewBox="0 0 580 185" class="w-full h-auto">
+                            <defs>
+                                <marker id="arrowSky" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                                </marker>
+                                <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+                                </marker>
+                                <marker id="arrowRose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e" />
+                                </marker>
+                            </defs>
+
+                            <!-- Box 1: Image Initiale -->
+                            <rect x="15" y="15" width="145" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                            <text x="87" y="40" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">Image initiale f(x,y)</text>
+
+                            <!-- Box 2: Image Transformée -->
+                            <rect x="370" y="15" width="190" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                            <text x="465" y="40" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">Spectre F(u,v)</text>
+
+                            <!-- Box 3: Image Filtrée -->
+                            <rect x="15" y="128" width="145" height="42" rx="8" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+                            <text x="87" y="153" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">Image filtrée g(x,y)</text>
+
+                            <!-- Box 4: Spectre Filtré -->
+                            <rect x="370" y="128" width="190" height="42" rx="8" fill="#311024" stroke="#f43f5e" stroke-width="2"/>
+                            <text x="465" y="153" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">F(u,v) ⋅ H(u,v)</text>
+
+                            <!-- Arrows -->
+                            <!-- Top: TF -->
+                            <line x1="165" y1="36" x2="360" y2="36" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrowSky)"/>
+                            <text x="262" y="27" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="bold">TF Directe (FFT)</text>
+
+                            <!-- Left: Spatial Convolution -->
+                            <line x1="87" y1="60" x2="87" y2="120" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+                            <text x="98" y="88" fill="#10b981" font-size="11" font-weight="bold">Filtrage Spatial</text>
+                            <text x="98" y="103" fill="#6ee7b7" font-size="10">Convolution f * h</text>
+
+                            <!-- Right: Spectral Multiplication -->
+                            <line x1="465" y1="60" x2="465" y2="120" stroke="#f43f5e" stroke-width="2.5" marker-end="url(#arrowRose)"/>
+                            <text x="453" y="88" text-anchor="end" fill="#f43f5e" font-size="11" font-weight="bold">Filtrage Spectral</text>
+                            <text x="453" y="103" text-anchor="end" fill="#fda4af" font-size="10">Multiplication F ⋅ H</text>
+
+                            <!-- Bottom: TF-1 -->
+                            <line x1="362" y1="149" x2="168" y2="149" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrowSky)"/>
+                            <text x="262" y="140" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="bold">TF Inverse (IFFT)</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lab 2: Simulateur de Filtrage Fréquentiel (Pages 22-28) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Simulateur Interactif 2.1 • Pages 22 à 28</span>
+                        <h3 class="text-xl font-bold text-white">Banc d'Essai : Passe-Bas, Passe-Haut (Idéal, Butterworth, Gaussien) & Coupe-Bande (Notch)</h3>
+                    </div>
+                    <!-- Filter Type Selector Buttons -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="selectFreqFilter('lpf_ideal')" id="fbtn-lpf_ideal" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400">
+                            Passe-Bas Idéal (Flou + Anneaux)
+                        </button>
+                        <button onclick="selectFreqFilter('hpf_ideal')" id="fbtn-hpf_ideal" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700">
+                            Passe-Haut Idéal (Contours)
+                        </button>
+                        <button onclick="selectFreqFilter('hpf_gauss')" id="fbtn-hpf_gauss" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700">
+                            PH Butterworth / Gaussien (Doux)
+                        </button>
+                        <button onclick="selectFreqFilter('notch')" id="fbtn-notch" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700">
+                            Notch (Anti-Bruit Sinus • p.28)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cutoff Slider & Energy Meter (Pages 22-23) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                    <div class="md:col-span-2 space-y-2">
+                        <div class="flex justify-between items-center text-xs sm:text-sm font-semibold">
+                            <span class="text-sky-400">Rayon de coupure fréquentiel $D_0$ (Distance au centre DC) :</span>
+                            <span id="val-d0-radius" class="font-mono text-white bg-slate-800 px-2.5 py-0.5 rounded">D₀ = 35 px</span>
+                        </div>
+                        <input type="range" id="slider-d0" min="8" max="90" step="1" value="35" class="w-full" oninput="updateFreqFilterSim()">
+                        <div class="flex justify-between text-[11px] text-slate-400">
+                            <span>Très sélectif (D₀ = 8)</span>
+                            <span>Coupure moyenne (D₀ = 45)</span>
+                            <span>Large bande (D₀ = 90)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+                        <div class="text-xs text-slate-400">Énergie spectrale conservée (Page 22) :</div>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="val-energy-pct" class="text-2xl font-extrabold text-emerald-400 font-mono">95.4%</span>
+                            <span id="val-filter-badge" class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Lissage fort</span>
+                        </div>
+                        <p id="freq-filter-desc" class="text-[11px] text-slate-300 mt-1">
+                            Garde le disque central (basses fréquences) et met à zéro l'extérieur.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3-Column Visual Display: Masque 2D H(u,v) | Profil 1D H(D) | Résultat Image Spatiale -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Column 1: 2D Mask on Fourier Spectrum -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-200 mb-2">1. Spectre Masqué F(u,v) ⋅ H(u,v)</span>
+                        <svg id="svg-freq-mask" viewBox="0 0 220 220" class="w-48 h-48 rounded-lg border border-slate-800 bg-black">
+                            <defs>
+                                <radialGradient id="gaussHpfGrad" cx="50%" cy="50%" r="50%">
+                                    <stop id="grad-stop-1" offset="0%" stop-color="#000000" stop-opacity="1"/>
+                                    <stop id="grad-stop-2" offset="40%" stop-color="#000000" stop-opacity="0.6"/>
+                                    <stop id="grad-stop-3" offset="100%" stop-color="#000000" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                            <!-- Background Simulated Starry Fourier Spectrum -->
+                            <g opacity="0.75">
+                                <line x1="110" y1="0" x2="110" y2="220" stroke="#475569" stroke-width="1.5"/>
+                                <line x1="0" y1="110" x2="220" y2="110" stroke="#475569" stroke-width="1.5"/>
+                                <line x1="20" y1="20" x2="200" y2="200" stroke="#334155" stroke-width="1"/>
+                                <line x1="200" y1="20" x2="20" y2="200" stroke="#334155" stroke-width="1"/>
+                                <circle cx="110" cy="110" r="85" fill="none" stroke="#1e293b" stroke-dasharray="3,3"/>
+                                <circle cx="110" cy="110" r="55" fill="none" stroke="#1e293b" stroke-dasharray="3,3"/>
+                                <circle cx="110" cy="110" r="25" fill="none" stroke="#334155" stroke-dasharray="2,2"/>
+                                <circle cx="110" cy="110" r="8" fill="#f8fafc" opacity="0.9"/>
+                            </g>
+
+                            <!-- Dynamic Filter Overlay Group -->
+                            <g id="mask-overlay-group"></g>
+
+                            <!-- Axis labels -->
+                            <text x="208" y="105" fill="#38bdf8" font-size="10" font-weight="bold">u</text>
+                            <text x="116" y="14" fill="#38bdf8" font-size="10" font-weight="bold">v</text>
+                        </svg>
+                        <span class="text-[11px] text-slate-400 mt-2 text-center">Blanc/Visible = Fréquences conservées (H=1)<br>Noir = Fréquences mises à zéro (H=0)</span>
+                    </div>
+
+                    <!-- Column 2: Cross-Section Profile H(u,v) (Pages 24 & 26) -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center justify-between">
+                        <span class="text-xs font-bold text-slate-200 mb-2">2. Profil Radial du Filtre H(D)</span>
+                        <svg viewBox="0 0 240 180" class="w-full h-auto">
+                            <!-- Axes -->
+                            <line x1="25" y1="145" x2="225" y2="145" stroke="#64748b" stroke-width="1.5"/>
+                            <line x1="120" y1="20" x2="120" y2="150" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="125" y="28" fill="#e2e8f0" font-size="10" font-weight="bold">H(u,v)</text>
+                            <text x="103" y="38" fill="#10b981" font-size="9" font-weight="bold">1.0</text>
+                            <text x="108" y="142" fill="#94a3b8" font-size="9">0</text>
+                            <text x="215" y="160" fill="#38bdf8" font-size="10" font-weight="bold">D(u,v)</text>
+                            <text x="120" y="162" text-anchor="middle" fill="#cbd5e1" font-size="9">DC (0)</text>
+
+                            <!-- Cutoff markers -->
+                            <text id="svg-d0-pos" x="155" y="160" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">+D₀</text>
+                            <text id="svg-d0-neg" x="85" y="160" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">-D₀</text>
+
+                            <!-- Profile Curve -->
+                            <path id="path-filter-profile" d="" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2.5"/>
+                        </svg>
+                        <span id="profile-caption" class="text-[11px] text-amber-400 mt-2 text-center font-medium">
+                            Discontinuité verticale brusque en D₀ → Crée des ondulations (effet de Gibbs) dans l'image !
+                        </span>
+                    </div>
+
+                    <!-- Column 3: Simulated Spatial Output Canvas -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center justify-between">
+                        <span class="text-xs font-bold text-slate-200 mb-2">3. Image Filtrée Résultante g(x,y)</span>
+                        <canvas id="canvas-freq-result" width="180" height="180" class="w-48 h-48 rounded-lg border border-slate-700 bg-black"></canvas>
+                        <span id="spatial-result-caption" class="text-[11px] text-emerald-400 mt-2 text-center">
+                            Image lissée (contours adoucis).
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Equations of Frequency Filters (Pages 24-28) -->
+            <div class="math-box rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-slate-800 pb-2">
+                    Équations des Filtres Fréquentiels • Distance au centre $D(u,v) = \sqrt{(u - u_0)^2 + (v - v_0)^2}$
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-sky-400">1. Passe-Bas Idéal (Page 24)</div>
+                        <div class="text-xs py-2">
+                            $$H(u,v) = \begin{cases} 1 & \text{si } D(u,v) \le D_0 \\ 0 & \text{si } D(u,v) > D_0 \end{cases}$$
+                        </div>
+                        <p class="text-[11px] text-slate-400">Coupe net toutes les hautes fréquences au-delà du cercle $D_0$. Lisse l'image mais crée un phénomène d'anneaux (ringing).</p>
+                    </div>
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-rose-400">2. Passe-Haut Idéal (Page 26)</div>
+                        <div class="text-xs py-2">
+                            $$H(u,v) = \begin{cases} 0 & \text{si } D(u,v) \le D_0 \\ 1 & \text{si } D(u,v) > D_0 \end{cases}$$
+                        </div>
+                        <p class="text-[11px] text-slate-400">Efface le centre (moyenne DC + zones homogènes) et ne garde que les contours brusques ($H_{\text{PH}} = 1 - H_{\text{PB}}$).</p>
+                    </div>
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-amber-400">3. PH de Butterworth (Page 26)</div>
+                        <div class="text-xs py-2">
+                            $$H(u,v) = \frac{1}{1 + \left[\frac{D_0}{D(u,v)}\right]^{2n}}$$
+                        </div>
+                        <p class="text-[11px] text-slate-400">Transition douce contrôlée par l'ordre $n$. Évite les rebonds parasites autour des contours.</p>
+                    </div>
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+                        <div class="text-xs font-bold text-emerald-400">4. Passe-Haut Gaussien (Page 26)</div>
+                        <div class="text-xs py-2">
+                            $$H(u,v) = 1 - e^{-\frac{D^2(u,v)}{2 D_0^2}}$$
+                        </div>
+                        <p class="text-[11px] text-slate-400">La transformée de Fourier d'une Gaussienne est une Gaussienne (Page 16) : <strong>aucun artefact d'ondulation</strong> !</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Frequency Filtering -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">filtrage_frequentiel.py — Passe-Bas, Passe-Haut & Notch en Python (Pages 20 à 28)</span>
+                    <button onclick="copyCode('code-mod-2', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-2" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-purple-400">def</span> <span class="text-sky-400">filtrage_frequentiel</span>(image_gray, rayon_D0=<span class="text-amber-400">30</span>, type_filtre=<span class="text-emerald-400">'passe_bas'</span>):
+    <span class="text-slate-400"># Étape 1 : Calculer la TFD 2D et centrer le spectre en (h/2, w/2)</span>
+    dft = cv2.dft(np.float32(image_gray), flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift = np.fft.fftshift(dft)
+    
+    h, w = image_gray.shape
+    centre_y, centre_x = h // <span class="text-amber-400">2</span>, w // <span class="text-amber-400">2</span>
+    
+    <span class="text-slate-400"># Étape 2 : Créer la grille de distance D(u,v) par rapport au centre DC</span>
+    u, v = np.ogrid[:h, :w]
+    distance_D = np.sqrt((u - centre_y)**<span class="text-amber-400">2</span> + (v - centre_x)**<span class="text-amber-400">2</span>)
+    
+    <span class="text-slate-400"># Créer le masque H(u,v) avec 2 canaux (pour multiplier Partie Réelle ET Imaginaire)</span>
+    masque_H = np.zeros((h, w, <span class="text-amber-400">2</span>), np.float32)
+    
+    <span class="text-purple-400">if</span> type_filtre == <span class="text-emerald-400">'passe_bas'</span>:
+        <span class="text-slate-400"># Passe-Bas Idéal (Page 24-25) : 1 à l'intérieur du cercle D0, 0 à l'extérieur</span>
+        masque_H[distance_D &lt;= rayon_D0] = <span class="text-amber-400">1.0</span>
+    <span class="text-purple-400">elif</span> type_filtre == <span class="text-emerald-400">'passe_haut'</span>:
+        <span class="text-slate-400"># Passe-Haut Idéal (Page 26-27) : 0 au centre (efface les basses fréq), 1 ailleurs</span>
+        masque_H[distance_D &gt; rayon_D0] = <span class="text-amber-400">1.0</span>
+    <span class="text-purple-400">elif</span> type_filtre == <span class="text-emerald-400">'gaussien_ph'</span>:
+        <span class="text-slate-400"># Passe-Haut Gaussien (Page 26) : H(u,v) = 1 - exp(-D^2 / (2 * D0^2))</span>
+        profil_1canal = <span class="text-amber-400">1.0</span> - np.exp(-(distance_D**<span class="text-amber-400">2</span>) / (<span class="text-amber-400">2</span> * (rayon_D0**<span class="text-amber-400">2</span>)))
+        masque_H[:, :, <span class="text-amber-400">0</span>] = profil_1canal
+        masque_H[:, :, <span class="text-amber-400">1</span>] = profil_1canal
+
+    <span class="text-slate-400"># Étape 3 : Multiplication spectrale F_filtre(u,v) = F(u,v) * H(u,v) (Page 20)</span>
+    spectre_filtre = dft_shift * masque_H
+    
+    <span class="text-slate-400"># Étape 4 : Remettre les quadrants en place (ifftshift) + Transformée Inverse (idft)</span>
+    f_ishift = np.fft.ifftshift(spectre_filtre)
+    img_back = cv2.idft(f_ishift)
+    
+    <span class="text-slate-400"># Extraire l'amplitude de l'image spatiale reconstruite</span>
+    img_reconstruite = cv2.magnitude(img_back[:, :, <span class="text-amber-400">0</span>], img_back[:, :, <span class="text-amber-400">1</span>])
+    <span class="text-purple-400">return</span> cv2.normalize(img_reconstruite, <span class="text-purple-400">None</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">255</span>, cv2.NORM_MINMAX, cv2.CV_8UC1)</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 3 : SÉPARABILITÉ DES FILTRES & DÉRIVÉES 1D (Pages 29-36, 48-49)
+             ===================================================================== -->
+        <section id="module-3" class="space-y-8 hidden">
+            <!-- Interactive Lab 3A: Filter Separability & Complexity N^2 vs 2N (Pages 29-31) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-6 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-5">
+                    <div class="border-b border-slate-800 pb-3">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Labo Interactif 3.1 • Pages 29 à 31</span>
+                        <h3 class="text-lg font-bold text-white">Séparabilité d'un Filtre : $h(x,y) = h_x(x) \otimes h_y(y)$</h3>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Un filtre 2D est <strong>séparable</strong> si les lignes et colonnes de sa matrice sont proportionnelles. Au lieu de convoluer l'image par une matrice $N \times N$ d'un coup, on applique <strong>deux filtres 1D successifs</strong> (un horizontal $1 \times N$, puis un vertical $N \times 1$) :
+                        $$g(x,y) = h_y(y) * \big(h_x(x) * f(x,y)\big)$$
+                    </p>
+
+                    <!-- Preset Kernel Buttons (Page 31) -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setSeparableKernel('sobel')" id="sep-btn-sobel" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400">
+                            Sobel Horizontal (p.31)
+                        </button>
+                        <button onclick="setSeparableKernel('gauss')" id="sep-btn-gauss" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            Gaussien Binomial 1/16 (p.31)
+                        </button>
+                        <button onclick="setSeparableKernel('mean')" id="sep-btn-mean" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            Moyenneur 1/9 (p.31)
+                        </button>
+                        <button onclick="setSeparableKernel('sharpen')" id="sep-btn-sharpen" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            Amélioration Contraste (p.31)
+                        </button>
+                    </div>
+
+                    <!-- SVG Matrix Decomposition Visualizer -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4">
+                        <svg id="svg-separable" viewBox="0 0 460 155" class="w-full h-auto">
+                            <!-- 1D Horizontal Row Vector hx -->
+                            <text x="65" y="25" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="bold">Filtre 1D Horizontal hₓ</text>
+                            <g transform="translate(12, 55)">
+                                <rect x="0" y="0" width="35" height="35" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+                                <rect x="36" y="0" width="35" height="35" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+                                <rect x="72" y="0" width="35" height="35" rx="4" fill="#1e293b" stroke="#38bdf8"/>
+                                <text id="hx-0" x="17.5" y="22" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">-1</text>
+                                <text id="hx-1" x="53.5" y="22" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">0</text>
+                                <text id="hx-2" x="89.5" y="22" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">1</text>
+                            </g>
+                            <text id="hx-role" x="65" y="115" text-anchor="middle" fill="#94a3b8" font-size="10">Dérivée en X</text>
+
+                            <!-- Tensor Product Symbol -->
+                            <text x="148" y="80" text-anchor="middle" fill="#f59e0b" font-size="22" font-weight="bold">⊗</text>
+
+                            <!-- 1D Vertical Column Vector hy -->
+                            <text x="205" y="18" text-anchor="middle" fill="#10b981" font-size="11" font-weight="bold">1D Vertical hᵧ</text>
+                            <g transform="translate(187, 26)">
+                                <rect x="0" y="0" width="35" height="35" rx="4" fill="#1e293b" stroke="#10b981"/>
+                                <rect x="0" y="36" width="35" height="35" rx="4" fill="#1e293b" stroke="#10b981"/>
+                                <rect x="0" y="72" width="35" height="35" rx="4" fill="#1e293b" stroke="#10b981"/>
+                                <text id="hy-0" x="17.5" y="22" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">1</text>
+                                <text id="hy-1" x="17.5" y="58" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">2</text>
+                                <text id="hy-2" x="17.5" y="94" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">1</text>
+                            </g>
+                            <text id="hy-role" x="205" y="148" text-anchor="middle" fill="#94a3b8" font-size="10">Lissage en Y</text>
+
+                            <!-- Equals Symbol -->
+                            <text x="262" y="80" text-anchor="middle" fill="#e2e8f0" font-size="22" font-weight="bold">=</text>
+                            <text id="sep-norm-factor" x="295" y="80" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="bold"></text>
+
+                            <!-- Resulting 2D 3x3 Matrix -->
+                            <text x="375" y="18" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="bold">Matrice 2D h(x,y)</text>
+                            <g id="h2d-grid" transform="translate(320, 26)"></g>
+                        </svg>
+                    </div>
+
+                    <!-- Complexity Gain Calculator N^2 vs 2N (Page 29) -->
+                    <div class="bg-slate-950/90 p-4 rounded-xl border border-emerald-500/30 space-y-2">
+                        <div class="flex justify-between items-center text-xs font-semibold">
+                            <span class="text-emerald-400">Calculateur de gain de vitesse (Page 29) — Taille du filtre N :</span>
+                            <span id="val-sep-n" class="font-mono text-white bg-slate-800 px-2 py-0.5 rounded">N = 11 × 11</span>
+                        </div>
+                        <input type="range" id="slider-sep-n" min="3" max="31" step="2" value="11" class="w-full" oninput="updateSeparableComplexity()">
+                        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                                <div class="text-[10px] text-slate-400">2D Classique ($N^2$)</div>
+                                <div id="val-comp-n2" class="text-sm font-bold text-rose-400 font-mono">121 mult/px</div>
+                            </div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800">
+                                <div class="text-[10px] text-slate-400">Séparable ($2N$)</div>
+                                <div id="val-comp-2n" class="text-sm font-bold text-emerald-400 font-mono">22 mult/px</div>
+                            </div>
+                            <div class="p-2 rounded bg-emerald-950/50 border border-emerald-500/40">
+                                <div class="text-[10px] text-emerald-300">Accélération</div>
+                                <div id="val-comp-speedup" class="text-sm font-extrabold text-white font-mono">5.5× plus vite</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Lab 3B: 1D Edge Profiles & Derivatives (Pages 33-36, 48-49) -->
+                <div class="lg:col-span-6 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-4">
+                    <div class="border-b border-slate-800 pb-3">
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 3.2 • Pages 33 à 36 & 48 à 49</span>
+                        <h3 class="text-lg font-bold text-white">Modélisation 1D : Dérivée 1ère (Maxima) vs Dérivée 2nde (Zéro)</h3>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        Un contour est une discontinuité d'intensité. Sélectionnez le type de contour (Page 34) et ajustez le <strong>Seuil $S$</strong> (Page 36) pour observer comment les dérivées localisent exactement la frontière :
+                    </p>
+
+                    <!-- Controls: Profile Type + Threshold Slider -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                        <div class="flex gap-1.5">
+                            <button onclick="setEdgeProfile('step')" id="prof-btn-step" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white">
+                                Marche / Rampe
+                            </button>
+                            <button onclick="setEdgeProfile('roof')" id="prof-btn-roof" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                Toit (Ligne claire • p.34)
+                            </button>
+                            <button onclick="setEdgeProfile('bar')" id="prof-btn-bar" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                Bande (p.49 : e⁻ˣ¹⁰/²)
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-amber-400 font-semibold">Seuil S :</span>
+                            <input type="range" id="slider-edge-thresh" min="0.1" max="0.9" step="0.05" value="0.4" class="w-24" oninput="drawEdgeProfiles()">
+                            <span id="val-edge-thresh" class="text-xs font-mono text-white">0.40</span>
+                        </div>
+                    </div>
+
+                    <!-- Synchronized 3-Graph SVG: f(x), f'(x), f''(x) -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-3">
+                        <svg id="svg-derivatives-1d" viewBox="0 0 500 285" class="w-full h-auto">
+                            <!-- Graph 1: Signal f(x) -->
+                            <text x="12" y="20" fill="#38bdf8" font-size="11" font-weight="bold">1. Profil d'intensité f(x)</text>
+                            <line x1="45" y1="75" x2="480" y2="75" stroke="#334155" stroke-width="1"/>
+                            <path id="path-fx" d="" fill="none" stroke="#38bdf8" stroke-width="2.8"/>
+
+                            <!-- Graph 2: 1st Derivative f'(x) -->
+                            <text x="12" y="112" fill="#10b981" font-size="11" font-weight="bold">2. Dérivée 1ère f'(x) = ∂f/∂x → Maxima Locaux > Seuil S</text>
+                            <line x1="45" y1="155" x2="480" y2="155" stroke="#475569" stroke-width="1"/>
+                            <!-- Threshold lines +S and -S -->
+                            <line id="line-thresh-pos" x1="45" y1="135" x2="480" y2="135" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+                            <line id="line-thresh-neg" x1="45" y1="175" x2="480" y2="175" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,4"/>
+                            <text id="txt-thresh-pos" x="483" y="138" fill="#f59e0b" font-size="9">+S</text>
+                            <path id="path-dfx" d="" fill="none" stroke="#10b981" stroke-width="2.5"/>
+
+                            <!-- Graph 3: 2nd Derivative f''(x) -->
+                            <text x="12" y="208" fill="#f43f5e" font-size="11" font-weight="bold">3. Dérivée 2nde f''(x) = ∂²f/∂x² (Laplacien) → Passage par Zéro !</text>
+                            <line x1="45" y1="248" x2="480" y2="248" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="30" y="251" fill="#94a3b8" font-size="9">0</text>
+                            <path id="path-ddfx" d="" fill="none" stroke="#f43f5e" stroke-width="2.2"/>
+
+                            <!-- Vertical Edge Alignment Guidelines -->
+                            <g id="edge-vertical-guides"></g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Separable Convolution -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">convolution_separable.py — Filtrage 2D vs Séparable 1D avec OpenCV (Pages 29 à 31)</span>
+                    <button onclick="copyCode('code-mod-3', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-3" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-slate-400"># Définition des deux vecteurs 1D du filtre de Sobel Horizontal (Page 31) :</span>
+<span class="text-slate-400"># hx dérive horizontalement [-1, 0, 1], hy lisse verticalement avec une gaussienne binomiale [1, 2, 1]^T</span>
+hx = np.array([-<span class="text-amber-400">1</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">1</span>], dtype=np.float32)
+hy = np.array([<span class="text-amber-400">1</span>, <span class="text-amber-400">2</span>, <span class="text-amber-400">1</span>], dtype=np.float32)
+
+<span class="text-slate-400"># Le produit extérieur (outer product) reconstruit la matrice 2D complète 3x3 :</span>
+noyau_sobel_2D = np.outer(hy, hx)
+<span class="text-slate-400"># Résultat : [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]</span>
+
+<span class="text-slate-400"># Méthode 1 : Convolution 2D classique (N^2 multiplications par pixel)</span>
+grad_x_classique = cv2.filter2D(image_gray, cv2.CV_32F, noyau_sobel_2D)
+
+<span class="text-slate-400"># Méthode 2 : Convolution Séparable (2N multiplications par pixel — Page 29)</span>
+<span class="text-slate-400"># OpenCV applique d'abord hx sur les lignes, puis hy sur les colonnes !</span>
+grad_x_separable = cv2.sepFilter2D(image_gray, cv2.CV_32F, kernelX=hx, kernelY=hy)</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 4 : GRADIENT 2D, SOBEL, PREWITT, ROBERTS & LAPLACIEN (Pages 37-53)
+             ===================================================================== -->
+        <section id="module-4" class="space-y-8 hidden">
+            <!-- Interactive Lab 4A: 2D Gradient Vector Calculator on a 3x3 Patch (Pages 37-39) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-7 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                            <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 4.1 • Exemple exact de la Page 39</span>
+                            <h3 class="text-lg font-bold text-white">Calcul du Vecteur Gradient $\vec{\nabla}f(x,y)$ sur un Voisinage</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="loadGradientPreset('course')" class="px-2.5 py-1 rounded bg-sky-600 text-white text-xs font-semibold">Exemple Cours (p.39)</button>
+                            <button onclick="loadGradientPreset('vertical')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Contour Vertical</button>
+                            <button onclick="loadGradientPreset('horizontal')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Contour Horizontal</button>
+                            <button onclick="loadGradientPreset('diag')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Diagonale</button>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        <strong>Propriété fondamentale (Page 38) :</strong> Le vecteur gradient $\vec{G} = (G_x, G_y)^T$ est toujours <strong>perpendiculaire au contour</strong> et pointe vers la montée des niveaux de gris (du sombre vers le clair). Modifiez les intensités des pixels voisins $[0..255]$ ci-dessous pour voir le vecteur tourner en temps réel :
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <!-- Interactive 3x3 Pixel Intensity Grid -->
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs font-bold text-slate-300 mb-2">Voisinage 3×3 autour du pixel P(x,y)</span>
+                            <div class="grid grid-cols-3 gap-2 p-3 bg-slate-900 rounded-xl border border-slate-700">
+                                <input type="number" id="px-00" value="0" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-slate-700 text-slate-300">
+                                <input type="number" id="px-01" value="0" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-emerald-500/50 text-emerald-300" title="f(x, y-1)">
+                                <input type="number" id="px-02" value="100" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-slate-700 text-slate-300">
+
+                                <input type="number" id="px-10" value="100" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-sky-500/50 text-sky-300" title="f(x-1, y)">
+                                <div class="w-16 h-14 flex flex-col items-center justify-center rounded bg-rose-950/60 border-2 border-rose-500 text-white font-mono">
+                                    <span class="text-[10px] text-rose-300">Pixel P</span>
+                                    <span class="text-sm font-bold">100</span>
+                                </div>
+                                <input type="number" id="px-12" value="200" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-sky-500/50 text-sky-300" title="f(x+1, y)">
+
+                                <input type="number" id="px-20" value="200" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-slate-700 text-slate-300">
+                                <input type="number" id="px-21" value="200" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-emerald-500/50 text-emerald-300" title="f(x, y+1)">
+                                <input type="number" id="px-22" value="200" min="0" max="255" oninput="updateGradientCalc()" class="w-16 h-14 text-center font-mono font-bold text-sm rounded bg-slate-950 border border-slate-700 text-slate-300">
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-2">Masque centré (p.40) : $G_x = \frac{f(x+1,y) - f(x-1,y)}{2}$</span>
+                        </div>
+
+                        <!-- Animated SVG Vector Compass -->
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs font-bold text-slate-300 mb-1">Orientation Géométrique de $\vec{G}$ et du Contour</span>
+                            <svg id="svg-grad-compass" viewBox="0 0 220 200" class="w-full max-w-[220px] h-auto">
+                                <circle cx="110" cy="100" r="75" fill="#090d16" stroke="#334155" stroke-width="1.5"/>
+                                <!-- Axes x (right) and y (down, image convention Page 39) -->
+                                <line x1="25" y1="100" x2="195" y2="100" stroke="#475569" stroke-dasharray="3,3"/>
+                                <line x1="110" y1="15" x2="110" y2="185" stroke="#475569" stroke-dasharray="3,3"/>
+                                <text x="200" y="104" fill="#38bdf8" font-size="11" font-weight="bold">x</text>
+                                <text x="114" y="195" fill="#10b981" font-size="11" font-weight="bold">y</text>
+
+                                <!-- Perpendicular Edge Line (Contour) -->
+                                <line id="svg-edge-line" x1="50" y1="130" x2="170" y2="70" stroke="#f59e0b" stroke-width="3" stroke-dasharray="5,3"/>
+                                
+                                <!-- Gradient Vector Arrow -->
+                                <line id="svg-grad-arrow" x1="110" y1="100" x2="140" y2="160" stroke="#f43f5e" stroke-width="3.5" marker-end="url(#arrowRose)"/>
+                                <circle cx="110" cy="100" r="4" fill="#ffffff"/>
+                                <text id="svg-grad-label" x="155" y="165" fill="#f43f5e" font-size="11" font-weight="bold">G</text>
+                            </svg>
+                            <div class="flex gap-3 text-[11px]">
+                                <span class="text-rose-400 font-semibold">━━ Vecteur Gradient $\vec{G}$</span>
+                                <span class="text-amber-400 font-semibold">┅┅ Frontière du Contour (⊥)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Computed Norms Display (Page 39) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center">
+                        <div class="p-2.5 rounded-xl bg-slate-950 border border-sky-500/30">
+                            <div class="text-[10px] text-sky-400 font-semibold">Dérivée $G_x, G_y$</div>
+                            <div id="res-gx-gy" class="text-xs sm:text-sm font-mono font-bold text-white mt-0.5">(50, 100)</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40">
+                            <div class="text-[10px] text-emerald-400 font-semibold">Norme $L_2$ $\sqrt{G_x^2+G_y^2}$</div>
+                            <div id="res-norm-l2" class="text-sm font-mono font-extrabold text-emerald-400 mt-0.5">111.8 (≈112)</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                            <div class="text-[10px] text-slate-400 font-semibold">Norme $L_1$ $|G_x|+|G_y|$</div>
+                            <div id="res-norm-l1" class="text-sm font-mono font-bold text-slate-200 mt-0.5">150</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                            <div class="text-[10px] text-slate-400 font-semibold">Norme $L_\infty$ $\max(|G_x|,|G_y|)$</div>
+                            <div id="res-norm-linf" class="text-sm font-mono font-bold text-slate-200 mt-0.5">100</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-950 border border-amber-500/40 col-span-2 sm:col-span-1">
+                            <div class="text-[10px] text-amber-400 font-semibold">Direction $\theta = \arctan(G_y/G_x)$</div>
+                            <div id="res-angle" class="text-sm font-mono font-extrabold text-amber-400 mt-0.5">63.4°</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Lab 4B: Comparateur d'Opérateurs (Roberts, Prewitt, Sobel, Laplacien • Pages 43-51) -->
+                <div class="lg:col-span-5 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="border-b border-slate-800 pb-3 mb-3">
+                            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Comparateur 4.2 • Pages 43 à 51</span>
+                            <h3 class="text-lg font-bold text-white">Masques de Convolution : Dérivée Pure vs Lissage Intégré</h3>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <button onclick="selectOperator('roberts')" id="op-btn-roberts" class="p-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                Roberts (Diagonales • p.43)
+                            </button>
+                            <button onclick="selectOperator('prewitt')" id="op-btn-prewitt" class="p-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                Prewitt (c = 1 • p.44-45)
+                            </button>
+                            <button onclick="selectOperator('sobel')" id="op-btn-sobel" class="p-2 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400">
+                                Sobel (c = 2 • p.44-45)
+                            </button>
+                            <button onclick="selectOperator('laplacien')" id="op-btn-laplacien" class="p-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                Laplacien ∇²I (2e dérivée • p.50)
+                            </button>
+                        </div>
+
+                        <!-- Dynamic Operator Matrices & Explanation Card -->
+                        <div id="operator-detail-card" class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Summary comparison box (Page 51-53) -->
+                    <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-slate-300 space-y-1">
+                        <div class="font-bold text-indigo-300">📌 Compromis Fondamental (Page 53 du cours) :</div>
+                        <p>• <strong>Dérivée pure (Roberts / [-1, 1]) :</strong> Localisation très fine, mais <em>extrêmement sensible au bruit</em>.</p>
+                        <p>• <strong>Lissage + Dérivée (Prewitt c=1, Sobel c=2) :</strong> Très robuste au bruit grâce au moyennage orthogonal, mais épaissit légèrement les contours.</p>
+                        <p>• <strong>Laplacien ($\nabla^2 I = \frac{\partial^2 I}{\partial x^2} + \frac{\partial^2 I}{\partial y^2}$) :</strong> Un seul masque isotrope (symétrique en rotation), contours aux passages par zéro, mais sensible au bruit.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for Edge Operators -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">operateurs_contours.py — Sobel, Prewitt, Roberts & Laplacien en Python (Pages 43 à 51)</span>
+                    <button onclick="copyCode('code-mod-4', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-4" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-slate-400"># 1. Opérateur de SOBEL (c = 2 : Lissage Gaussien + Dérivée — Page 45)</span>
+<span class="text-slate-400"># IMPORTANT : Utiliser cv2.CV_64F car une dérivée peut être NÉGATIVE (passage du clair au sombre) !</span>
+Gx_sobel = cv2.Sobel(gray, cv2.CV_64F, dx=<span class="text-amber-400">1</span>, dy=<span class="text-amber-400">0</span>, ksize=<span class="text-amber-400">3</span>)  <span class="text-slate-400"># Contours verticaux</span>
+Gy_sobel = cv2.Sobel(gray, cv2.CV_64F, dx=<span class="text-amber-400">0</span>, dy=<span class="text-amber-400">1</span>, ksize=<span class="text-amber-400">3</span>)  <span class="text-slate-400"># Contours horizontaux</span>
+
+<span class="text-slate-400"># Calcul de la Norme L2 ||G|| = sqrt(Gx^2 + Gy^2) et de la Direction theta = arctan2(Gy, Gx) (Page 37)</span>
+norme_G = np.sqrt(Gx_sobel**<span class="text-amber-400">2</span> + Gy_sobel**<span class="text-amber-400">2</span>)
+direction_theta = np.arctan2(Gy_sobel, Gx_sobel) * (<span class="text-amber-400">180.0</span> / np.pi)
+
+<span class="text-slate-400"># 2. Opérateur de PREWITT (c = 1 : Moyenneur + Dérivée — Page 45)</span>
+masque_prewitt_x = np.array([[-<span class="text-amber-400">1</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">1</span>], [-<span class="text-amber-400">1</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">1</span>], [-<span class="text-amber-400">1</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">1</span>]], dtype=np.float32)
+masque_prewitt_y = np.array([[-<span class="text-amber-400">1</span>, -<span class="text-amber-400">1</span>, -<span class="text-amber-400">1</span>], [<span class="text-amber-400">0</span>, <span class="text-amber-400">0</span>, <span class="text-amber-400">0</span>], [<span class="text-amber-400">1</span>, <span class="text-amber-400">1</span>, <span class="text-amber-400">1</span>]], dtype=np.float32)
+Gx_prewitt = cv2.filter2D(gray, cv2.CV_64F, masque_prewitt_x)
+Gy_prewitt = cv2.filter2D(gray, cv2.CV_64F, masque_prewitt_y)
+
+<span class="text-slate-400"># 3. Opérateur du LAPLACIEN (Dérivée seconde isotrope — Page 50)</span>
+masque_laplacien_8 = np.array([[<span class="text-amber-400">1</span>,  <span class="text-amber-400">1</span>, <span class="text-amber-400">1</span>],
+                               [<span class="text-amber-400">1</span>, -<span class="text-amber-400">8</span>, <span class="text-amber-400">1</span>],
+                               [<span class="text-amber-400">1</span>,  <span class="text-amber-400">1</span>, <span class="text-amber-400">1</span>]], dtype=np.float32)
+laplacien = cv2.filter2D(gray, cv2.CV_64F, masque_laplacien_8)</code></pre>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             MODULE 5 : SUPPRESSION DES NON-MAXIMA LOCAUX & HYSTÉRÉSIS (Pages 54-60)
+             ===================================================================== -->
+        <section id="module-5" class="space-y-8 hidden">
+            <!-- Interactive Lab 5A: Non-Maximum Suppression (NMS • Pages 55-58) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-6 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-4">
+                    <div class="border-b border-slate-800 pb-3">
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Labo Interactif 5.1 • Pages 55 à 58</span>
+                        <h3 class="text-lg font-bold text-white">Suppression des Non-Maxima Locaux (Affinage 1 Pixel)</h3>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Les contours obtenus par Sobel sont <strong>épais</strong> (plusieurs pixels de large). Pour obtenir un contour d'<strong>épaisseur 1 pixel</strong> (Page 55), on examine chaque pixel $P$ le long de la direction de son gradient $\theta$ : on compare $\|\vec{\nabla}f(P)\|$ avec ses deux voisins $P_1$ et $P_2$ situés de part et d'autre sur l'axe du gradient.
+                    </p>
+
+                    <!-- Angle Slider for NMS Discretization & Interpolation -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center text-xs font-semibold">
+                            <span class="text-sky-400">Angle du gradient $\theta(P)$ :</span>
+                            <span id="val-nms-angle" class="font-mono text-white bg-slate-800 px-2.5 py-0.5 rounded">θ = 65° (Secteur 45°..90°)</span>
+                        </div>
+                        <input type="range" id="slider-nms-angle" min="0" max="175" step="5" value="65" class="w-full" oninput="updateNmsDiagram()">
+                    </div>
+
+                    <!-- SVG NMS Grid (Pages 56 & 57) -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <svg id="svg-nms" viewBox="0 0 360 220" class="w-full h-auto">
+                            <!-- 3x3 Pixel Grid centered at (180, 110), cell size 54x54 -->
+                            <g id="nms-grid-cells" transform="translate(99, 29)"></g>
+
+                            <!-- Gradient Line passing through P(180,110) -->
+                            <line id="nms-grad-line" x1="140" y1="30" x2="220" y2="190" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="4,3"/>
+                            <!-- Contour Line (perpendicular) -->
+                            <line id="nms-edge-line" x1="100" y1="150" x2="260" y2="70" stroke="#38bdf8" stroke-width="2" opacity="0.5"/>
+
+                            <!-- Virtual Interpolated Points P1 and P2 -->
+                            <circle id="nms-pt-p1" cx="200" cy="150" r="6" fill="#f59e0b" stroke="#020617" stroke-width="2"/>
+                            <text id="nms-txt-p1" x="214" y="154" fill="#f59e0b" font-size="11" font-weight="bold">P₁</text>
+
+                            <circle id="nms-pt-p2" cx="160" cy="70" r="6" fill="#f59e0b" stroke="#020617" stroke-width="2"/>
+                            <text id="nms-txt-p2" x="140" y="74" fill="#f59e0b" font-size="11" font-weight="bold">P₂</text>
+                        </svg>
+                        <div id="nms-formula-box" class="w-full mt-2 p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono text-center">
+                            Condition de Maximum Local : ‖∇f(P)‖ ≥ ‖∇f(P₁)‖ ET ‖∇f(P)‖ ≥ ‖∇f(P₂)‖
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Lab 5B: Hysteresis Thresholding Simulator (Pages 59-60) -->
+                <div class="lg:col-span-6 bg-slate-900/90 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="border-b border-slate-800 pb-3 mb-3">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Labo Interactif 5.2 • Pages 59 & 60 (Phare)</span>
+                            <h3 class="text-lg font-bold text-white">Seuillage par Hystérésis ($S_b$ et $S_h$) & Connexité</h3>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            Un seuil unique échoue toujours (Page 55) : trop bas il garde le bruit, trop haut il casse les contours. L'<strong>hystérésis</strong> utilise <strong>2 seuils</strong> : un Seuil Haut $S_h$ (ex: 46) qui valide les <strong>contours forts</strong>, et un Seuil Bas $S_b$ (ex: 17) qui sauve les <strong>contours faibles uniquement s'ils touchent un contour fort</strong> !
+                        </p>
+
+                        <!-- Sliders for Sh and Sb (Page 60 defaults: Sb=17, Sh=46) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950 p-3.5 rounded-xl border border-slate-800 mb-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-emerald-400">Seuil Haut $S_h$ (Contour sûr)</span>
+                                    <span id="val-sh" class="font-mono text-white">46</span>
+                                </div>
+                                <input type="range" id="slider-sh" min="25" max="90" step="1" value="46" class="w-full" oninput="updateHysteresisSim()">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-amber-400">Seuil Bas $S_b$ (Propagation)</span>
+                                    <span id="val-sb" class="font-mono text-white">17</span>
+                                </div>
+                                <input type="range" id="slider-sb" min="5" max="70" step="1" value="17" class="w-full" oninput="updateHysteresisSim()">
+                            </div>
+                        </div>
+
+                        <!-- Interactive SVG Hysteresis Ridge & Pixel Chain -->
+                        <div class="bg-slate-950 rounded-xl border border-slate-800 p-3">
+                            <svg id="svg-hysteresis" viewBox="0 0 480 215" class="w-full h-auto">
+                                <!-- Threshold Zones -->
+                                <line id="hyst-line-sh" x1="35" y1="70" x2="465" y2="70" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3"/>
+                                <text id="hyst-txt-sh" x="40" y="64" fill="#10b981" font-size="10" font-weight="bold">Seuil Haut Sₕ = 46 (Contours Forts C=1)</text>
+
+                                <line id="hyst-line-sb" x1="35" y1="130" x2="465" y2="130" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
+                                <text id="hyst-txt-sb" x="40" y="124" fill="#f59e0b" font-size="10" font-weight="bold">Seuil Bas S_b = 17 (Zone d'Hystérésis)</text>
+
+                                <line x1="35" y1="165" x2="465" y2="165" stroke="#475569" stroke-width="1"/>
+                                <text x="115" y="202" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Crête A : Connectée à un fort → SAUVÉE</text>
+                                <text x="365" y="202" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="bold">Crête B : Pic de bruit isolé → REJETÉE</text>
+
+                                <!-- Dynamic Bars & Pixel Chain rendered by JS -->
+                                <g id="hyst-bars-group"></g>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="p-2 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-emerald-300">
+                            <strong>$G > S_h$</strong><br>Contour Fort ($C=1$)
+                        </div>
+                        <div class="p-2 rounded-lg bg-amber-950/50 border border-amber-500/40 text-amber-300">
+                            <strong>$S_b \le G \le S_h$</strong><br>$C=1$ si connecté !
+                        </div>
+                        <div class="p-2 rounded-lg bg-rose-950/50 border border-rose-500/40 text-rose-300">
+                            <strong>$G < S_b$ ou Isolé</strong><br>Rejeté ($C=0$)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Code for NMS & Hysteresis (Canny Pipeline • Pages 55-60) -->
+            <div class="code-block rounded-2xl overflow-hidden shadow-2xl">
+                <div class="bg-slate-900 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-mono font-semibold text-sky-400">nms_hysteresis_canny.py — Algorithme Complet des Pages 55 à 60 en Python</span>
+                    <button onclick="copyCode('code-mod-5', this)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 transition">Copier le code</button>
+                </div>
+                <pre id="code-mod-5" class="p-5 text-xs sm:text-sm leading-relaxed overflow-x-auto text-slate-200"><code><span class="text-purple-400">import</span> cv2
+<span class="text-purple-400">import</span> numpy <span class="text-purple-400">as</span> np
+
+<span class="text-purple-400">def</span> <span class="text-sky-400">suppression_non_maxima_locaux</span>(norme_G, angle_deg):
+    <span class="text-slate-400">"""Implémente la discrétisation à 45° de la Page 56 pour affiner les contours à 1 pixel."""</span>
+    H, W = norme_G.shape
+    maxima_locaux = np.zeros((H, W), dtype=np.float32)
+    <span class="text-slate-400"># Ramener les angles dans [0°, 180°[ (car le sens + ou - pointe sur la même droite)</span>
+    angle = angle_deg % <span class="text-amber-400">180</span>
+
+    <span class="text-purple-400">for</span> y <span class="text-purple-400">in</span> range(<span class="text-amber-400">1</span>, H - <span class="text-amber-400">1</span>):
+        <span class="text-purple-400">for</span> x <span class="text-purple-400">in</span> range(<span class="text-amber-400">1</span>, W - <span class="text-amber-400">1</span>):
+            <span class="text-slate-400"># Sélectionner les 2 voisins P1 et P2 dans la direction arrondie à 45°</span>
+            <span class="text-purple-400">if</span> (<span class="text-amber-400">0</span> &lt;= angle[y, x] &lt; <span class="text-amber-400">22.5</span>) <span class="text-purple-400">or</span> (<span class="text-amber-400">157.5</span> &lt;= angle[y, x] &lt;= <span class="text-amber-400">180</span>):
+                p1, p2 = norme_G[y, x + <span class="text-amber-400">1</span>], norme_G[y, x - <span class="text-amber-400">1</span>]          <span class="text-slate-400"># Axe Horizontal (0°)</span>
+            <span class="text-purple-400">elif</span> <span class="text-amber-400">22.5</span> &lt;= angle[y, x] &lt; <span class="text-amber-400">67.5</span>:
+                p1, p2 = norme_G[y + <span class="text-amber-400">1</span>, x + <span class="text-amber-400">1</span>], norme_G[y - <span class="text-amber-400">1</span>, x - <span class="text-amber-400">1</span>]  <span class="text-slate-400"># Diagonale (45°)</span>
+            <span class="text-purple-400">elif</span> <span class="text-amber-400">67.5</span> &lt;= angle[y, x] &lt; <span class="text-amber-400">112.5</span>:
+                p1, p2 = norme_G[y + <span class="text-amber-400">1</span>, x], norme_G[y - <span class="text-amber-400">1</span>, x]          <span class="text-slate-400"># Axe Vertical (90°)</span>
+            <span class="text-purple-400">else</span>:
+                p1, p2 = norme_G[y + <span class="text-amber-400">1</span>, x - <span class="text-amber-400">1</span>], norme_G[y - <span class="text-amber-400">1</span>, x + <span class="text-amber-400">1</span>]  <span class="text-slate-400"># Diagonale (135°)</span>
+
+            <span class="text-slate-400"># Garder P uniquement s'il domine ses deux voisins P1 et P2</span>
+            <span class="text-purple-400">if</span> norme_G[y, x] &gt;= p1 <span class="text-purple-400">and</span> norme_G[y, x] &gt;= p2:
+                maxima_locaux[y, x] = norme_G[y, x]
+    <span class="text-purple-400">return</span> maxima_locaux
+
+<span class="text-slate-400"># En pratique, l'algorithme complet (Sobel + Maxima Locaux + Hystérésis Sb=17, Sh=46 — Page 60)</span>
+<span class="text-slate-400"># est directement optimisé en C++ dans OpenCV via la fonction Canny :</span>
+contours_binaire = cv2.Canny(image_gray, threshold1=<span class="text-amber-400">17</span>, threshold2=<span class="text-amber-400">46</span>, L2gradient=<span class="text-purple-400">True</span>)</code></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+            <span>Spécialiste Vision par Ordinateur • Cours Interactif Chapitre 2 (Pages 1 à 60)</span>
+            <span>Rendu Mathématique KaTeX • Visualisations @svg-explained • Code Python & OpenCV</span>
+        </div>
+    </footer>
+
+    <!-- =========================================================================
+         JAVASCRIPT ENGINE FOR ALL INTERACTIVE LABS
+         ========================================================================= -->
+    <script>
+        // -------------------------------------------------------------------------
+        // 0. TAB NAVIGATION & KATEX RENDERING
+        // -------------------------------------------------------------------------
+        function switchTab(tabIndex) {
+            for (let i = 1; i <= 5; i++) {
+                const sec = document.getElementById(`module-${i}`);
+                const btn = document.getElementById(`tab-btn-${i}`);
+                if (i === tabIndex) {
+                    sec.classList.remove('hidden');
+                    btn.className = "tab-active whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-sky-400 transition-all flex items-center gap-2";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "bg-slate-900/90 hover:bg-slate-800 text-slate-300 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-slate-800 transition-all flex items-center gap-2";
+                }
+            }
+        }
+
+        function copyCode(preId, btnEl) {
+            const text = document.getElementById(preId).innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            const original = btnEl.innerText;
+            btnEl.innerText = "✓ Copié !";
+            btnEl.classList.add('bg-emerald-600', 'text-white');
+            setTimeout(() => {
+                btnEl.innerText = original;
+                btnEl.classList.remove('bg-emerald-600', 'text-white');
+            }, 1800);
+        }
+
+        // -------------------------------------------------------------------------
+        // 1. MODULE 1: SIGNAL SYNTHESIS & FFTSHIFT / ROTATION
+        // -------------------------------------------------------------------------
+        function updateSignalSynthesis() {
+            const lowAmp = parseFloat(document.getElementById('slider-low-amp').value);
+            const midAmp = parseFloat(document.getElementById('slider-mid-amp').value);
+            const highAmp = parseFloat(document.getElementById('slider-high-amp').value);
+
+            document.getElementById('val-low-amp').innerText = lowAmp.toFixed(2);
+            document.getElementById('val-mid-amp').innerText = midAmp.toFixed(2);
+            document.getElementById('val-high-amp').innerText = highAmp.toFixed(2);
+
+            let dLow = "", dHigh = "", dSum = "";
+            const startX = 45, endX = 585, width = endX - startX;
+            const canvas = document.getElementById('canvas-1d-strip');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i <= 260; i++) {
+                const t = i / 260;
+                const x = startX + t * width;
+
+                // Low frequency wave (2 cycles)
+                const vLow = lowAmp * Math.sin(2 * Math.PI * 2 * t);
+                // Mid + High frequency wave (12 cycles + 28 cycles)
+                const vMid = midAmp * Math.sin(2 * Math.PI * 6 * t);
+                const vHigh = highAmp * Math.sin(2 * Math.PI * 24 * t);
+                const vSum = vLow + vMid + vHigh;
+
+                const yLow = 45 - vLow * 22;
+                const yHigh = 105 - (vMid * 12 + vHigh * 18);
+                const ySum = 175 - vSum * 20;
+
+                const cmd = (i === 0) ? "M" : "L";
+                dLow += `${cmd} ${x.toFixed(1)} ${yLow.toFixed(1)} `;
+                dHigh += `${cmd} ${x.toFixed(1)} ${yHigh.toFixed(1)} `;
+                dSum += `${cmd} ${x.toFixed(1)} ${ySum.toFixed(1)} `;
+
+                // Draw grayscale pixel strip
+                const grayVal = Math.max(0, Math.min(255, Math.round(128 + vSum * 55)));
+                ctx.fillStyle = `rgb(${grayVal},${grayVal},${grayVal})`;
+                ctx.fillRect((i / 260) * canvas.width, 0, (canvas.width / 260) + 1, canvas.height);
+            }
+
+            document.getElementById('path-low-freq').setAttribute('d', dLow);
+            document.getElementById('path-high-freq').setAttribute('d', dHigh);
+            document.getElementById('path-sum-freq').setAttribute('d', dSum);
+        }
+
+        let isFftShifted = true;
+        function toggleFftShift() {
+            isFftShifted = !isFftShifted;
+            const btn = document.getElementById('btn-fftshift');
+            const cap = document.getElementById('fftshift-caption');
+
+            // Swap Q1<->Q4 and Q2<->Q3 visually
+            const qTL = document.getElementById('quad-tl');
+            const qTR = document.getElementById('quad-tr');
+            const qBL = document.getElementById('quad-bl');
+            const qBR = document.getElementById('quad-br');
+
+            if (isFftShifted) {
+                qTL.setAttribute('transform', 'translate(0, 0)');
+                qTR.setAttribute('transform', 'translate(65, 0)');
+                qBL.setAttribute('transform', 'translate(0, 65)');
+                qBR.setAttribute('transform', 'translate(65, 65)');
+                btn.innerHTML = "<span>🔄 État : Centré (fftshift ACTIF)</span>";
+                btn.className = "px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-600/20";
+                cap.innerText = "DC (0,0) au centre • Hautes fréq aux coins";
+                cap.setAttribute('fill', '#10b981');
+            } else {
+                qTL.setAttribute('transform', 'translate(65, 65)');
+                qTR.setAttribute('transform', 'translate(0, 65)');
+                qBL.setAttribute('transform', 'translate(65, 0)');
+                qBR.setAttribute('transform', 'translate(0, 0)');
+                btn.innerHTML = "<span>⚠️ État : Brut non-centré (Origine aux 4 coins)</span>";
+                btn.className = "px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition flex items-center gap-2 shadow-lg shadow-amber-600/20";
+                cap.innerText = "Sans fftshift : Basses fréquences éclatées aux 4 coins !";
+                cap.setAttribute('fill', '#f59e0b');
+            }
+        }
+
+        function updateFftRotation() {
+            const angle = document.getElementById('slider-fft-rot').value;
+            document.getElementById('val-fft-rot').innerText = `${angle}°`;
+            document.getElementById('spatial-rot-group').setAttribute('transform', `rotate(${angle})`);
+            document.getElementById('spectrum-rot-group').setAttribute('transform', `rotate(${angle})`);
+        }
+
+        // -------------------------------------------------------------------------
+        // 2. MODULE 2: FREQUENCY DOMAIN FILTERING SIMULATOR
+        // -------------------------------------------------------------------------
+        let currentFreqFilter = 'lpf_ideal';
+
+        function selectFreqFilter(type) {
+            currentFreqFilter = type;
+            const types = ['lpf_ideal', 'hpf_ideal', 'hpf_gauss', 'notch'];
+            types.forEach(t => {
+                const btn = document.getElementById(`fbtn-${t}`);
+                if (t === type) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700";
+                }
+            });
+            updateFreqFilterSim();
+        }
+
+        function updateFreqFilterSim() {
+            const d0 = parseInt(document.getElementById('slider-d0').value);
+            document.getElementById('val-d0-radius').innerText = `D₀ = ${d0} px`;
+
+            const maskGroup = document.getElementById('mask-overlay-group');
+            const profilePath = document.getElementById('path-filter-profile');
+            const pctEl = document.getElementById('val-energy-pct');
+            const badgeEl = document.getElementById('val-filter-badge');
+            const descEl = document.getElementById('freq-filter-desc');
+            const profCap = document.getElementById('profile-caption');
+            const spatCap = document.getElementById('spatial-result-caption');
+
+            // Update +D0 / -D0 labels on 1D profile
+            const offsetPx = Math.min(85, d0 * 0.9);
+            document.getElementById('svg-d0-pos').setAttribute('x', (120 + offsetPx).toFixed(0));
+            document.getElementById('svg-d0-neg').setAttribute('x', (120 - offsetPx).toFixed(0));
+
+            if (currentFreqFilter === 'lpf_ideal') {
+                // Dark mask outside circle D0
+                maskGroup.innerHTML = `
+                    <path d="M 0 0 H 220 V 220 H 0 Z M 110 110 m -${d0} 0 a ${d0},${d0} 0 1,0 ${d0*2},0 a ${d0},${d0} 0 1,0 -${d0*2},0" fill="#000000" fill-opacity="0.92" fill-rule="evenodd"/>
+                    <circle cx="110" cy="110" r="${d0}" fill="none" stroke="#10b981" stroke-width="2"/>
+                `;
+                // Rectangular step top-hat profile
+                const left = 120 - offsetPx, right = 120 + offsetPx;
+                profilePath.setAttribute('d', `M 25 145 L ${left} 145 L ${left} 35 L ${right} 35 L ${right} 145 L 215 145`);
+                const energy = Math.min(99.9, (88 + (d0 / 90) * 11.9)).toFixed(1);
+                pctEl.innerText = `${energy}%`;
+                badgeEl.innerText = "Passe-Bas Idéal";
+                descEl.innerText = "Efface toutes les hautes fréquences hors du disque central (Page 25).";
+                profCap.innerText = "Front vertical abrupt en D₀ → Provoque des anneaux de rebond (Gibbs) dans l'image spatiale !";
+                spatCap.innerText = `Image floutée (${energy}% d'énergie basse fréquence conservée).`;
+            } else if (currentFreqFilter === 'hpf_ideal') {
+                // Black circle inside D0
+                maskGroup.innerHTML = `
+                    <circle cx="110" cy="110" r="${d0}" fill="#000000" stroke="#f43f5e" stroke-width="2"/>
+                `;
+                const left = 120 - offsetPx, right = 120 + offsetPx;
+                profilePath.setAttribute('d', `M 25 35 L ${left} 35 L ${left} 145 L ${right} 145 L ${right} 35 L 215 35`);
+                const energy = Math.max(0.5, (10 - (d0 / 90) * 9.2)).toFixed(1);
+                pctEl.innerText = `${energy}%`;
+                badgeEl.innerText = "Passe-Haut Idéal";
+                descEl.innerText = "Met à zéro le centre DC : fond noir, seuls les contours subsistent (Page 27).";
+                profCap.innerText = "Supprime la composante continue F(0,0) : l'intensité moyenne tombe à zéro.";
+                spatCap.innerText = "Extraction des contours brusques sur fond sombre.";
+            } else if (currentFreqFilter === 'hpf_gauss') {
+                maskGroup.innerHTML = `
+                    <circle cx="110" cy="110" r="${d0 * 1.4}" fill="url(#gaussHpfGrad)"/>
+                    <circle cx="110" cy="110" r="${d0}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+                `;
+                let dPath = "M 25 35 ";
+                for (let x = 25; x <= 215; x += 3) {
+                    const dist = Math.abs(x - 120);
+                    const sigma = Math.max(10, offsetPx * 0.75);
+                    const hVal = 1.0 - Math.exp(-(dist * dist) / (2 * sigma * sigma));
+                    const y = 145 - hVal * 110;
+                    dPath += `L ${x} ${y.toFixed(1)} `;
+                }
+                profilePath.setAttribute('d', dPath);
+                pctEl.innerText = `${Math.max(1.2, (12 - (d0 / 90) * 9.5)).toFixed(1)}%`;
+                badgeEl.innerText = "PH Gaussien / Butterworth";
+                descEl.innerText = "Atténuation douce sans coupure brutale (Page 26).";
+                profCap.innerText = "Profil lisse Gaussien H(D) = 1 - exp(-D²/2D₀²) : zéro effet d'anneaux !";
+                spatCap.innerText = "Contours nets et propres sans rebonds parasites.";
+            } else if (currentFreqFilter === 'notch') {
+                // Notch filter (Page 28): two symmetric black holes killing sinusoidal noise spikes
+                const rNotch = Math.max(6, Math.round(d0 * 0.22));
+                maskGroup.innerHTML = `
+                    <circle cx="65" cy="65" r="3.5" fill="#ffffff"/>
+                    <circle cx="155" cy="155" r="3.5" fill="#ffffff"/>
+                    <circle cx="65" cy="65" r="${rNotch}" fill="#000000" stroke="#10b981" stroke-width="2"/>
+                    <circle cx="155" cy="155" r="${rNotch}" fill="#000000" stroke="#10b981" stroke-width="2"/>
+                `;
+                profilePath.setAttribute('d', `M 25 35 L 68 35 L 73 145 L 80 35 L 160 35 L 167 145 L 172 35 L 215 35`);
+                pctEl.innerText = "99.8%";
+                badgeEl.innerText = "Coupe-Bande (Notch)";
+                descEl.innerText = "Met à zéro uniquement les 2 pics symétriques du bruit sinusoïdal (Page 28) !";
+                profCap.innerText = "Deux encoches chirurgicales (Notch) éliminent la fréquence parasite sans flouter l'image.";
+                spatCap.innerText = "Trame sinusoïdale périodique éliminée, détails préservés !";
+            }
+
+            renderSpatialFilterCanvas(d0, currentFreqFilter);
+        }
+
+        function renderSpatialFilterCanvas(d0, filterType) {
+            const canvas = document.getElementById('canvas-freq-result');
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            if (filterType === 'lpf_ideal') {
+                // Simulate blurring + Gibbs ringing circles proportional to 1/d0
+                const blurPx = Math.max(0.5, (95 - d0) / 11);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.save();
+                ctx.filter = `blur(${blurPx.toFixed(1)}px)`;
+                // Draw synthetic geometric camera/monitor shapes (like Page 22-23)
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(35, 35, 110, 85);
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(48, 48, 55, 50);
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(125, 125, 28, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Draw subtle Gibbs ringing ripples when D0 is small
+                if (d0 < 45) {
+                    ctx.strokeStyle = `rgba(148, 163, 184, ${(45 - d0) / 90})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(31, 31, 118, 93);
+                    ctx.strokeRect(26, 26, 128, 103);
+                }
+            } else if (filterType === 'hpf_ideal' || filterType === 'hpf_gauss') {
+                ctx.fillStyle = '#050811';
+                ctx.fillRect(0, 0, W, H);
+                const intensity = Math.min(255, Math.round(255 - d0 * 1.4));
+                ctx.strokeStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+                ctx.lineWidth = (filterType === 'hpf_ideal') ? 2.2 : 1.5;
+                ctx.strokeRect(35, 35, 110, 85);
+                ctx.strokeRect(48, 48, 55, 50);
+                ctx.beginPath();
+                ctx.arc(125, 125, 28, 0, Math.PI * 2);
+                ctx.stroke();
+
+                if (filterType === 'hpf_ideal') {
+                    // Add slight ringing halo on ideal HPF
+                    ctx.strokeStyle = `rgba(56, 189, 248, 0.22)`;
+                    ctx.strokeRect(32, 32, 116, 91);
+                }
+            } else if (filterType === 'notch') {
+                // Draw clean object with residual stripe if D0 is very small
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(35, 35, 110, 85);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(48, 48, 55, 50);
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(125, 125, 28, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Diagonal sinusoidal interference (fades out as D0 >= 25 covers the spike)
+                const stripeAlpha = Math.max(0, (30 - d0) / 30) * 0.65;
+                if (stripeAlpha > 0.02) {
+                    ctx.strokeStyle = `rgba(244, 63, 94, ${stripeAlpha})`;
+                    ctx.lineWidth = 2;
+                    for (let k = -W; k < W * 2; k += 8) {
+                        ctx.beginPath();
+                        ctx.moveTo(k, 0);
+                        ctx.lineTo(k - H, H);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 3. MODULE 3: SEPARABILITY & 1D EDGE DERIVATIVES
+        // -------------------------------------------------------------------------
+        const separablePresets = {
+            sobel: {
+                hx: [-1, 0, 1],
+                hy: [1, 2, 1],
+                norm: "",
+                hxRole: "Dérivée 1D en X",
+                hyRole: "Lissage Gaussien Y"
+            },
+            gauss: {
+                hx: [1, 2, 1],
+                hy: [1, 2, 1],
+                norm: "1/16",
+                hxRole: "Binomial 1/4 en X",
+                hyRole: "Binomial 1/4 en Y"
+            },
+            mean: {
+                hx: [1, 1, 1],
+                hy: [1, 1, 1],
+                norm: "1/9",
+                hxRole: "Moyenne 1/3 en X",
+                hyRole: "Moyenne 1/3 en Y"
+            },
+            sharpen: {
+                hx: [-1, 3, -1],
+                hy: [-1, 3, -1],
+                norm: "",
+                hxRole: "Rehaussement X",
+                hyRole: "Rehaussement Y"
+            }
+        };
+
+        function setSeparableKernel(key) {
+            ['sobel', 'gauss', 'mean', 'sharpen'].forEach(k => {
+                const btn = document.getElementById(`sep-btn-${k}`);
+                btn.className = (k === key)
+                    ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400"
+                    : "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700";
+            });
+
+            const p = separablePresets[key];
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`hx-${i}`).textContent = p.hx[i];
+                document.getElementById(`hy-${i}`).textContent = p.hy[i];
+            }
+            document.getElementById('hx-role').textContent = p.hxRole;
+            document.getElementById('hy-role').textContent = p.hyRole;
+            document.getElementById('sep-norm-factor').textContent = p.norm;
+
+            const grid = document.getElementById('h2d-grid');
+            let html = "";
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const val = p.hy[r] * p.hx[c];
+                    const x = c * 36, y = r * 36;
+                    const bg = val === 0 ? "#0f172a" : (val > 0 ? "#064e3b" : "#4c0519");
+                    const stroke = val === 0 ? "#334155" : (val > 0 ? "#10b981" : "#f43f5e");
+                    html += `
+                        <rect x="${x}" y="${y}" width="35" height="35" rx="4" fill="${bg}" stroke="${stroke}"/>
+                        <text x="${x + 17.5}" y="${y + 22}" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="bold">${val}</text>
+                    `;
+                }
+            }
+            grid.innerHTML = html;
+        }
+
+        function updateSeparableComplexity() {
+            const N = parseInt(document.getElementById('slider-sep-n').value);
+            const n2 = N * N;
+            const twoN = 2 * N;
+            const speedup = (n2 / twoN).toFixed(1);
+
+            document.getElementById('val-sep-n').innerText = `N = ${N} × ${N}`;
+            document.getElementById('val-comp-n2').innerText = `${n2} mult/px`;
+            document.getElementById('val-comp-2n').innerText = `${twoN} mult/px`;
+            document.getElementById('val-comp-speedup').innerText = `${speedup}× plus vite`;
+        }
+
+        let currentEdgeProfile = 'step';
+        function setEdgeProfile(type) {
+            currentEdgeProfile = type;
+            ['step', 'roof', 'bar'].forEach(t => {
+                const btn = document.getElementById(`prof-btn-${t}`);
+                btn.className = (t === type)
+                    ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white"
+                    : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700";
+            });
+            drawEdgeProfiles();
+        }
+
+        function drawEdgeProfiles() {
+            const thresh = parseFloat(document.getElementById('slider-edge-thresh').value);
+            document.getElementById('val-edge-thresh').innerText = thresh.toFixed(2);
+
+            // Threshold lines on f'(x) graph (centered at y=155, scale=42)
+            const yPos = 155 - thresh * 42;
+            const yNeg = 155 + thresh * 42;
+            document.getElementById('line-thresh-pos').setAttribute('y1', yPos);
+            document.getElementById('line-thresh-pos').setAttribute('y2', yPos);
+            document.getElementById('line-thresh-neg').setAttribute('y1', yNeg);
+            document.getElementById('line-thresh-neg').setAttribute('y2', yNeg);
+            document.getElementById('txt-thresh-pos').setAttribute('y', yPos + 3);
+
+            const N = 220;
+            const startX = 45, endX = 480, width = endX - startX;
+            const f = [], df = [], ddf = [];
+
+            for (let i = 0; i <= N; i++) {
+                const u = (i / N) * 4 - 2; // u in [-2, 2]
+                let val = 0;
+                if (currentEdgeProfile === 'step') {
+                    // Smooth step / ramp (Sigmoid)
+                    val = 1 / (1 + Math.exp(-5 * u));
+                } else if (currentEdgeProfile === 'roof') {
+                    // Roof / Gaussian ridge
+                    val = Math.exp(-4.5 * u * u);
+                } else {
+                    // Page 49 flat-top bar: exp(-x^6 / 2)
+                    val = Math.exp(-Math.pow(u * 1.25, 6) / 2);
+                }
+                f.push(val);
+            }
+
+            // Numerical 1st and 2nd derivatives
+            for (let i = 0; i <= N; i++) {
+                const prev = f[Math.max(0, i - 1)];
+                const next = f[Math.min(N, i + 1)];
+                df.push((next - prev) * 14);
+            }
+            for (let i = 0; i <= N; i++) {
+                const prev = df[Math.max(0, i - 1)];
+                const next = df[Math.min(N, i + 1)];
+                ddf.push((next - prev) * 10);
+            }
+
+            // Normalize df and ddf to [-1, 1]
+            const maxDf = Math.max(...df.map(Math.abs), 0.001);
+            const maxDdf = Math.max(...ddf.map(Math.abs), 0.001);
+
+            let pF = "", pDf = "", pDdf = "";
+            for (let i = 0; i <= N; i++) {
+                const x = startX + (i / N) * width;
+                const y1 = 72 - f[i] * 48;
+                const y2 = 155 - (df[i] / maxDf) * 42;
+                const y3 = 248 - (ddf[i] / maxDdf) * 32;
+                const cmd = (i === 0) ? "M" : "L";
+                pF += `${cmd} ${x.toFixed(1)} ${y1.toFixed(1)} `;
+                pDf += `${cmd} ${x.toFixed(1)} ${y2.toFixed(1)} `;
+                pDdf += `${cmd} ${x.toFixed(1)} ${y3.toFixed(1)} `;
+            }
+
+            document.getElementById('path-fx').setAttribute('d', pF);
+            document.getElementById('path-dfx').setAttribute('d', pDf);
+            document.getElementById('path-ddfx').setAttribute('d', pDdf);
+
+            // Draw red vertical zero-crossing / peak alignment guides (like Page 49)
+            const guidesGroup = document.getElementById('edge-vertical-guides');
+            if (currentEdgeProfile === 'step') {
+                const cx = startX + 0.5 * width;
+                guidesGroup.innerHTML = `
+                    <line x1="${cx}" y1="22" x2="${cx}" y2="275" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <circle cx="${cx}" cy="113" r="4.5" fill="#10b981"/>
+                    <circle cx="${cx}" cy="248" r="4.5" fill="#f43f5e"/>
+                `;
+            } else {
+                const cx1 = startX + 0.31 * width;
+                const cx2 = startX + 0.69 * width;
+                guidesGroup.innerHTML = `
+                    <line x1="${cx1}" y1="22" x2="${cx1}" y2="275" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <line x1="${cx2}" y1="22" x2="${cx2}" y2="275" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <circle cx="${cx1}" cy="113" r="4" fill="#10b981"/>
+                    <circle cx="${cx2}" cy="197" r="4" fill="#10b981"/>
+                    <circle cx="${cx1}" cy="248" r="4" fill="#f43f5e"/>
+                    <circle cx="${cx2}" cy="248" r="4" fill="#f43f5e"/>
+                `;
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 4. MODULE 4: 2D GRADIENT CALCULATOR & EDGE OPERATORS
+        // -------------------------------------------------------------------------
+        function loadGradientPreset(preset) {
+            const presets = {
+                course:     [[0, 0, 100],   [100, 100, 200], [200, 200, 200]], // Gx = (200-100)/2 = 50, Gy = (200-0)/2 = 100 (Page 39)
+                vertical:   [[20, 120, 220],[20, 120, 220],  [20, 120, 220]],
+                horizontal: [[10, 10, 10],  [120, 120, 120], [230, 230, 230]],
+                diag:       [[10, 50, 140], [50, 140, 230],  [140, 230, 250]]
+            };
+            const m = presets[preset];
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    if (r === 1 && c === 1) continue;
+                    document.getElementById(`px-${r}${c}`).value = m[r][c];
+                }
+            }
+            updateGradientCalc();
+        }
+
+        function updateGradientCalc() {
+            const left = parseFloat(document.getElementById('px-10').value) || 0;
+            const right = parseFloat(document.getElementById('px-12').value) || 0;
+            const top = parseFloat(document.getElementById('px-01').value) || 0;
+            const bottom = parseFloat(document.getElementById('px-21').value) || 0;
+
+            // Central difference (Page 39 & 40): Gx = (right - left)/2, Gy = (bottom - top)/2
+            const gx = (right - left) / 2;
+            const gy = (bottom - top) / 2;
+
+            const normL2 = Math.sqrt(gx * gx + gy * gy);
+            const normL1 = Math.abs(gx) + Math.abs(gy);
+            const normLinf = Math.max(Math.abs(gx), Math.abs(gy));
+            const angleRad = Math.atan2(gy, gx);
+            const angleDeg = angleRad * (180 / Math.PI);
+
+            document.getElementById('res-gx-gy').innerText = `(${gx.toFixed(0)}, ${gy.toFixed(0)})`;
+            document.getElementById('res-norm-l2').innerText = `${normL2.toFixed(1)} (≈${Math.round(normL2)})`;
+            document.getElementById('res-norm-l1').innerText = normL1.toFixed(0);
+            document.getElementById('res-norm-linf').innerText = normLinf.toFixed(0);
+            document.getElementById('res-angle').innerText = `${angleDeg.toFixed(1)}°`;
+
+            // Update SVG Compass
+            const cx = 110, cy = 100;
+            const len = normL2 > 0 ? Math.min(62, Math.max(22, normL2 * 0.5)) : 0;
+            const endX = cx + len * Math.cos(angleRad);
+            const endY = cy + len * Math.sin(angleRad);
+
+            const arrow = document.getElementById('svg-grad-arrow');
+            arrow.setAttribute('x2', endX.toFixed(1));
+            arrow.setAttribute('y2', endY.toFixed(1));
+
+            const lbl = document.getElementById('svg-grad-label');
+            lbl.setAttribute('x', (cx + (len + 14) * Math.cos(angleRad)).toFixed(1));
+            lbl.setAttribute('y', (cy + (len + 14) * Math.sin(angleRad)).toFixed(1));
+
+            // Perpendicular edge line
+            const perpAngle = angleRad + Math.PI / 2;
+            const ex1 = cx - 65 * Math.cos(perpAngle);
+            const ey1 = cy - 65 * Math.sin(perpAngle);
+            const ex2 = cx + 65 * Math.cos(perpAngle);
+            const ey2 = cy + 65 * Math.sin(perpAngle);
+            const edgeLine = document.getElementById('svg-edge-line');
+            edgeLine.setAttribute('x1', ex1.toFixed(1));
+            edgeLine.setAttribute('y1', ey1.toFixed(1));
+            edgeLine.setAttribute('x2', ex2.toFixed(1));
+            edgeLine.setAttribute('y2', ey2.toFixed(1));
+        }
+
+        const operatorData = {
+            roberts: {
+                title: "Filtre de Roberts (Page 43) — Détection des Diagonales 2×2",
+                desc: "Calcule les différences croisées sur une toute petite fenêtre 2×2 : ∂f/∂x ≈ f(x,y) - f(x-1,y-1). Très rapide mais aucun lissage → très sensible au bruit.",
+                m1Title: "Masque Diagonal G₁",
+                m1: [[1, 0], [0, -1]],
+                m2Title: "Masque Diagonal G₂",
+                m2: [[0, -1], [1, 0]]
+            },
+            prewitt: {
+                title: "Filtre de Prewitt (Pages 44-45) — Moyenneur (c = 1) + Dérivée",
+                desc: "Combine une dérivation [-1, 0, 1] dans une direction avec un filtre moyenneur uniforme [1, 1, 1]ᵀ dans la direction perpendiculaire.",
+                m1Title: "Prewitt Horizontal Gₓ (Contours Verticaux)",
+                m1: [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]],
+                m2Title: "Prewitt Vertical Gᵧ (Contours Horizontaux)",
+                m2: [[-1, -1, -1], [0, 0, 0], [1, 1, 1]]
+            },
+            sobel: {
+                title: "Filtre de Sobel (Pages 44-45) — Gaussienne (c = 2) + Dérivée",
+                desc: "Donne un poids double (c = 2) à la ligne/colonne centrale grâce au lissage binomial [1, 2, 1]ᵀ. Moins sensible au bruit et plus isotrope que Prewitt.",
+                m1Title: "Sobel Horizontal Gₓ (Contours Verticaux)",
+                m1: [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+                m2Title: "Sobel Vertical Gᵧ (Contours Horizontaux)",
+                m2: [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+            },
+            laplacien: {
+                title: "Opérateur Laplacien ∇²I (Pages 47-50) — Dérivée Seconde",
+                desc: "Symétrique en rotation : un seul masque suffit pour détecter les contours dans toutes les directions via les passages par zéro (Zero-Crossings).",
+                m1Title: "Laplacien 4-connexité",
+                m1: [[0, 1, 0], [1, -4, 1], [0, 1, 0]],
+                m2Title: "Laplacien 8-connexité (Diagonales incluses)",
+                m2: [[1, 1, 1], [1, -8, 1], [1, 1, 1]]
+            }
+        };
+
+        function renderMatrixHtml(mat) {
+            const cols = mat[0].length;
+            let html = `<div class="inline-grid grid-cols-${cols} gap-1.5 p-2 bg-slate-900 rounded-lg border border-slate-700">`;
+            for (let r = 0; r < mat.length; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const v = mat[r][c];
+                    const color = v === 0 ? "text-slate-500 bg-slate-950" : (v > 0 ? "text-emerald-300 bg-emerald-950/60 border-emerald-500/40" : "text-rose-300 bg-rose-950/60 border-rose-500/40");
+                    html += `<div class="w-9 h-9 flex items-center justify-center rounded border border-slate-800 font-mono text-xs font-bold ${color}">${v}</div>`;
+                }
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        function selectOperator(opKey) {
+            ['roberts', 'prewitt', 'sobel', 'laplacien'].forEach(k => {
+                const btn = document.getElementById(`op-btn-${k}`);
+                btn.className = (k === opKey)
+                    ? "p-2 rounded-lg text-xs font-bold bg-sky-600 text-white border border-sky-400"
+                    : "p-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700";
+            });
+
+            const data = operatorData[opKey];
+            document.getElementById('operator-detail-card').innerHTML = `
+                <div class="text-sm font-bold text-white">${data.title}</div>
+                <p class="text-xs text-slate-300 leading-relaxed">${data.desc}</p>
+                <div class="grid grid-cols-2 gap-3 pt-2 text-center">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[11px] font-semibold text-sky-400 mb-1.5">${data.m1Title}</span>
+                        ${renderMatrixHtml(data.m1)}
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[11px] font-semibold text-emerald-400 mb-1.5">${data.m2Title}</span>
+                        ${renderMatrixHtml(data.m2)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // -------------------------------------------------------------------------
+        // 5. MODULE 5: NON-MAXIMUM SUPPRESSION (NMS) & HYSTERESIS
+        // -------------------------------------------------------------------------
+        function updateNmsDiagram() {
+            const angleDeg = parseInt(document.getElementById('slider-nms-angle').value);
+            const rad = (angleDeg * Math.PI) / 180;
+
+            // Determine rounded 45-degree sector (Page 56)
+            let sectorDesc = "";
+            let activeCells = [];
+            if (angleDeg < 22.5 || angleDeg >= 157.5) {
+                sectorDesc = "Arrondi à 0° (Voisins Est / Ouest)";
+                activeCells = ["1,2", "1,0"];
+            } else if (angleDeg >= 22.5 && angleDeg < 67.5) {
+                sectorDesc = "Arrondi à 45° (Voisins Sud-Est / Nord-Ouest)";
+                activeCells = ["2,2", "0,0"];
+            } else if (angleDeg >= 67.5 && angleDeg < 112.5) {
+                sectorDesc = "Arrondi à 90° (Voisins Sud / Nord)";
+                activeCells = ["2,1", "0,1"];
+            } else {
+                sectorDesc = "Arrondi à 135° (Voisins Sud-Ouest / Nord-Est)";
+                activeCells = ["2,0", "0,2"];
+            }
+
+            document.getElementById('val-nms-angle').innerText = `θ = ${angleDeg}° (${sectorDesc})`;
+
+            // Render 3x3 cells
+            const grid = document.getElementById('nms-grid-cells');
+            let html = "";
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const x = c * 54, y = r * 54;
+                    const key = `${r},${c}`;
+                    const isCenter = (r === 1 && c === 1);
+                    const isNeighbor = activeCells.includes(key);
+                    let fill = "#0f172a", stroke = "#334155", label = "";
+                    if (isCenter) {
+                        fill = "rgba(244, 63, 94, 0.35)";
+                        stroke = "#f43f5e";
+                        label = "P(x,y)";
+                    } else if (isNeighbor) {
+                        fill = "rgba(16, 185, 129, 0.25)";
+                        stroke = "#10b981";
+                        label = "Voisin 45°";
+                    }
+                    html += `
+                        <rect x="${x}" y="${y}" width="52" height="52" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+                        <text x="${x + 26}" y="${y + 30}" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="bold">${label}</text>
+                    `;
+                }
+            }
+            grid.innerHTML = html;
+
+            // Update P1 and P2 positions on unit circle of radius 54 around (180, 110)
+            const cx = 180, cy = 110, R = 54;
+            const p1x = cx + R * Math.cos(rad), p1y = cy + R * Math.sin(rad);
+            const p2x = cx - R * Math.cos(rad), p2y = cy - R * Math.sin(rad);
+
+            document.getElementById('nms-pt-p1').setAttribute('cx', p1x.toFixed(1));
+            document.getElementById('nms-pt-p1').setAttribute('cy', p1y.toFixed(1));
+            document.getElementById('nms-txt-p1').setAttribute('x', (p1x + 10).toFixed(1));
+            document.getElementById('nms-txt-p1').setAttribute('y', (p1y + 4).toFixed(1));
+
+            document.getElementById('nms-pt-p2').setAttribute('cx', p2x.toFixed(1));
+            document.getElementById('nms-pt-p2').setAttribute('cy', p2y.toFixed(1));
+            document.getElementById('nms-txt-p2').setAttribute('x', (p2x - 18).toFixed(1));
+            document.getElementById('nms-txt-p2').setAttribute('y', (p2y + 4).toFixed(1));
+
+            // Gradient line and perpendicular contour line
+            document.getElementById('nms-grad-line').setAttribute('x1', (cx - 85 * Math.cos(rad)).toFixed(1));
+            document.getElementById('nms-grad-line').setAttribute('y1', (cy - 85 * Math.sin(rad)).toFixed(1));
+            document.getElementById('nms-grad-line').setAttribute('x2', (cx + 85 * Math.cos(rad)).toFixed(1));
+            document.getElementById('nms-grad-line').setAttribute('y2', (cy + 85 * Math.sin(rad)).toFixed(1));
+
+            const perp = rad + Math.PI / 2;
+            document.getElementById('nms-edge-line').setAttribute('x1', (cx - 85 * Math.cos(perp)).toFixed(1));
+            document.getElementById('nms-edge-line').setAttribute('y1', (cy - 85 * Math.sin(perp)).toFixed(1));
+            document.getElementById('nms-edge-line').setAttribute('x2', (cx + 85 * Math.cos(perp)).toFixed(1));
+            document.getElementById('nms-edge-line').setAttribute('y2', (cy + 85 * Math.sin(perp)).toFixed(1));
+        }
+
+        // Hysteresis Simulation Data: 16 pixels along two ridges
+        // Ridge A (pixels 1..7) has strong peaks > 50 and weak shoulders (25..42) connected to it
+        // Ridge B (pixels 10..14) is isolated weak noise (22..38) that never reaches Sh
+        const hysteresisSamples = [8, 24, 36, 58, 72, 40, 26, 10, 6, 12, 28, 38, 31, 19, 8, 5];
+
+        function updateHysteresisSim() {
+            let sh = parseInt(document.getElementById('slider-sh').value);
+            let sb = parseInt(document.getElementById('slider-sb').value);
+            if (sb >= sh) {
+                sb = sh - 2;
+                document.getElementById('slider-sb').value = sb;
+            }
+            document.getElementById('val-sh').innerText = sh;
+            document.getElementById('val-sb').innerText = sb;
+
+            // Map value [0..90] to y coordinate [165..25]
+            const valToY = (v) => 165 - (v / 90) * 140;
+            const ySh = valToY(sh);
+            const ySb = valToY(sb);
+
+            document.getElementById('hyst-line-sh').setAttribute('y1', ySh);
+            document.getElementById('hyst-line-sh').setAttribute('y2', ySh);
+            document.getElementById('hyst-txt-sh').setAttribute('y', ySh - 5);
+            document.getElementById('hyst-txt-sh').textContent = `Seuil Haut Sₕ = ${sh} (Contours Forts C=1)`;
+
+            document.getElementById('hyst-line-sb').setAttribute('y1', ySb);
+            document.getElementById('hyst-line-sb').setAttribute('y2', ySb);
+            document.getElementById('hyst-txt-sb').setAttribute('y', ySb - 5);
+            document.getElementById('hyst-txt-sb').textContent = `Seuil Bas S_b = ${sb} (Propagation par connexité)`;
+
+            // Step 1: Find strong edges (G > Sh) and weak candidates (Sb <= G <= Sh)
+            const n = hysteresisSamples.length;
+            const state = new Array(n).fill(0); // 0 = rejected, 1 = weak candidate, 2 = strong edge, 3 = saved by hysteresis
+            for (let i = 0; i < n; i++) {
+                if (hysteresisSamples[i] > sh) state[i] = 2;
+                else if (hysteresisSamples[i] >= sb) state[i] = 1;
+            }
+
+            // Step 2: Propagate connectivity from strong edges (Page 59)
+            let changed = true;
+            while (changed) {
+                changed = false;
+                for (let i = 0; i < n; i++) {
+                    if (state[i] === 1) {
+                        const leftStrong = (i > 0) && (state[i - 1] >= 2);
+                        const rightStrong = (i < n - 1) && (state[i + 1] >= 2);
+                        if (leftStrong || rightStrong) {
+                            state[i] = 3; // Saved by connectivity!
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            // Render Bars & Bottom Binary Output Strip C(x,y)
+            const group = document.getElementById('hyst-bars-group');
+            let html = "";
+            for (let i = 0; i < n; i++) {
+                const x = 42 + i * 26;
+                const val = hysteresisSamples[i];
+                const yTop = valToY(val);
+                const h = 165 - yTop;
+
+                let color = "#475569", badge = "0";
+                if (state[i] === 2) {
+                    color = "#10b981"; // Strong edge
+                    badge = "1";
+                } else if (state[i] === 3) {
+                    color = "#f59e0b"; // Weak edge saved by hysteresis
+                    badge = "1";
+                } else if (state[i] === 1) {
+                    color = "#f43f5e"; // Weak candidate isolated -> rejected!
+                    badge = "0";
+                }
+
+                html += `
+                    <rect x="${x}" y="${yTop.toFixed(1)}" width="18" height="${h.toFixed(1)}" rx="3" fill="${color}"/>
+                    <text x="${x + 9}" y="${(yTop - 4).toFixed(1)}" text-anchor="middle" fill="#cbd5e1" font-size="8" font-family="monospace">${val}</text>
+                    <rect x="${x}" y="170" width="18" height="16" rx="3" fill="${badge === '1' ? '#065f46' : '#1e293b'}" stroke="${badge === '1' ? '#10b981' : '#334155'}"/>
+                    <text x="${x + 9}" y="181" text-anchor="middle" fill="${badge === '1' ? '#ffffff' : '#64748b'}" font-size="9" font-weight="bold" font-family="monospace">${badge}</text>
+                `;
+            }
+            group.innerHTML = html;
+        }
+
+        // -------------------------------------------------------------------------
+        // INITIALIZE ALL LABS ON WINDOW LOAD
+        // -------------------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            // Render KaTeX Math Formulas
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+
+            // Init Lab 1
+            updateSignalSynthesis();
+            updateFftRotation();
+            // Init Lab 2
+            updateFreqFilterSim();
+            // Init Lab 3
+            setSeparableKernel('sobel');
+            updateSeparableComplexity();
+            drawEdgeProfiles();
+            // Init Lab 4
+            updateGradientCalc();
+            selectOperator('sobel');
+            // Init Lab 5
+            updateNmsDiagram();
+            updateHysteresisSim();
+        });
+    </script>
+</body>
+</html>

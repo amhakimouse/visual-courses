@@ -114,3 +114,8 @@ Le dual simplexe corrige l’infaisabilité en gardant l’optimalité, puis on 
 3. **Valide** (grâce à l’intégralité) et **violée** par `x̄` (0 contre un négatif)
 4. On ajoute une variable d’écart ➜ **dual simplexe**
 5. Cas spécial : si tous les `tᵢⱼ` sont **entiers** et `bᵢ` fractionnaire ➜ `P` est **infaisable** (un entier ne peut pas égaler une fraction)
+
+
+
+
+

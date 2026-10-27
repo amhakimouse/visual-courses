@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLNE Exercice 4 — Sensibilité, Coupe de Gomory & Branch-and-Bound (SVG Animé)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- KaTeX for LaTeX Math -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ]
+    });"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @keyframes dashMove {
+      to { stroke-dashoffset: -40; }
+    }
+    @keyframes pulseEmerald {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(16, 185, 129, 1)); }
+    }
+    @keyframes pulseAmber {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(251, 191, 36, 1)); }
+    }
+    @keyframes pulseRose {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.5)); }
+      50% { filter: drop-shadow(0 0 14px rgba(244, 63, 94, 1)); }
+    }
+    .svg-dash-anim {
+      stroke-dasharray: 8 6;
+      animation: dashMove 1.3s linear infinite;
+    }
+    .glow-green {
+      animation: pulseEmerald 2.2s infinite ease-in-out;
+    }
+    .glow-amber {
+      animation: pulseAmber 2.2s infinite ease-in-out;
+    }
+    .glow-red {
+      animation: pulseRose 2s infinite ease-in-out;
+    }
+    .smooth-svg {
+      transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-amber-500 selection:text-slate-950 pb-20">
+
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 font-extrabold text-slate-950 text-lg">
+          E4
+        </div>
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block">Examen &amp; TD PLNE — Problème Complet (12 Questions)</span>
+          <h1 class="text-base sm:text-lg font-extrabold text-white">Exercice 4 : Sensibilité, Coupe de Gomory &amp; Branch-and-Bound</h1>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs">
+        <a href="#sec-cours" class="px-2.5 py-1.5 rounded-lg font-semibold text-amber-300 bg-slate-900/80 hover:bg-slate-900 transition">0. Cours SVG</a>
+        <a href="#sec-q1-q4" class="px-2.5 py-1.5 rounded-lg font-semibold text-sky-300 hover:bg-slate-700/60 transition">Q1 à Q4. Sensibilité</a>
+        <a href="#sec-q5-q7" class="px-2.5 py-1.5 rounded-lg font-semibold text-emerald-300 hover:bg-slate-700/60 transition">Q5 à Q7. Gomory</a>
+        <a href="#sec-q8-q12" class="px-2.5 py-1.5 rounded-lg font-semibold text-purple-300 hover:bg-slate-700/60 transition">Q8 à Q12. Branch &amp; Bound</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 pt-6 space-y-14">
+
+    <!-- ================= 0. RAPPEL DE COURS VISUEL (POUR TOUT COMPRENDRE DE ZÉRO) ================= -->
+    <section id="sec-cours" class="space-y-6">
+      <div class="border-b border-slate-800 pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Étape 0 — Rappel de Cours (Zéro Prérequis)</span>
+        <h2 class="text-2xl font-extrabold text-white">Les 3 Grandes Parties de l'Exercice 4 expliquées simplement</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Pilier 1 -->
+        <div class="bg-slate-900 border border-sky-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-sky-400 uppercase">Partie A (Q1 à Q4) — Analyse Post-Optimale</div>
+          <h3 class="font-bold text-white text-sm">L'inverse de la base $B^{-1}$ est ta boussole !</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Dans le tableau optimal, les colonnes sous les variables d'écart initiales $(e_1, e_2)$ forment la matrice **$B^{-1}$** :
+            <span class="block mt-1 p-1.5 rounded bg-slate-950 text-sky-300 mono text-center font-bold">B⁻¹ = [ 3/4  -1/4 ; -1/2  1/2 ]</span>
+            Toute modification du second membre $b$ ou d'une nouvelle colonne $A_k$ se multiplie par $B^{-1}$ !
+          </p>
+        </div>
+
+        <!-- Pilier 2 -->
+        <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-emerald-400 uppercase">Partie B (Q5 à Q7) — Coupe de Gomory</div>
+          <h3 class="font-bold text-white text-sm">Couper sur $x_2 = 3/2$ puis pivoter</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Comme $x_2 = \frac{3}{2} = 1,5 \notin \mathbb{N}$, on décompose chaque terme de sa ligne en $\lfloor a \rfloor + f$ avec **$0 \le f < 1$** :
+            <span class="block mt-1 p-1.5 rounded bg-slate-950 text-emerald-300 mono text-center font-bold">-1/2 = -1 + 1/2 ➔ f = +1/2</span>
+            Puis le Simplexe Dual restaure la positivité de $b$.
+          </p>
+        </div>
+
+        <!-- Pilier 3 -->
+        <div class="bg-slate-900 border border-purple-500/30 rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-bold text-purple-400 uppercase">Partie C (Q8 à Q12) — Branch &amp; Bound</div>
+          <h3 class="font-bold text-white text-sm">Lire et réorganiser un arbre de recherche</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            En **Maximisation**, la relaxation continue donne une **Borne Supérieure (BS)** et toute solution entière donne une **Borne Inférieure (BI)**. La stratégie **« Meilleur d'abord »** explore toujours le nœud ouvert ayant le **plus grand $Z$**.
+          </p>
+        </div>
+      </div>
+
+      <!-- SCHÉMA SVG ANIMÉ : COMPRENDRE LA MATRICE B^-1 DANS LE TABLEAU OPTIMAL -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-base font-bold text-white">
+              🎬 Mémo Visuel SVG : Comment lire $B^{-1}$ et les coûts réduits dans le tableau optimal ?
+            </h3>
+            <p class="text-xs text-slate-400">
+              Toutes les formules des Questions 2, 3 et 4 viennent directement de cette lecture matricielle du tableau donné dans l'énoncé.
+            </p>
+          </div>
+        </div>
+
+        <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <svg viewBox="0 0 920 215" class="w-full h-auto min-w-[680px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Boîte 1 : Changement de b2 (Q2) -->
+            <rect x="15" y="15" width="285" height="185" rx="12" fill="#0c4a6e" fill-opacity="0.35" stroke="#38bdf8" stroke-width="2"/>
+            <text x="30" y="42" fill="#38bdf8" font-size="13.5" font-weight="bold">1. Varier le second membre b₂ (Q2)</text>
+            <text x="30" y="66" fill="#e2e8f0" font-size="11.5">Si b₂ = 9 + Δb₂, le nouveau second</text>
+            <text x="30" y="84" fill="#e2e8f0" font-size="11.5">membre b* devient :</text>
+            <rect x="30" y="96" width="255" height="44" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+            <text x="157" y="115" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">b*(Δ) = b* + Δb₂ · (Colonne e₂)</text>
+            <text x="157" y="132" fill="#7dd3fc" font-size="11" font-family="monospace" text-anchor="middle">Condition : b*(Δ) ≥ 0 (Réalisable)</text>
+            <text x="30" y="162" fill="#cbd5e1" font-size="11" font-family="monospace">• x₁ = 9/4 - (1/4)Δb₂ ≥ 0</text>
+            <text x="30" y="180" fill="#cbd5e1" font-size="11" font-family="monospace">• x₂ = 3/2 + (1/2)Δb₂ ≥ 0</text>
+
+            <!-- Boîte 2 : Changement de c1 (Q3) -->
+            <rect x="318" y="15" width="285" height="185" rx="12" fill="#422006" fill-opacity="0.35" stroke="#fbbf24" stroke-width="2"/>
+            <text x="333" y="42" fill="#fde047" font-size="13.5" font-weight="bold">2. Varier le coeff d'objectif c₁ (Q3)</text>
+            <text x="333" y="66" fill="#e2e8f0" font-size="11.5">Les coûts réduits hors-base (e₁, e₂)</text>
+            <text x="333" y="84" fill="#e2e8f0" font-size="11.5">se calculent avec C_B = (c₁, 4) :</text>
+            <rect x="333" y="96" width="255" height="44" rx="8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.2"/>
+            <text x="460" y="115" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">(zⱼ - cⱼ) = C_B · B⁻¹ ≥ 0</text>
+            <text x="460" y="132" fill="#fde047" font-size="11" font-family="monospace" text-anchor="middle">(En Max : ligne z positive = optimal)</text>
+            <text x="333" y="162" fill="#cbd5e1" font-size="11" font-family="monospace">• Sous e₁ : (3/4)c₁ - 2 ≥ 0 ➔ c₁ ≥ 8/3</text>
+            <text x="333" y="180" fill="#cbd5e1" font-size="11" font-family="monospace">• Sous e₂ : -(1/4)c₁ + 2 ≥ 0 ➔ c₁ ≤ 8</text>
+
+            <!-- Boîte 3 : Ajout d'une variable (Q4) -->
+            <rect x="620" y="15" width="285" height="185" rx="12" fill="#064e3b" fill-opacity="0.35" stroke="#10b981" stroke-width="2"/>
+            <text x="635" y="42" fill="#6ee7b7" font-size="13.5" font-weight="bold">3. Ajouter une variable x₃ (Q4)</text>
+            <text x="635" y="66" fill="#e2e8f0" font-size="11.5">Nouvelle activité de colonne A₃ = (1, 2)ᵀ</text>
+            <text x="635" y="84" fill="#e2e8f0" font-size="11.5">et de profit unitaire c₃ = 2 :</text>
+            <rect x="635" y="96" width="255" height="44" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+            <text x="762" y="115" fill="#6ee7b7" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Colonne dans tableau : Ā₃ = B⁻¹·A₃</text>
+            <text x="762" y="132" fill="#fde047" font-size="11" font-family="monospace" text-anchor="middle">Coût ligne z : z₃ - c₃ = C_B·Ā₃ - c₃</text>
+            <text x="635" y="162" fill="#cbd5e1" font-size="11" font-family="monospace">• Si z₃ - c₃ ≥ 0 : l'optimum ne change pas</text>
+            <text x="635" y="180" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">• Ici z₃ - c₃ = 13/4 - 2 = +5/4 &gt; 0 ✓</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PARTIE 1 : QUESTIONS 1 À 4 (SIMPLEXE & ANALYSE DE SENSIBILITÉ) ================= -->
+    <section id="sec-q1-q4" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Partie 1 — Questions 1, 2, 3 et 4</span>
+          <h2 class="text-2xl font-extrabold text-white">Tableau Initial, Analyse de Sensibilité ($b_2$, $c_1$) &amp; Nouvelle Variable</h2>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-bold mono">
+          Optimum continu : x₁ = 9/4 (2,25) | x₂ = 3/2 (1,5) | Z = 51/4 (12,75)
+        </span>
+      </div>
+
+      <!-- Simulateur Graphique SVG de Sensibilité (b2 et c1) + Rédaction Q1-Q4 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Colonne Gauche : Simulateur Graphique Interactif 2D (6 colonnes) -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">🎛️ Laboratoire SVG Interactif (Q2 &amp; Q3)</h3>
+              <p class="text-xs text-slate-400">Bouge les curseurs $b_2$ et $c_1$ pour voir pourquoi la base reste optimale dans $[6, 18]$ et $[8/3, 8]$ !</p>
+            </div>
+            <button onclick="resetSensitivity()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition">
+              Réinitialiser
+            </button>
+          </div>
+
+          <!-- Curseurs interactifs b2 et c1 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-bold">
+                <span class="text-sky-400">Second membre $b_2$ (Q2) :</span>
+                <span id="lbl-b2" class="mono text-white">b₂ = 9.0</span>
+              </div>
+              <input id="slider-b2" type="range" min="4" max="20" step="0.5" value="9" oninput="updateSensitivity()" class="w-full accent-sky-400 cursor-pointer"/>
+              <div class="flex justify-between text-[10px] mono text-slate-400">
+                <span>Min: 6 (x₂=0)</span>
+                <span class="text-emerald-400 font-bold">Valide: [6 ; 18]</span>
+                <span>Max: 18 (x₁=0)</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-bold">
+                <span class="text-amber-400">Coeff objectif $c_1$ (Q3) :</span>
+                <span id="lbl-c1" class="mono text-white">c₁ = 3.0</span>
+              </div>
+              <input id="slider-c1" type="range" min="1.5" max="9.5" step="0.1" value="3" oninput="updateSensitivity()" class="w-full accent-amber-400 cursor-pointer"/>
+              <div class="flex justify-between text-[10px] mono text-slate-400">
+                <span>Min: 8/3 ≈ 2,67</span>
+                <span class="text-amber-300 font-bold">Valide: [8/3 ; 8]</span>
+                <span>Max: 8</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bandeau d'état en direct -->
+          <div id="sens-status" class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs mono text-emerald-200">
+            ✓ Base (x₁, x₂) réalisable et optimale : x₁ = 2.25, x₂ = 1.50 | Coûts réduits : (1/4, 5/4) ≥ 0
+          </div>
+
+          <!-- SVG GRAPHIQUE 2D DYNAMIQUE :
+               Origine (0,0) -> (60, 330) ; 1 unité = 42 px (x1 et x2 de 0 à 6.5) -->
+          <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2">
+            <svg viewBox="0 0 420 375" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grille entière (1 unité = 42px) -->
+              <g stroke="#1e293b" stroke-width="1">
+                <line x1="102" y1="25" x2="102" y2="330"/>
+                <line x1="144" y1="25" x2="144" y2="330"/>
+                <line x1="186" y1="25" x2="186" y2="330"/>
+                <line x1="228" y1="25" x2="228" y2="330"/>
+                <line x1="270" y1="25" x2="270" y2="330"/>
+                <line x1="312" y1="25" x2="312" y2="330"/>
+                <line x1="60" y1="288" x2="380" y2="288"/>
+                <line x1="60" y1="246" x2="380" y2="246"/>
+                <line x1="60" y1="204" x2="380" y2="204"/>
+                <line x1="60" y1="162" x2="380" y2="162"/>
+                <line x1="60" y1="120" x2="380" y2="120"/>
+                <line x1="60" y1="78" x2="380" y2="78"/>
+              </g>
+
+              <!-- Polygone du domaine réalisable initial : O(0,0)=(60,330), (3,0)=(186,330), P0(2.25, 1.5)=(154.5, 267), (0,3)=(60,204) -->
+              <polygon id="sens-poly" points="60,330 186,330 154.5,267 60,204" fill="rgba(56, 189, 248, 0.16)" stroke="none"/>
+
+              <!-- Contrainte 1 fixe : 2x1 + x2 = 6 -> (0,6)=(60,78) à (3,0)=(186,330) -->
+              <line x1="60" y1="78" x2="186" y2="330" stroke="#38bdf8" stroke-width="2.5"/>
+              <text x="72" y="96" fill="#38bdf8" font-size="10.5" font-weight="bold" font-family="monospace">C₁ : 2x₁ + x₂ ≤ 6</text>
+
+              <!-- Contrainte 2 mobile : 2x1 + 3x2 = b2 -->
+              <line id="sens-line-c2" x1="60" y1="204" x2="249" y2="330" stroke="#818cf8" stroke-width="2.5"/>
+              <text id="sens-txt-c2" x="215" y="290" fill="#a5b4fc" font-size="10.5" font-weight="bold" font-family="monospace">C₂ : 2x₁ + 3x₂ ≤ 9</text>
+
+              <!-- Droite d'objectif Z = c1*x1 + 4*x2 passant par le sommet d'intersection -->
+              <line id="sens-line-obj" x1="60" y1="196.1" x2="280" y2="361" stroke="#fbbf24" stroke-width="2.5" class="svg-dash-anim"/>
+              <text x="235" y="215" fill="#fde047" font-size="10.5" font-weight="bold" font-family="monospace">Droite Objectif Z</text>
+
+              <!-- Axes -->
+              <line x1="45" y1="330" x2="390" y2="330" stroke="#94a3b8" stroke-width="2"/>
+              <line x1="60" y1="345" x2="60" y2="20" stroke="#94a3b8" stroke-width="2"/>
+              <text x="380" y="350" fill="#f8fafc" font-size="12" font-weight="bold">x₁</text>
+              <text x="38" y="30" fill="#f8fafc" font-size="12" font-weight="bold">x₂</text>
+
+              <!-- Graduations -->
+              <g fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="middle">
+                <text x="102" y="345">1</text>
+                <text x="144" y="345">2</text>
+                <text x="186" y="345">3</text>
+                <text x="228" y="345">4</text>
+                <text x="270" y="345">5</text>
+                <text x="312" y="345">6</text>
+                <text x="45" y="292">1</text>
+                <text x="45" y="250">2</text>
+                <text x="45" y="208">3</text>
+                <text x="45" y="166">4</text>
+                <text x="45" y="124">5</text>
+                <text x="45" y="82">6</text>
+              </g>
+
+              <!-- Points entiers réalisables du problème initial -->
+              <g fill="#10b981">
+                <circle cx="60" cy="330" r="4"/><circle cx="102" cy="330" r="4"/><circle cx="144" cy="330" r="4"/><circle cx="186" cy="330" r="4"/>
+                <circle cx="60" cy="288" r="4"/><circle cx="102" cy="288" r="4"/><circle cx="144" cy="288" r="4"/>
+                <circle cx="60" cy="246" r="4"/><circle cx="102" cy="246" r="4"/>
+                <circle cx="60" cy="204" r="6" stroke="#fef08a" stroke-width="2"/>
+              </g>
+              <text x="70" y="198" fill="#6ee7b7" font-size="10.5" font-weight="bold" font-family="monospace">★ (0,3) [Z*=12]</text>
+
+              <!-- Sommet d'intersection mobile (x1, x2) -->
+              <circle id="sens-opt-pt" cx="154.5" cy="267" r="7" fill="#f43f5e" stroke="#fef08a" stroke-width="2" class="glow-red"/>
+              <text id="sens-opt-lbl" x="166" y="262" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace">B(2,25 ; 1,5)</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Colonne Droite : Rédaction Examen des Questions 1, 2, 3 et 4 (6 colonnes) -->
+        <div class="lg:col-span-6 space-y-4">
+
+          <!-- Question 1 -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold text-xs">Question 1</span>
+              <span class="text-xs text-slate-400 mono">Variables d'écart $e_1, e_2 \ge 0$</span>
+            </div>
+            <h3 class="text-base font-bold text-white">1. Tableau initial du Simplexe</h3>
+            <p class="text-xs text-slate-300">
+              En introduisant les variables d'écart $e_1, e_2 \ge 0$ et en écrivant la ligne d'objectif sous la forme $z - 3x_1 - 4x_2 = 0$ (convention du tableau de l'énoncé) :
+            </p>
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-2 text-xs mono">
+              $$\begin{array}{|c|ccccc|c|}
+              \hline
+              \text{Base} & x_1 & x_2 & e_1 & e_2 & z & b \\
+              \hline
+              e_1 & 2 & 1 & 1 & 0 & 0 & 6 \\
+              e_2 & 2 & 3 & 0 & 1 & 0 & 9 \\
+              \hline
+              z & -3 & -4 & 0 & 0 & 1 & 0 \\
+              \hline
+              \end{array}$$
+            </div>
+          </div>
+
+          <!-- Question 2 -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-2">
+            <span class="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold text-xs">Question 2 — Intervalle de sensibilité de $b_2$</span>
+            <h3 class="text-base font-bold text-white">2. Variation du second membre de la 2<sup>e</sup> contrainte ($b_2 = 9 + \Delta b_2$)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Soit $b_2 = 9 + \Delta b_2$. La base optimale $B = (x_1, x_2)$ demeure réalisable (et donc optimale, car les coûts réduits ne dépendent pas de $b$) si et seulement si le nouveau second membre $b^*(\Delta b_2) = B^{-1} b(\Delta b_2)$ reste positif ou nul :
+              $$\begin{pmatrix} x_1 \\ x_2 \end{pmatrix} = \begin{pmatrix} 9/4 \\ 3/2 \end{pmatrix} + \Delta b_2 \underbrace{\begin{pmatrix} -1/4 \\ 1/2 \end{pmatrix}}_{\text{colonne de } e_2} \ge \begin{pmatrix} 0 \\ 0 \end{pmatrix} \iff \begin{cases} \frac{9}{4} - \frac{1}{4}\Delta b_2 \ge 0 \implies \Delta b_2 \le 9 \\ \frac{3}{2} + \frac{1}{2}\Delta b_2 \ge 0 \implies \Delta b_2 \ge -3 \end{cases}$$
+              En revenant à $b_2 = 9 + \Delta b_2$, on obtient $-3 \le b_2 - 9 \le 9$, soit :
+              $$\mathbf{b_2 \in [6, \; 18]}$$
+            </p>
+          </div>
+
+          <!-- Question 3 -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-2">
+            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs">Question 3 — Intervalle de sensibilité de $c_1$</span>
+            <h3 class="text-base font-bold text-white">3. Variation du coefficient $c_1$ dans $Z = c_1 x_1 + 4x_2$</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Avec $C_B = (c_1, \; 4)$, la solution actuelle reste optimale tant que les coûts réduits des variables hors-base $(e_1, e_2)$ sur la ligne $z$ (c'est-à-dire $C_B B^{-1}$) restent $\ge 0$ :
+              $$C_B B^{-1} = \begin{pmatrix} c_1 & 4 \end{pmatrix} \begin{pmatrix} 3/4 & -1/4 \\ -1/2 & 1/2 \end{pmatrix} = \left( \frac{3}{4}c_1 - 2 \;\; , \;\; -\frac{1}{4}c_1 + 2 \right) \ge (0, \; 0)$$
+              $$\begin{cases} \frac{3}{4}c_1 - 2 \ge 0 \implies c_1 \ge \frac{8}{3} \\ -\frac{1}{4}c_1 + 2 \ge 0 \implies c_1 \le 8 \end{cases} \implies \mathbf{c_1 \in \left[\frac{8}{3}, \; 8\right]}$$
+            </p>
+          </div>
+
+          <!-- Question 4 -->
+          <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 space-y-2">
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs">Question 4 — Introduction d'une nouvelle variable ($x_3$ ou $x_4$)</span>
+            <h3 class="text-base font-bold text-white">4. Ajout d'une variable de profit $c_3 = 2$ et de colonne $A_3 = \binom{1}{2}$</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Calculons sa colonne dans le tableau optimal $\overline{A}_3 = B^{-1}A_3$ et son coût réduit sur la ligne $z$ :
+              $$\overline{A}_3 = \begin{pmatrix} 3/4 & -1/4 \\ -1/2 & 1/2 \end{pmatrix} \begin{pmatrix} 1 \\ 2 \end{pmatrix} = \begin{pmatrix} 1/4 \\ 1/2 \end{pmatrix} \quad \text{et} \quad z_3 - c_3 = C_B \overline{A}_3 - c_3 = \begin{pmatrix} 3 & 4 \end{pmatrix}\begin{pmatrix} 1/4 \\ 1/2 \end{pmatrix} - 2 = \frac{11}{4} - 2 = \mathbf{+\frac{3}{4} > 0}$$
+              <strong>Conclusion :</strong> Comme son coût sur la ligne $z$ est positif ($+\frac{3}{4} \ge 0$, soit un gain marginal négatif $c_3 - z_3 = -3/4 < 0$), **il n'est pas rentable de produire cette nouvelle variable** ($x_{\text{nouv}}^* = 0$). L'ancienne solution reste optimale :
+              $$\mathbf{x_1^* = \frac{9}{4}, \quad x_2^* = \frac{3}{2}, \quad x_{\text{nouv}}^* = 0 \quad \text{et} \quad Z^* = \frac{51}{4} = 12,75}$$
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PARTIE 2 : QUESTIONS 5, 6 & 7 (COUPE DE GOMORY SUR x2 & SIMPLEXE DUAL) ================= -->
+    <section id="sec-q5-q7" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Partie 2 — Questions 5, 6 et 7 (Méthode des Coupes)</span>
+          <h2 class="text-2xl font-extrabold text-white">Coupe de Gomory associée à $x_2$ &amp; Résolution par le Simplexe Dual</h2>
+        </div>
+        <span class="text-xs text-emerald-300 mono">Ligne de $x_2$ : $x_2 - \frac{1}{2}e_1 + \frac{1}{2}e_2 = \frac{3}{2}$</span>
+      </div>
+
+      <!-- SCHÉMA SVG D'ANATOMIE DE LA COUPE DE GOMORY SUR x2 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+        <h3 class="text-base font-bold text-white">
+          🔬 Schéma SVG (Questions 5) : Extraction de la coupe de Gomory sur la ligne de base $x_2$
+        </h3>
+
+        <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <svg viewBox="0 0 900 295" class="w-full h-auto min-w-[680px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Équation de départ -->
+            <rect x="20" y="12" width="860" height="48" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="38" y="42" fill="#94a3b8" font-size="14" font-weight="bold">Ligne 2 (x₂) :</text>
+            <text x="190" y="42" fill="#38bdf8" font-size="17" font-weight="bold" font-family="monospace">1 · x₂</text>
+            <text x="285" y="42" fill="#cbd5e1" font-size="17" font-weight="bold" font-family="monospace">+</text>
+            <text x="335" y="42" fill="#f43f5e" font-size="17" font-weight="bold" font-family="monospace">(-1/2) · e₁</text>
+            <text x="495" y="42" fill="#cbd5e1" font-size="17" font-weight="bold" font-family="monospace">+</text>
+            <text x="545" y="42" fill="#60a5fa" font-size="17" font-weight="bold" font-family="monospace">(+1/2) · e₂</text>
+            <text x="705" y="42" fill="#cbd5e1" font-size="17" font-weight="bold" font-family="monospace">=</text>
+            <text x="760" y="42" fill="#fbbf24" font-size="17" font-weight="bold" font-family="monospace">3/2</text>
+
+            <!-- Flèches animées -->
+            <line x1="220" y1="60" x2="220" y2="95" stroke="#475569" stroke-width="2" class="svg-dash-anim"/>
+            <line x1="400" y1="60" x2="400" y2="95" stroke="#f43f5e" stroke-width="2.5" class="svg-dash-anim"/>
+            <line x1="610" y1="60" x2="610" y2="95" stroke="#38bdf8" stroke-width="2.5" class="svg-dash-anim"/>
+            <line x1="795" y1="60" x2="795" y2="95" stroke="#fbbf24" stroke-width="2.5" class="svg-dash-anim"/>
+
+            <!-- Boîte 1 : x2 -->
+            <rect x="135" y="98" width="165" height="82" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+            <text x="217" y="120" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle">Coeff de x₂ : 1</text>
+            <text x="217" y="144" fill="#34d399" font-size="14.5" font-weight="bold" text-anchor="middle" font-family="monospace">1 = 1 + 0</text>
+            <text x="217" y="166" fill="#64748b" font-size="12" text-anchor="middle" font-family="monospace">f = 0 (Entier)</text>
+
+            <!-- Boîte 2 : e1 (-1/2) -->
+            <rect x="315" y="98" width="190" height="82" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2.5"/>
+            <text x="410" y="120" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">⚠️ Coeff de e₁ : -1/2</text>
+            <text x="410" y="144" fill="#ffffff" font-size="14.5" font-weight="bold" text-anchor="middle" font-family="monospace">-1/2 = -1 + 1/2</text>
+            <text x="410" y="166" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f₁ = +1/2</text>
+
+            <!-- Boîte 3 : e2 (+1/2) -->
+            <rect x="520" y="98" width="185" height="82" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <text x="612" y="120" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">Coeff de e₂ : +1/2</text>
+            <text x="612" y="144" fill="#ffffff" font-size="14.5" font-weight="bold" text-anchor="middle" font-family="monospace">+1/2 = 0 + 1/2</text>
+            <text x="612" y="166" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f₂ = +1/2</text>
+
+            <!-- Boîte 4 : Second membre 3/2 -->
+            <rect x="720" y="98" width="160" height="82" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+            <text x="800" y="120" fill="#fde047" font-size="12" font-weight="bold" text-anchor="middle">Membre droit : 3/2</text>
+            <text x="800" y="144" fill="#ffffff" font-size="14.5" font-weight="bold" text-anchor="middle" font-family="monospace">3/2 = 1 + 1/2</text>
+            <text x="800" y="166" fill="#fde047" font-size="13" font-weight="bold" text-anchor="middle" font-family="monospace">➔ f = +1/2</text>
+
+            <!-- Regroupement -->
+            <path d="M 410 180 L 410 205 L 550 205" fill="none" stroke="#fde047" stroke-width="2"/>
+            <path d="M 612 180 L 612 205 L 550 205" fill="none" stroke="#fde047" stroke-width="2"/>
+            <path d="M 800 180 L 800 205 L 550 205" fill="none" stroke="#fde047" stroke-width="2"/>
+            <line x1="550" y1="205" x2="550" y2="225" stroke="#fde047" stroke-width="2.5"/>
+
+            <!-- Boîte Finale Coupe -->
+            <rect x="135" y="225" width="745" height="58" rx="12" fill="#064e3b" stroke="#34d399" stroke-width="2.5"/>
+            <text x="155" y="249" fill="#a7f3d0" font-size="13" font-weight="bold">Coupe de Gomory (∑ fⱼ · eⱼ ≥ f) :</text>
+            <text x="410" y="250" fill="#fde047" font-size="15.5" font-weight="bold" font-family="monospace">(1/2)e₁ + (1/2)e₂ ≥ 1/2</text>
+            <text x="155" y="272" fill="#ffffff" font-size="12.5" font-family="monospace">• Avec variable d'écart e₃ ≥ 0 :  -(1/2)e₁ - (1/2)e₂ + e₃ = -1/2   |   • En (x₁, x₂) : 2x₁ + 2x₂ ≤ 7</text>
+          </svg>
+        </div>
+
+        <!-- Simulateur Pas à Pas du Simplexe Dual (Question 6-7) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-2">
+          <div class="lg:col-span-7 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h4 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Question 6 &amp; 7 — Intégration de la coupe &amp; Simplexe Dual</h4>
+              <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button id="btn-gom4-0" onclick="setGomoryStep4(0)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">1. Ajout de $e_3$</button>
+                <button id="btn-gom4-1" onclick="setGomoryStep4(1)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">2. Choix du Pivot</button>
+                <button id="btn-gom4-2" onclick="setGomoryStep4(2)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition">3. Nouveau Tableau</button>
+              </div>
+            </div>
+
+            <div id="gom4-banner" class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs sm:text-sm text-emerald-100">
+              <!-- Rempli par JS -->
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+              <table class="w-full text-xs sm:text-sm text-center border-collapse mono">
+                <thead>
+                  <tr class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                    <th class="py-2.5 px-3 text-left font-sans">Base</th>
+                    <th class="py-2.5 px-3 text-sky-400">$x_1$</th>
+                    <th class="py-2.5 px-3 text-sky-400">$x_2$</th>
+                    <th class="py-2.5 px-3 text-slate-200">$e_1$</th>
+                    <th class="py-2.5 px-3 text-slate-200">$e_2$</th>
+                    <th class="py-2.5 px-3 text-amber-400">$e_3$ (Coupe)</th>
+                    <th class="py-2.5 px-3 text-purple-400">$z$</th>
+                    <th class="py-2.5 px-3 text-emerald-400 font-bold">$b$</th>
+                  </tr>
+                </thead>
+                <tbody id="gom4-body" class="divide-y divide-slate-800/80">
+                  <!-- Rempli par JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 text-xs sm:text-sm">
+            <div class="font-bold text-amber-400">Rédaction Examen (Questions 5, 6 &amp; 7) :</div>
+            <p class="text-slate-300 leading-relaxed">
+              • **Coupe de Gomory sur $x_2$ :** De $x_2 + (-1 + \frac{1}{2})e_1 + (0 + \frac{1}{2})e_2 = 1 + \frac{1}{2}$, on tire :
+              $$\frac{1}{2}e_1 + \frac{1}{2}e_2 \ge \frac{1}{2} \iff \mathbf{-\frac{1}{2}e_1 - \frac{1}{2}e_2 + e_3 = -\frac{1}{2}}$$
+              • **Pivot du Simplexe Dual :** La variable $e_3 = -1/2 < 0$ **sort de la base**. On compare les ratios $\left|\frac{z_j - c_j}{a_{3j}}\right|$ pour $a_{3j} < 0$ :
+              $$\min \left\{ \underbrace{\frac{1/4}{|-1/2|}}_{\text{col. } e_1 \; = \; \mathbf{1/2}} \; , \; \underbrace{\frac{5/4}{|-1/2|}}_{\text{col. } e_2 \; = \; 5/2} \right\} = \frac{1}{2} \implies \mathbf{e_1 \text{ entre en base}}$$
+              • **Résultat du PL généré :** Après pivotage ($L'_3 = -2L_3$), le PL généré par cette première coupe atteint son optimum en :
+              $$\mathbf{x_1 = \frac{3}{2}, \quad x_2 = 2, \quad e_1 = 1 \quad \text{et} \quad Z = \frac{25}{2} = 12,5}$$
+              *(Remarque : comme $x_1 = 3/2$ est encore fractionnaire, il faudrait ajouter une 2<sup>e</sup> coupe en PLNE pur, ou passer au Branch-and-Bound ci-dessous !)*
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PARTIE 3 : QUESTIONS 8 À 12 (ARBORESCENCE BRANCH-AND-BOUND) ================= -->
+    <section id="sec-q8-q12" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Partie 3 — Questions 8, 9, 10, 11 et 12</span>
+          <h2 class="text-2xl font-extrabold text-white">Analyse Complète de l'Arborescence de Branch-and-Bound</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button id="btn-tree-mode-0" onclick="setTreeMode(0)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            🌳 Arbre de l'Énoncé (Q8 à Q11 : Profondeur d'abord)
+          </button>
+          <button id="btn-tree-mode-1" onclick="setTreeMode(1)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            🚀 Arbre « Meilleur d'abord » (Question 12 : 5 nœuds seulement !)
+          </button>
+        </div>
+      </div>
+
+      <!-- VISUALISATION SVG ANIMÉE DES DEUX ARBRES (ÉNONCÉ VS MEILLEUR D'ABORD) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div id="tree-mode-banner" class="p-4 rounded-xl bg-purple-950/40 border border-purple-500/40 text-xs sm:text-sm text-purple-100 leading-relaxed">
+          <!-- Rempli par JS -->
+        </div>
+
+        <!-- ARBRE 1 : ARBORESCENCE DE L'ÉNONCÉ (9 NŒUDS AVEC ORDRE DE DÉVELOPPEMENT ET BORNES) -->
+        <div id="svg-tree-given" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-3">
+          <div class="text-xs font-bold text-slate-400 mb-2 flex flex-wrap justify-between gap-2">
+            <span>📌 Arborescence de l'énoncé avec numéros d'ordre ① à ⑨ (Q10) et évolution des bornes BS / BI (Q11)</span>
+            <span class="mono text-emerald-400">★ Solution Optimale Entière : P(3,1) avec x₁*=0, x₂*=3, Z*=12</span>
+          </div>
+          <svg viewBox="0 0 920 510" class="w-full h-auto min-w-[740px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Arêtes Niveau 0 -> Niveau 1 -->
+            <line x1="410" y1="78" x2="260" y2="140" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect x="275" y="92" width="70" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+            <text x="310" y="106" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≥ 2</text>
+
+            <line x1="510" y1="78" x2="660" y2="140" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect x="565" y="92" width="70" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+            <text x="600" y="106" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≤ 1</text>
+
+            <!-- Arêtes Niveau 1 -> Niveau 2 (Gauche) -->
+            <line x1="220" y1="210" x2="140" y2="275" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect x="125" y="228" width="70" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+            <text x="160" y="242" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ 1</text>
+
+            <line x1="280" y1="210" x2="360" y2="275" stroke="#f43f5e" stroke-width="2.5"/>
+            <rect x="300" y="228" width="70" height="20" rx="5" fill="#0f172a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="335" y="242" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ 2</text>
+
+            <!-- Arêtes Niveau 1 -> Niveau 2 (Droite) -->
+            <line x1="630" y1="210" x2="570" y2="275" stroke="#fbbf24" stroke-width="2.5"/>
+            <rect x="550" y="228" width="70" height="20" rx="5" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+            <text x="585" y="242" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≤ 2</text>
+
+            <line x1="690" y1="210" x2="780" y2="275" stroke="#fbbf24" stroke-width="2.5"/>
+            <rect x="715" y="228" width="70" height="20" rx="5" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+            <text x="750" y="242" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ ≥ 3</text>
+
+            <!-- Arêtes Niveau 2 -> Niveau 3 (Sous P(2,0)) -->
+            <line x1="115" y1="350" x2="95" y2="415" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect x="52" y="368" width="70" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+            <text x="87" y="382" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≤ 2</text>
+
+            <line x1="165" y1="350" x2="290" y2="415" stroke="#10b981" stroke-width="3" class="svg-dash-anim"/>
+            <rect x="205" y="368" width="70" height="20" rx="5" fill="#064e3b" stroke="#10b981" stroke-width="1.2"/>
+            <text x="240" y="382" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">x₂ ≥ 3</text>
+
+            <!-- NŒUD P(0,0) -->
+            <g>
+              <rect x="345" y="10" width="230" height="68" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+              <circle cx="362" cy="26" r="11" fill="#f59e0b"/><text x="362" y="30" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">1</text>
+              <text x="468" y="29" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">P(0,0) — Racine</text>
+              <text x="460" y="48" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 2,25  |  x₂ = 1,5</text>
+              <text x="460" y="66" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 12,75  (BS = 12,75 | BI = -∞)</text>
+            </g>
+
+            <!-- NŒUD P(1,0) -->
+            <g>
+              <rect x="145" y="140" width="220" height="70" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <circle cx="162" cy="156" r="11" fill="#f59e0b"/><text x="162" y="160" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">2</text>
+              <text x="262" y="159" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P(1,0) : x₂ ≥ 2</text>
+              <text x="255" y="178" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 3/2 (1,5) | x₂ = 2</text>
+              <text x="255" y="196" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 12,5  (BS = 12,5)</text>
+            </g>
+
+            <!-- NŒUD P(1,1) -->
+            <g>
+              <rect x="550" y="140" width="220" height="70" rx="10" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
+              <circle cx="567" cy="156" r="11" fill="#f59e0b"/><text x="567" y="160" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">3</text>
+              <text x="667" y="159" fill="#fde047" font-size="12" font-weight="bold" text-anchor="middle">P(1,1) : x₂ ≤ 1</text>
+              <text x="660" y="178" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 5/2 (2,5) | x₂ = 1</text>
+              <text x="660" y="196" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 11,5 (Développé avant P(3,1) !)</text>
+            </g>
+
+            <!-- NŒUD P(2,0) -->
+            <g>
+              <rect x="30" y="275" width="215" height="75" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <circle cx="47" cy="291" r="11" fill="#f59e0b"/><text x="47" y="295" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">4</text>
+              <text x="145" y="294" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P(2,0) : x₂≥2, x₁≤1</text>
+              <text x="137" y="313" fill="#ffffff" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Énoncé: Z=12,75 (Vrai: x₁=1,x₂=7/3)</text>
+              <text x="137" y="331" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Non entier ➔ Sépare sur x₂</text>
+            </g>
+
+            <!-- NŒUD P(2,1) -->
+            <g>
+              <rect x="260" y="275" width="190" height="70" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2"/>
+              <circle cx="277" cy="291" r="11" fill="#f43f5e"/><text x="277" y="295" fill="#fff" font-size="11" font-weight="bold" text-anchor="middle">5</text>
+              <text x="362" y="294" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">P(2,1) : x₂≥2, x₁≥2</text>
+              <text x="355" y="314" fill="#ffffff" font-size="11" font-family="monospace" text-anchor="middle">2(2) + 3(2) = 10 &gt; 9</text>
+              <text x="355" y="332" fill="#fda4af" font-size="11.5" font-weight="bold" text-anchor="middle">✗ Irréalisable (∅)</text>
+            </g>
+
+            <!-- NŒUD P(2,2) -->
+            <g>
+              <rect x="470" y="275" width="195" height="72" rx="10" fill="#064e3b" fill-opacity="0.4" stroke="#34d399" stroke-width="2"/>
+              <circle cx="487" cy="291" r="11" fill="#34d399"/><text x="487" y="295" fill="#052e16" font-size="11" font-weight="bold" text-anchor="middle">6</text>
+              <text x="575" y="294" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">P(2,2) : x₂≤1, x₁≤2</text>
+              <text x="567" y="313" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 2  |  x₂ = 1 (Entier ✓)</text>
+              <text x="567" y="332" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 10  (1re Borne BI = 10)</text>
+            </g>
+
+            <!-- NŒUD P(2,3) -->
+            <g>
+              <rect x="685" y="275" width="215" height="72" rx="10" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+              <circle cx="702" cy="291" r="11" fill="#94a3b8"/><text x="702" y="295" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">7</text>
+              <text x="798" y="294" fill="#cbd5e1" font-size="12" font-weight="bold" text-anchor="middle">P(2,3) : x₂≤1, x₁≥3</text>
+              <text x="792" y="313" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 3  |  x₂ = 0 (Entier ✓)</text>
+              <text x="792" y="332" fill="#94a3b8" font-size="11" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 9 &lt; 10 (Moins bon)</text>
+            </g>
+
+            <!-- NŒUD P(3,0) -->
+            <g>
+              <rect x="15" y="415" width="185" height="75" rx="10" fill="#064e3b" fill-opacity="0.4" stroke="#34d399" stroke-width="2"/>
+              <circle cx="32" cy="431" r="11" fill="#34d399"/><text x="32" y="435" fill="#052e16" font-size="11" font-weight="bold" text-anchor="middle">8</text>
+              <text x="115" y="434" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">P(3,0) : x₂ = 2</text>
+              <text x="107" y="453" fill="#ffffff" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">x₁ = 1  |  x₂ = 2 (Entier ✓)</text>
+              <text x="107" y="472" fill="#fde047" font-size="11.5" font-weight="bold" font-family="monospace" text-anchor="middle">Z = 11  (Nouvelle BI = 11)</text>
+            </g>
+
+            <!-- NŒUD P(3,1) OPTIMUM -->
+            <g class="glow-green">
+              <rect x="220" y="415" width="225" height="75" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+              <circle cx="237" cy="431" r="11" fill="#10b981"/><text x="237" y="435" fill="#052e16" font-size="11" font-weight="bold" text-anchor="middle">9</text>
+              <text x="340" y="434" fill="#6ee7b7" font-size="12.5" font-weight="bold" text-anchor="middle">★ P(3,1) : x₂ ≥ 3 (OPTIMUM)</text>
+              <text x="332" y="453" fill="#ffffff" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">x₁* = 0  |  x₂* = 3 (Entier ✓)</text>
+              <text x="332" y="472" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Z* = 12  (Borne finale BI = 12)</text>
+            </g>
+
+            <!-- Légende en bas à droite de l'arbre -->
+            <rect x="475" y="380" width="425" height="110" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+            <text x="492" y="402" fill="#fde047" font-size="12.5" font-weight="bold">💡 Pourquoi P(1,1) a-t-il été séparé dans l'arbre de l'énoncé ?</text>
+            <text x="492" y="422" fill="#cbd5e1" font-size="11.5">Si P(3,1) (Z=12) avait été trouvé AVANT P(1,1) (Z=11,5), alors P(1,1)</text>
+            <text x="492" y="440" fill="#cbd5e1" font-size="11.5">aurait été élagué par borne (car 11,5 &lt; 12) ! Le fait que P(1,1) soit</text>
+            <text x="492" y="458" fill="#6ee7b7" font-size="11.5" font-weight="bold">développé prouve que la branche de droite (ou le parcours en largeur)</text>
+            <text x="492" y="476" fill="#6ee7b7" font-size="11.5" font-weight="bold">a été évaluée AVANT d'atteindre P(3,1) !</text>
+          </svg>
+        </div>
+
+        <!-- ARBRE 2 : STRATÉGIE « MEILLEUR D'ABORD » (QUESTION 12 - CACHÉ PAR DÉFAUT) -->
+        <div id="svg-tree-bestfirst" class="hidden w-full overflow-x-auto rounded-xl bg-slate-950 border border-emerald-500/40 p-3">
+          <div class="text-xs font-bold text-emerald-400 mb-2 flex flex-wrap justify-between gap-2">
+            <span>🚀 Question 12 — Arborescence avec la stratégie « Meilleur d'abord » (Best-First Search)</span>
+            <span class="mono text-amber-300">P(1,1) est stérilisé par borne (11,5 &lt; 12) sans jamais être séparé !</span>
+          </div>
+          <svg viewBox="0 0 880 490" class="w-full h-auto min-w-[700px]" xmlns="http://www.w3.org/2000/svg">
+            <!-- Arêtes -->
+            <line x1="400" y1="78" x2="260" y2="140" stroke="#10b981" stroke-width="2.5"/>
+            <text x="305" y="105" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">x₂ ≥ 2</text>
+
+            <line x1="500" y1="78" x2="640" y2="140" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <text x="590" y="105" fill="#fde047" font-size="11" font-weight="bold" font-family="monospace">x₂ ≤ 1</text>
+
+            <line x1="220" y1="210" x2="150" y2="275" stroke="#10b981" stroke-width="2.5"/>
+            <text x="155" y="242" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">x₁ ≤ 1</text>
+
+            <line x1="290" y1="210" x2="370" y2="275" stroke="#f43f5e" stroke-width="2.5"/>
+            <text x="350" y="242" fill="#fda4af" font-size="11" font-weight="bold" font-family="monospace">x₁ ≥ 2</text>
+
+            <line x1="130" y1="348" x2="105" y2="405" stroke="#38bdf8" stroke-width="2.5"/>
+            <text x="85" y="380" fill="#7dd3fc" font-size="11" font-weight="bold" font-family="monospace">x₂ ≤ 2</text>
+
+            <line x1="180" y1="348" x2="310" y2="405" stroke="#10b981" stroke-width="3" class="svg-dash-anim"/>
+            <text x="270" y="380" fill="#6ee7b7" font-size="11" font-weight="bold" font-family="monospace">x₂ ≥ 3</text>
+
+            <!-- Nœud 1 : P(0,0) -->
+            <rect x="335" y="10" width="230" height="68" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+            <text x="450" y="30" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">1° P(0,0) : Z = 12,75</text>
+            <text x="450" y="49" fill="#ffffff" font-size="11.5" font-family="monospace" text-anchor="middle">x₁ = 2,25 | x₂ = 1,5</text>
+            <text x="450" y="66" fill="#94a3b8" font-size="10.5" text-anchor="middle">Génère P(1,0) [12,5] et P(1,1) [11,5]</text>
+
+            <!-- Nœud 2 : P(1,0) -->
+            <rect x="145" y="140" width="230" height="70" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2.5"/>
+            <text x="260" y="160" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">2° P(1,0) : Z = 12,5 (Meilleur !)</text>
+            <text x="260" y="179" fill="#ffffff" font-size="11.5" font-family="monospace" text-anchor="middle">x₁ = 1,5 | x₂ = 2</text>
+            <text x="260" y="197" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Choisi car 12,5 &gt; 11,5 !</text>
+
+            <!-- Nœud P(1,1) ÉLAGUÉ PAR BORNE -->
+            <rect x="525" y="140" width="265" height="82" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2.5"/>
+            <text x="657" y="162" fill="#fde047" font-size="12.5" font-weight="bold" text-anchor="middle">✂ P(1,1) : x₂ ≤ 1  [Z = 11,5]</text>
+            <text x="657" y="182" fill="#ffffff" font-size="11.5" font-family="monospace" text-anchor="middle">x₁ = 2,5 | x₂ = 1</text>
+            <text x="657" y="201" fill="#fda4af" font-size="11.5" font-weight="bold" text-anchor="middle">STÉRILISÉ PAR BORNE (Z=11,5 &lt; Z*=12)</text>
+            <text x="657" y="216" fill="#fde047" font-size="10.5" text-anchor="middle">➔ P(2,2) et P(2,3) ne sont JAMAIS créés !</text>
+
+            <!-- Nœud 3 : P(2,0) -->
+            <rect x="45" y="275" width="220" height="73" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+            <text x="155" y="295" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">3° P(2,0) : x₂≥2, x₁≤1</text>
+            <text x="155" y="314" fill="#ffffff" font-size="11" font-family="monospace" text-anchor="middle">Z = 12,75 (énoncé) / 12,33 (exact)</text>
+            <text x="155" y="334" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Choisi car Z &gt; 11,5 (de P(1,1))</text>
+
+            <!-- Nœud P(2,1) -->
+            <rect x="285" y="275" width="185" height="68" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="2"/>
+            <text x="377" y="298" fill="#fda4af" font-size="12" font-weight="bold" text-anchor="middle">P(2,1) : Irréalisable ∅</text>
+            <text x="377" y="320" fill="#ffffff" font-size="11" font-family="monospace" text-anchor="middle">Stérilisé (∅)</text>
+
+            <!-- Nœud P(3,0) -->
+            <rect x="15" y="405" width="185" height="70" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+            <text x="107" y="426" fill="#7dd3fc" font-size="12" font-weight="bold" text-anchor="middle">P(3,0) : x₁=1, x₂=2</text>
+            <text x="107" y="446" fill="#ffffff" font-size="11.5" font-family="monospace" text-anchor="middle">Entier : Z = 11</text>
+            <text x="107" y="464" fill="#94a3b8" font-size="10.5" text-anchor="middle">Stérilisé (Entier)</text>
+
+            <!-- Nœud P(3,1) OPTIMUM -->
+            <rect x="225" y="405" width="225" height="70" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="3" class="glow-green"/>
+            <text x="337" y="426" fill="#6ee7b7" font-size="12.5" font-weight="bold" text-anchor="middle">★ P(3,1) : x₁*=0, x₂*=3</text>
+            <text x="337" y="446" fill="#fde047" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">Entier : Z* = 12 (Nouvelle BI = 12)</text>
+            <text x="337" y="464" fill="#a7f3d0" font-size="10.5" text-anchor="middle">Coupe immédiatement P(1,1) [11,5 &lt; 12] !</text>
+          </svg>
+        </div>
+
+        <!-- RÉDACTION EXAMEN DES QUESTIONS 8, 9, 10, 11 ET 12 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-xs sm:text-sm">
+
+          <!-- Question 8 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2">
+            <div class="font-bold text-emerald-400">8. Valeur optimale de $(PE)$ :</div>
+            <p class="text-slate-300 leading-relaxed">
+              Parmi toutes les feuilles réalisables et entières de l'arborescence :
+              <br>• $P(2,2) : (2, 1) \implies Z = 10$
+              <br>• $P(2,3) : (3, 0) \implies Z = 9$
+              <br>• $P(3,0) : (1, 2) \implies Z = 11$
+              <br>• **$P(3,1) : (0, 3) \implies Z = 12$**
+              <br>La valeur maximale entière est atteinte au nœud **$P(3,1)$** avec **$\mathbf{Z^* = 12}$** (pour $x_1^* = 0$ et $x_2^* = 3$).
+            </p>
+          </div>
+
+          <!-- Question 9 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-amber-500/40 space-y-2">
+            <div class="font-bold text-amber-400">9. Encadrement le plus précis de $Z^*$ avec la branche de droite seule :</div>
+            <p class="text-slate-300 leading-relaxed">
+              En ne connaissant que $P(0,0)$, $P(1,1)$, $P(2,2)$ et $P(2,3)$ :
+              <br>• **Borne Inférieure ($BI$) :** La meilleure solution entière trouvée sur cette branche est $P(2,2) = (2,1)$ qui donne **$Z = 10$** (meilleur que $P(2,3)$ où $Z=9$). Donc $Z^* \ge 10$.
+              <br>• **Borne Supérieure ($BS$) :** Au nœud racine $P(0,0)$, le maximum continu vaut $Z = 12,75$. Comme les coefficients de $Z = 3x_1 + 4x_2$ sont tous **entiers** et que $x_1, x_2 \in \mathbb{N}$, $Z^*$ est obligatoirement un **entier** : $Z^* \le \lfloor 12,75 \rfloor = 12$.
+              <br><strong>Encadrement :</strong> $\mathbf{10 \le Z^* \le 12,75}$ *(et comme $Z^* \in \mathbb{N}$, l'encadrement entier le plus précis est $\mathbf{10 \le Z^* \le 12}$)*.
+            </p>
+          </div>
+
+          <!-- Question 10 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-sky-400">10. Dans quel ordre les nœuds ont-ils été développés ?</div>
+            <p class="text-slate-300 leading-relaxed">
+              **Observation clé :** Le nœud $P(1,1)$ a une borne $Z = 11,5$, alors que le nœud $P(3,1)$ donne une solution entière de valeur $Z = 12$. Si $P(3,1)$ avait été évalué *avant* de séparer $P(1,1)$, le nœud $P(1,1)$ aurait été **élagué par borne** ($11,5 < 12$) !
+              <br>Le fait que $P(1,1)$ ait été séparé en $P(2,2)$ et $P(2,3)$ prouve que $P(1,1)$ a été développé **avant** d'atteindre le niveau 3 :
+              <br>• **Cas 1 (Parcours en largeur niveau par niveau) :**
+              $$P(0,0) \to P(1,0) \to P(1,1) \to P(2,0) \to P(2,1) \to P(2,2) \to P(2,3) \to P(3,0) \to P(3,1)$$
+              • **Cas 2 (Profondeur d'abord en commençant par la branche de droite) :**
+              $$P(0,0) \to P(1,1) \to P(2,2) \to P(2,3) \to P(1,0) \to P(2,0) \to P(3,0) \to P(3,1) \to P(2,1)$$
+            </p>
+          </div>
+
+          <!-- Question 11 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="font-bold text-purple-400">11. Différentes valeurs prises par la borne du problème ($\hat{z}$ / BI et BS) :</div>
+            <p class="text-slate-300 leading-relaxed">
+              • **Évolution de la Borne Inférieure $\underline{Z}$ (meilleure solution entière connue) :**
+              <br>1. Initialisation aux nœuds non entiers $P(0,0), P(1,0), P(1,1), P(2,0)$ : **$\underline{Z} = -\infty$**
+              <br>2. Au nœud entier $P(2,2)$ $(2,1)$ : **$\underline{Z} = 10$** *(inchangée en $P(2,3)$ car $9 < 10$)*
+              <br>3. Au nœud entier $P(3,0)$ $(1,2)$ : **$\underline{Z} = 11$** *(car $11 > 10$)*
+              <br>4. Au nœud entier $P(3,1)$ $(0,3)$ : **$\underline{Z} = 12$** *(Optimum final)*
+              <br>• **Évolution de la Borne Supérieure $\overline{Z}$ :** **$12,75$** en $P(0,0)$, puis **$12,5$** après séparation de la racine, et enfin **$12$** à la fin de l'arbre.
+            </p>
+          </div>
+
+          <!-- Question 12 -->
+          <div class="md:col-span-2 p-4 rounded-xl bg-emerald-950/30 border-2 border-emerald-500/50 space-y-2">
+            <div class="font-bold text-emerald-300 text-base">12. Stratégie « Meilleur d'abord » (Best-First Search) — L'arborescence réduite :</div>
+            <p class="text-slate-200 leading-relaxed">
+              Avec la stratégie **« Meilleur d'abord »**, à chaque étape on choisit de séparer le nœud actif ayant **la plus grande évaluation $Z$** :
+              <br>1. On sépare **$P(0,0)$** ($Z = 12,75$) $\rightarrow$ crée $P(1,0)$ ($Z = 12,5$) et $P(1,1)$ ($Z = 11,5$).
+              <br>2. Entre $12,5$ et $11,5$, le meilleur est **$P(1,0)$ ($Z = 12,5$)** : on sépare $P(1,0)$ $\rightarrow$ crée $P(2,0)$ ($Z = 12,75$ dans l'énoncé, ou $37/3 \approx 12,33$ en valeur exacte) et $P(2,1)$ (irréalisable).
+              <br>3. Entre $P(2,0)$ ($Z > 12$) et $P(1,1)$ ($Z = 11,5$), le meilleur est **$P(2,0)$** : on sépare $P(2,0)$ $\rightarrow$ crée $P(3,0)$ (entier, $Z = 11$) et **$P(3,1)$ (entier, $Z = 12$)**. La meilleure solution entière passe à **$\underline{Z} = 12$**.
+              <br>4. Il ne reste plus que le nœud ouvert **$P(1,1)$** dont la borne vaut $Z = 11,5$. Or **$11,5 < 12$** : **$P(1,1)$ est immédiatement stérilisé par borne !** Les nœuds $P(2,2)$ et $P(2,3)$ ne sont **jamais générés**. *(Clique sur le bouton « Arbre Meilleur d'abord » ci-dessus pour voir le schéma à recopier !)*
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // --- 1. SIMULATEUR GRAPHIQUE DE SENSIBILITÉ (Q2 & Q3) ---
+    function updateSensitivity() {
+      const b2 = parseFloat(document.getElementById('slider-b2').value);
+      const c1 = parseFloat(document.getElementById('slider-c1').value);
+
+      document.getElementById('lbl-b2').textContent = `b₂ = ${b2.toFixed(1)}`;
+      document.getElementById('lbl-c1').textContent = `c₁ = ${c1.toFixed(1)}`;
+
+      // Calcul du sommet d'intersection de 2x1 + x2 = 6 et 2x1 + 3x2 = b2 :
+      // 2*x2 = b2 - 6 => x2 = (b2 - 6)/2 = 3/2 + 0.5*(b2 - 9)
+      // x1 = (6 - x2)/2 = (18 - b2)/4 = 9/4 - 0.25*(b2 - 9)
+      const x1 = (18 - b2) / 4;
+      const x2 = (b2 - 6) / 2;
+
+      // Coûts réduits sur la ligne z :
+      const rc1 = 0.75 * c1 - 2;      // sous e1
+      const rc2 = -0.25 * c1 + 2;     // sous e2
+
+      // Conversion en coordonnées SVG : Origine (60, 330), 1 unité = 42px
+      const px = 60 + x1 * 42;
+      const py = 330 - x2 * 42;
+
+      const pt = document.getElementById('sens-opt-pt');
+      const lbl = document.getElementById('sens-opt-lbl');
+      pt.setAttribute('cx', px.toFixed(1));
+      pt.setAttribute('cy', py.toFixed(1));
+      lbl.setAttribute('x', (px + 10).toFixed(1));
+      lbl.setAttribute('y', (py - 6).toFixed(1));
+      lbl.textContent = `B(${x1.toFixed(2)} ; ${x2.toFixed(2)})`;
+
+      // Droite C2 : 2x1 + 3x2 = b2 -> passe par (0, b2/3) et (b2/2, 0)
+      const yIntC2 = 330 - (b2 / 3) * 42;
+      const xIntC2 = 60 + (b2 / 2) * 42;
+      const lineC2 = document.getElementById('sens-line-c2');
+      lineC2.setAttribute('x1', '60');
+      lineC2.setAttribute('y1', yIntC2.toFixed(1));
+      lineC2.setAttribute('x2', xIntC2.toFixed(1));
+      lineC2.setAttribute('y2', '330');
+      document.getElementById('sens-txt-c2').textContent = `C₂ : 2x₁ + 3x₂ ≤ ${b2.toFixed(1)}`;
+
+      // Polygone réalisable si 6 <= b2 <= 18
+      const poly = document.getElementById('sens-poly');
+      if (b2 >= 6 && b2 <= 18) {
+        poly.setAttribute('points', `60,330 186,330 ${px.toFixed(1)},${py.toFixed(1)} 60,${yIntC2.toFixed(1)}`);
+        poly.setAttribute('fill', 'rgba(56, 189, 248, 0.16)');
+      } else {
+        poly.setAttribute('fill', 'rgba(244, 63, 94, 0.18)');
+      }
+
+      // Droite d'objectif Z = c1*x1 + 4*x2 passant par B(x1, x2)
+      const Z = c1 * x1 + 4 * x2;
+      // En x1 = 0 -> x2 = Z/4 ; en x1 = 5.2 -> x2 = (Z - 5.2*c1)/4
+      const objY1 = 330 - (Z / 4) * 42;
+      const objY2 = 330 - ((Z - 5.2 * c1) / 4) * 42;
+      const lineObj = document.getElementById('sens-line-obj');
+      lineObj.setAttribute('x1', '60');
+      lineObj.setAttribute('y1', objY1.toFixed(1));
+      lineObj.setAttribute('x2', (60 + 5.2 * 42).toFixed(1));
+      lineObj.setAttribute('y2', objY2.toFixed(1));
+
+      // Statut de validité
+      const feasible = x1 >= -0.001 && x2 >= -0.001;
+      const optimal = rc1 >= -0.001 && rc2 >= -0.001;
+      const statusBox = document.getElementById('sens-status');
+
+      if (feasible && optimal) {
+        statusBox.className = 'p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs mono text-emerald-200';
+        statusBox.textContent = `✓ Base réalisable & optimale : x₁=${x1.toFixed(2)} ≥ 0, x₂=${x2.toFixed(2)} ≥ 0 | Coûts z : (${rc1.toFixed(2)}, ${rc2.toFixed(2)}) ≥ 0`;
+      } else if (!feasible) {
+        statusBox.className = 'p-3 rounded-xl bg-rose-950/50 border border-rose-500/50 text-xs mono text-rose-200 font-bold';
+        statusBox.textContent = `✗ Base NON RÉALISABLE (b₂ hors de [6 ; 18]) : x₁=${x1.toFixed(2)}, x₂=${x2.toFixed(2)} (une coordonnée est < 0 !)`;
+      } else {
+        statusBox.className = 'p-3 rounded-xl bg-amber-950/50 border border-amber-500/50 text-xs mono text-amber-200 font-bold';
+        statusBox.textContent = `⚠️ Base NON OPTIMALE (c₁ hors de [2,67 ; 8]) : Coûts réduits (${rc1.toFixed(2)}, ${rc2.toFixed(2)}) — un coût est < 0 !`;
+      }
+    }
+
+    function resetSensitivity() {
+      document.getElementById('slider-b2').value = 9;
+      document.getElementById('slider-c1').value = 3;
+      updateSensitivity();
+    }
+
+    // --- 2. TABLEAUX DU SIMPLEXE DUAL APRÈS COUPE DE GOMORY (Q5-Q7) ---
+    const gomorySteps4 = [
+      {
+        banner: "<strong>Étape 1 — Insertion de la coupe de Gomory associée à $x_2$ :</strong> On ajoute la ligne $-\\frac{1}{2}e_1 - \\frac{1}{2}e_2 + e_3 = -\\frac{1}{2}$. Comme $b_{e_3} = -1/2 < 0$, la variable <strong>$e_3$ sort de la base</strong>.",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", e1: "3/4", e2: "-1/4", e3: "0", z: "0", b: "9/4", style: "" },
+          { base: "x₂", x1: "0", x2: "1", e1: "-1/2", e2: "1/2", e3: "0", z: "0", b: "3/2", style: "" },
+          { base: "e₃ (Sort < 0)", x1: "0", x2: "0", e1: "-1/2", e2: "-1/2", e3: "1", z: "0", b: "-1/2", style: "bg-rose-950/50 text-rose-200 font-bold" },
+          { base: "z", x1: "0", x2: "0", e1: "1/4", e2: "5/4", e3: "0", z: "1", b: "51/4", style: "bg-slate-900 font-bold text-amber-300 border-t-2 border-slate-700" }
+        ]
+      },
+      {
+        banner: "<strong>Étape 2 — Sélection de la variable entrante (Simplexe Dual) :</strong> On calcule les ratios $|(z_j - c_j) / a_{3j}|$ pour $a_{3j} < 0$. Sous $e_1$ : $(1/4)/(1/2) = \\mathbf{1/2}$. Sous $e_2$ : $(5/4)/(1/2) = 5/2$. Le minimum est $1/2$ : <strong>$e_1$ entre dans la base</strong> (Pivot = $-1/2$).",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", e1: "3/4", e2: "-1/4", e3: "0", z: "0", b: "9/4", style: "" },
+          { base: "x₂", x1: "0", x2: "1", e1: "-1/2", e2: "1/2", e3: "0", z: "0", b: "3/2", style: "" },
+          { base: "e₃ (Sort)", x1: "0", x2: "0", e1: "-1/2 (Pivot)", e2: "-1/2", e3: "1", z: "0", b: "-1/2", style: "bg-emerald-950/50 text-emerald-200 font-bold" },
+          { base: "z", x1: "0", x2: "0", e1: "1/4", e2: "5/4", e3: "0", z: "1", b: "51/4", style: "bg-slate-900 text-slate-300 border-t border-slate-700" },
+          { base: "Ratio Dual", x1: "—", x2: "—", e1: "1/2 (Min ➔ Entre)", e2: "5/2", e3: "—", z: "—", b: "", style: "bg-amber-950/40 font-bold text-amber-300" }
+        ]
+      },
+      {
+        banner: "<strong>Étape 3 — Tableau Optimal du PL généré par la 1<sup>re</sup> coupe :</strong> Après pivotage ($L'_3 = -2L_3$, $L'_1 = L_1 + \\frac{3}{2}L_3$, $L'_2 = L_2 - L_3$, $L'_z = L_z + \\frac{1}{2}L_3$), tous les seconds membres sont positifs : <strong>$x_1 = 3/2, \\; x_2 = 2, \\; e_1 = 1$ et $Z = 25/2 = 12,5$</strong> (ce qui correspond exactement au nœud $P(1,0)$ du Branch-and-Bound !).",
+        rows: [
+          { base: "x₁", x1: "1", x2: "0", e1: "0", e2: "-1", e3: "3/2", z: "0", b: "3/2 (1,5)", style: "bg-sky-950/30 text-sky-200 font-bold" },
+          { base: "x₂", x1: "0", x2: "1", e1: "0", e2: "1", e3: "-1", z: "0", b: "2 (Entier ✓)", style: "bg-emerald-950/30 text-emerald-200 font-bold" },
+          { base: "e₁", x1: "0", x2: "0", e1: "1", e2: "1", e3: "-2", z: "0", b: "1 (Entier ✓)", style: "bg-emerald-950/30 text-emerald-200 font-bold" },
+          { base: "z (Optimal)", x1: "0", x2: "0", e1: "0", e2: "1", e3: "1/2", z: "1", b: "25/2 = 12,5", style: "bg-slate-900 font-extrabold text-amber-300 border-t-2 border-emerald-500/50" }
+        ]
+      }
+    ];
+
+    function setGomoryStep4(idx) {
+      [0, 1, 2].forEach(i => {
+        const btn = document.getElementById(`btn-gom4-${i}`);
+        btn.className = i === idx
+          ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 transition shadow"
+          : "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+      });
+
+      const step = gomorySteps4[idx];
+      const banner = document.getElementById('gom4-banner');
+      banner.innerHTML = step.banner;
+
+      const tbody = document.getElementById('gom4-body');
+      tbody.innerHTML = step.rows.map(r => `
+        <tr class="${r.style || 'text-slate-200'}">
+          <td class="py-2.5 px-3 text-left font-sans font-bold">${r.base}</td>
+          <td class="py-2.5 px-3">${r.x1}</td>
+          <td class="py-2.5 px-3">${r.x2}</td>
+          <td class="py-2.5 px-3">${r.e1}</td>
+          <td class="py-2.5 px-3">${r.e2}</td>
+          <td class="py-2.5 px-3">${r.e3}</td>
+          <td class="py-2.5 px-3">${r.z}</td>
+          <td class="py-2.5 px-3 font-bold text-emerald-300">${r.b}</td>
+        </tr>
+      `).join('');
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    // --- 3. BASCULE ENTRE ARBRE DE L'ÉNONCÉ ET ARBRE « MEILLEUR D'ABORD » (Q8 à Q12) ---
+    function setTreeMode(mode) {
+      const btn0 = document.getElementById('btn-tree-mode-0');
+      const btn1 = document.getElementById('btn-tree-mode-1');
+      const treeGiven = document.getElementById('svg-tree-given');
+      const treeBest = document.getElementById('svg-tree-bestfirst');
+      const banner = document.getElementById('tree-mode-banner');
+
+      if (mode === 0) {
+        btn0.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-500 text-white shadow transition";
+        btn1.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+        treeGiven.classList.remove('hidden');
+        treeBest.classList.add('hidden');
+        banner.innerHTML = "<strong>Vue 1 — Arborescence de l'énoncé (Questions 8 à 11) :</strong> Les pastilles numérotées ① à ⑨ indiquent l'ordre de développement. Remarque que le nœud $P(1,1)$ ($Z=11,5$) a été séparé uniquement parce qu'on ne connaissait pas encore le nœud $P(3,1)$ ($Z^*=12$) !";
+      } else {
+        btn1.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 shadow transition";
+        btn0.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+        treeBest.classList.remove('hidden');
+        treeGiven.classList.add('hidden');
+        banner.innerHTML = "<strong>Vue 2 — Stratégie « Meilleur d'abord » (Question 12) :</strong> On développe toujours le nœud ouvert ayant le plus grand $Z$ : $P(0,0) [12,75] \\to P(1,0) [12,5] \\to P(2,0) \\to P(3,1) [Z^*=12]$. Dès que $Z^*=12$ est trouvé en $P(3,1)$, le nœud en attente $P(1,1) [Z=11,5]$ est <strong>stérilisé par borne</strong> ($11,5 < 12$) : ses fils $P(2,2)$ et $P(2,3)$ ne sont jamais créés !";
+      }
+
+      if (window.renderMathInElement) {
+        renderMathInElement(banner, { delimiters: [{left: '$', right: '$', display: false}] });
+      }
+    }
+
+    window.onload = function () {
+      updateSensitivity();
+      setGomoryStep4(1);
+      setTreeMode(0);
+    };
+  </script>
+</body>
+</html>

@@ -1,5 +1,17 @@
 Tous ces filtres sont des **convolutions** (vu en 2.1) avec un kernel différent, sauf le médian qui n'en est pas une (filtre non-linéaire).
 
+### Le Filtre Médian ($3 \times 3$)
+
+- **Principe :** Il prend tous les pixels sous une fenêtre (par exemple $3 \times 3$), les classe par ordre croissant, et remplace le pixel central par la **valeur médiane** (la valeur du milieu).
+    
+- **Effet :** Il est redoutable pour `éliminer les bruits` "poivre et sel" (les points isolés très clairs ou très sombres) **sans flouter les contours**, car il ne calcule pas de moyenne mathématique.
+### Le Filtre Moyen (ou passe-bas)
+
+- **Principe :** Il calcule la **moyenne arithmétique** de tous les pixels situés sous la fenêtre (taille $3 \times 3$ ou $5 \times 5$).
+    
+- **Effet :** Il atténue le bruit en lissant l'image, mais il **crée du flou** et détruit/adoucit les contours.
+    
+- **Impact de la taille ($3 \times 3$ vs $5 \times 5$) :** Un filtre moyen $5 \times 5$ lisse beaucoup plus qu'un filtre $3 \times 3$, ce qui rend l'image encore `plus floue` et efface davantage les détails.
 #### Vue d'ensemble : pourquoi 3 filtres différents ?
 
 ```
@@ -49,7 +61,7 @@ Le paramètre clé est **σ (sigma)** — l'écart-type :
 
 ![[Pasted image 20261009151023.png|700]]
 
-    Concolution NL: training a mode to learn the kernels instead of picking                              manually
+    Convolution NL: training a mode to learn the kernels instead of picking                              manually
 ---
 
 #### 2️⃣ Median Blur — le "vote de la majorité"

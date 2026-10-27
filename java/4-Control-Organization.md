@@ -9,6 +9,7 @@ Un **modificateur d’accès** décide **qui a le droit de voir** une classe, un
    private     ████                      la classe elle-même seulement
 ```
 
+b$y3#Rk6SCRdD3
 # contrôle d’accès et héritage
 
 Quand une sous-classe **redéfinit** une méthode, elle peut **garder ou élargir**

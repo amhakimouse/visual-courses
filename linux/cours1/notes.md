@@ -334,20 +334,6 @@ Aussi : donne toujours le **chemin complet** des commandes (`/usr/bin/...`), car
 
 # les processus 
 
-Un **processus** = un programme **en cours d'exécution**. Le système garde une fiche par processus dans la **table des processus**.
-
-```
- Fiche d'un processus
- ├── PID    numéro unique du processus
- ├── PPID   numéro du processus PARENT (celui qui l'a lancé)
- ├── UID    propriétaire
- ├── GID    groupe
- ├── temps CPU + priorité
- ├── répertoire de travail courant
- └── table des fichiers ouverts
-```
-
-### Arbre des processus : PID et PPID
 
 Tout processus vient d'un autre. Le premier est **init** (PID = 1).
 

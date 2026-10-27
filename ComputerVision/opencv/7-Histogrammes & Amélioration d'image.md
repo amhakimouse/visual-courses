@@ -1,8 +1,42 @@
 #### C'est quoi un histogramme d'image ?
 
-C'est simplement : **combien de pixels ont chaque niveau de gris** (0 à 255).
+L’histogramme H(k) compte le nombre de pixels de niveau de gris k (0 = noir, 255 = blanc).
+
+| Ce que l’on regarde       | Ce que ça indique                                                |
+| ------------------------- | ---------------------------------------------------------------- |
+| **Mean** (moyenne µ)      | Luminance globale : élevée = image claire, faible = image sombre |
+| **StdDev** (écart-type σ) | Contraste : plus l’histogramme est étalé, plus σ est grand       |
+| **Min / Max**             | Dynamique réellement utilisée                                    |
+| **Mode**                  | Niveau de gris le plus fréquent (le pic)                         |
+| **Count**                 | Nombre de pixels = largeur × hauteur (taille de l’image)         |
+# L'étirement linéaire (Contrast Stretching)
+
+Pour augmenter le contraste, on veut **étirer** une plage restreinte ex: $[20, 100]$ pour qu'elle occupe toute la largeur disponible $[0, 255]$.
+
+La formule mathématique de la transformation pour chaque pixel d'intensité $r$ qui devient $s$ est :
+
+$$s = \frac{r - \text{Min}}{\text{Max} - \text{Min}} \times 255$$
+
+#### Amélioration 1 : Étirement (stretching) — "utiliser toute la plage"
 
 ```
+AVANT (plage étroite : 60→180)     APRÈS (étiré sur 0→255)
+   ▄█▄                                 ▄█▄▄█▄▄█▄▄█▄
+  █████                              ███████████████
+0    60      180    255          0                  255
+     └──┬──┘                        └────────┬────────┘
+    zone utilisée                    même forme, mais ÉTALÉE
+    (contraste faible)                (contraste amélioré)
+```
+
+```
+  Imin devient 0, Imax devient 255,
+  tout le reste est réparti proportionnellement entre les deux.
+C'est simplement : **combien de pixels ont chaque niveau de gris** (0 à 255).
+```
+
+```markdown
+
 H(k) = nombre de pixels ayant l'intensité k
 
 Nombre
@@ -61,28 +95,7 @@ Histogramme CUMULÉ  Hc(k) = somme de H(i) pour i ≤ k
 
 ⚠️ Piège classique du cours : **deux images totalement différentes peuvent avoir le même histogramme** — l'histogramme ne dit rien sur la _position_ des pixels, seulement leur _quantité_ par niveau.
 
----
 
-#### Amélioration 1 : Étirement (stretching) — "utiliser toute la plage"
-
-```
-AVANT (plage étroite : 60→180)     APRÈS (étiré sur 0→255)
-   ▄█▄                                ▄█▄
-  █████                             █████
-0    60      180    255          0                  255
-     └──┬──┘                        └────────┬────────┘
-    zone utilisée                    même forme, mais ÉTALÉE
-    (contraste faible)                (contraste amélioré)
-```
-
-Formule (transformation **linéaire**) :
-
-```
-Im2 = 255 × (Im1 − Imin) / (Imax − Imin)
-
-  Imin devient 0, Imax devient 255,
-  tout le reste est réparti proportionnellement entre les deux.
-```
 
 ---
 

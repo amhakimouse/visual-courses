@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoLab — Chapitre 2 : Cryptographie à Clé Secrète, Modes, Feistel & DES</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            crypto: {
+              bg: '#090d16',
+              card: '#111827',
+              cardHover: '#1e293b',
+              border: '#334155',
+              green: '#10b981',
+              greenBright: '#22c55e',
+              yellow: '#eab308',
+              yellowBright: '#facc15',
+              text: '#f8fafc',
+              muted: '#94a3b8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+
+    /* Animated SVG Dashed Flow */
+    @keyframes dashFlow {
+      to {
+        stroke-dashoffset: -24;
+      }
+    }
+    .svg-flow-line {
+      stroke-dasharray: 6 6;
+      animation: dashFlow 1s linear infinite;
+    }
+    .svg-node-active {
+      filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.55));
+      transition: all 0.35s ease;
+    }
+    .svg-node-yellow {
+      filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.5));
+      transition: all 0.35s ease;
+    }
+    .code-line:hover {
+      background-color: rgba(16, 185, 129, 0.08);
+    }
+    .tab-btn-active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(234, 179, 8, 0.12));
+      border-color: #10b981 !important;
+      color: #f8fafc !important;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-700/80 px-4 lg:px-8 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/50 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+          <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            <circle cx="12" cy="16" r="1.5" fill="#facc15"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">
+              Crypto<span class="text-emerald-400">Lab</span> <span class="text-yellow-400 font-mono text-base font-semibold">Chapitre 2 — DES &amp; Clé Secrète</span>
+            </h1>
+            <span class="px-2.5 py-0.5 text-xs font-mono uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 rounded-full">
+              100% Conforme au PDF
+            </span>
+          </div>
+          <p class="text-xs md:text-sm text-slate-400">
+            Explications visuelles animées (@svg-explained), corrigés de tous les exercices du PDF (Pages 1 à 52) &amp; Python commenté ligne par ligne
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Reference Toggle for DES Tables (PC-1, PC-2, IP, E, S3, P) -->
+      <div class="flex items-center gap-2.5 self-end md:self-auto">
+        <button onclick="toggleAlphabetModal()" class="px-3.5 py-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-xs sm:text-sm font-medium text-yellow-300 flex items-center gap-2 transition">
+          <span>📊</span> Tables Officielles du PDF (Récap Modes, Shifts, S-Box S₃, PC-1/PC-2)
+        </button>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS FOR ALGORITHMS -->
+    <nav class="max-w-7xl mx-auto mt-4 pt-2 overflow-x-auto">
+      <div class="flex items-center gap-2 min-w-max pb-1" id="algo-tabs">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </nav>
+  </header>
+
+  <!-- COLLAPSIBLE REFERENCE DRAWER: TABLES FROM THE PDF -->
+  <div id="alphabet-drawer" class="hidden bg-slate-900/95 border-b border-emerald-500/40 px-4 lg:px-8 py-4 transition-all">
+    <div class="max-w-7xl mx-auto space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-2">
+          <span>📐</span> Tables de Référence Extraites du Cours PDF (Pages 15, 30, 39 &amp; 40)
+        </h3>
+        <button onclick="toggleAlphabetModal()" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-700">Fermer ✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Table Recap Modes (Page 15) -->
+        <div class="bg-slate-950/90 border border-slate-700 rounded-xl p-3 overflow-x-auto">
+          <div class="text-xs font-bold text-emerald-400 mb-2 font-mono">📋 Tableau Récapitulatif des Modes Opératoires (Page 15 du PDF)</div>
+          <table class="w-full text-xs font-mono text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-yellow-300">
+                <th class="py-1.5 px-2">Propriété</th>
+                <th class="py-1.5 px-2">ECB</th>
+                <th class="py-1.5 px-2">CBC</th>
+                <th class="py-1.5 px-2">CFB</th>
+                <th class="py-1.5 px-2">OFB</th>
+                <th class="py-1.5 px-2">CTR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-200">
+              <tr>
+                <td class="py-1.5 px-2 font-semibold text-white">Sécurité</td>
+                <td class="py-1.5 px-2 text-red-400 font-bold">Faible</td>
+                <td class="py-1.5 px-2 text-emerald-400">Forte</td>
+                <td class="py-1.5 px-2 text-emerald-400">Forte</td>
+                <td class="py-1.5 px-2 text-emerald-400">Forte</td>
+                <td class="py-1.5 px-2 text-emerald-400">Forte</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 px-2 font-semibold text-white">Parallélisme</td>
+                <td class="py-1.5 px-2 text-emerald-400">Oui</td>
+                <td class="py-1.5 px-2 text-slate-400">Non (Chiff.)</td>
+                <td class="py-1.5 px-2 text-slate-400">Non (Chiff.)</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-emerald-400 font-bold">Oui</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 px-2 font-semibold text-white">Préprocessing</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-yellow-300">Oui</td>
+                <td class="py-1.5 px-2 text-yellow-300 font-bold">Oui</td>
+              </tr>
+              <tr>
+                <td class="py-1.5 px-2 font-semibold text-white">Accès aléatoire</td>
+                <td class="py-1.5 px-2 text-emerald-400">Oui</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-slate-400">Non</td>
+                <td class="py-1.5 px-2 text-emerald-400 font-bold">Oui</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table Left Shifts DES (Page 30) -->
+        <div class="bg-slate-950/90 border border-slate-700 rounded-xl p-3 overflow-x-auto">
+          <div class="text-xs font-bold text-yellow-400 mb-2 font-mono">🔄 Table des Décalages à Gauche (Left Shifts) des Sous-Clés DES (Page 30)</div>
+          <p class="text-[11px] text-slate-300 mb-2">
+            Les tours <strong class="text-emerald-400">1, 2, 9 et 16</strong> effectuent un décalage de <strong class="text-yellow-300">1 bit</strong>. Tous les autres tours effectuent un décalage de <strong class="text-yellow-300">2 bits</strong> (Total = 28 bits, retour à l'état initial après 16 tours).
+          </p>
+          <div class="grid grid-cols-8 sm:grid-cols-16 gap-1 text-center font-mono text-[11px]" id="shifts-reference-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-8">
+
+    <!-- SECTION 1: ALGORITHM HEADER & COURSE EXPLANATION -->
+    <section id="course-header-section" class="bg-[#111827] border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <!-- Dynamic Content -->
+    </section>
+
+    <!-- SECTION 2: INTERACTIVE ANIMATED SVG EXPLAINER WORKSPACE -->
+    <section class="bg-[#111827] border border-emerald-500/40 rounded-2xl p-5 lg:p-6 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-700/80">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold">Schéma Interactif @svg-explained</span>
+          </div>
+          <h2 id="svg-section-title" class="text-lg md:text-xl font-bold text-white mt-0.5">
+            Visualisation Animée Étape par Étape
+          </h2>
+        </div>
+
+        <!-- Animation Playback Controls -->
+        <div class="flex flex-wrap items-center gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700">
+          <button onclick="prevStep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold flex items-center gap-1.5 transition">
+            ⏮ Étape Préc.
+          </button>
+          <button id="play-pause-btn" onclick="togglePlay()" class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-500/20">
+            ▶ Lecture Auto
+          </button>
+          <button onclick="nextStep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold flex items-center gap-1.5 transition">
+            Étape Suiv. ⏭
+          </button>
+          <button onclick="resetSteps()" class="px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-yellow-400 border border-slate-700 text-xs font-mono transition" title="Réinitialiser l'animation">
+            ↺ Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Parameter Bar for Current Algorithm -->
+      <div id="interactive-inputs-bar" class="mb-5 bg-slate-900/90 border border-slate-700/90 rounded-xl p-4">
+        <!-- Populated dynamically per algorithm -->
+      </div>
+
+      <!-- Step Progress Pill Bar -->
+      <div id="step-pills-container" class="flex items-center gap-2 overflow-x-auto pb-3 mb-4">
+        <!-- Step indicators populated by JS -->
+      </div>
+
+      <!-- THE SVG STAGE -->
+      <div class="bg-[#090d16] border border-slate-700/90 rounded-xl p-3 md:p-5 flex flex-col items-center justify-center min-h-[340px] relative">
+        <div id="svg-canvas-container" class="w-full overflow-x-auto flex justify-center">
+          <!-- Crisp Dynamic SVG Injected Here -->
+        </div>
+
+        <!-- Live Step Explanation Banner inside Stage -->
+        <div id="svg-step-caption" class="w-full mt-4 bg-slate-900/95 border-l-4 border-yellow-400 rounded-r-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <!-- Caption injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: WORKED EXAMPLE & MATHEMATICAL RESOLUTION + PYTHON CODE -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Detailed Step-by-Step Mathematical Proof (5 cols) -->
+      <section class="lg:col-span-5 bg-[#111827] border border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-yellow-400">Démonstration de Cours</span>
+              <h3 class="text-lg font-bold text-white">Résolution Détaillée de l'Exemple</h3>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 font-mono text-xs">
+              Calcul Exact
+            </span>
+          </div>
+          <div id="worked-example-content" class="space-y-3 text-sm text-slate-200 leading-relaxed">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Pedagogical Tip Box -->
+        <div id="exam-tip-box" class="mt-6 bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Right Column: Line-by-Line Commented Python Code (7 cols) -->
+      <section class="lg:col-span-7 bg-[#111827] border border-slate-700 rounded-2xl p-6 flex flex-col shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3 mb-4">
+          <div>
+            <span class="text-xs font-mono uppercase tracking-wider text-emerald-400">Implémentation Algorithmique</span>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              🐍 Code Python 3 — Commenté Ligne par Ligne
+            </h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="runSimulatedPython()" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-semibold transition flex items-center gap-1.5">
+              ▶ Exécuter avec mes valeurs
+            </button>
+            <button onclick="copyPythonCode()" id="copy-code-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-mono transition flex items-center gap-1.5">
+              📋 Copier le code
+            </button>
+          </div>
+        </div>
+
+        <!-- Code Viewer with Line-by-Line French Explanations -->
+        <div class="bg-[#090d16] border border-slate-800 rounded-xl overflow-hidden flex-1 flex flex-col">
+          <div class="bg-slate-900/90 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+            <span id="python-filename">algorithme_crypto.py</span>
+            <span class="text-yellow-400">Chaque instruction est expliquée en commentaire</span>
+          </div>
+          <div id="python-code-container" class="p-4 overflow-x-auto font-mono text-xs sm:text-sm space-y-1 max-h-[540px] overflow-y-auto">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Simulated Python Console Output -->
+        <div class="mt-4 bg-[#090d16] border border-emerald-500/30 rounded-xl p-3.5 font-mono text-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1.5 pb-1 border-b border-slate-800">
+            <span class="text-emerald-400 font-semibold">Terminal Python (Sortie Console Temps Réel)</span>
+            <span>python3 -u script.py</span>
+          </div>
+          <pre id="python-console-output" class="text-slate-200 whitespace-pre-wrap leading-relaxed overflow-x-auto"></pre>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800 bg-[#090d16] py-5 px-4 lg:px-8 mt-12 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>📚 <strong class="text-white">CryptoLab Academy</strong> — Chapitre 2 : Cryptographie à Clé Secrète (Modes, Feistel, DES, 2DES, 3DES).</p>
+      <p class="font-mono text-emerald-400">Thème : Noir (#090d16) • Émeraude (#10b981) • Jaune (#facc15) • Gris/Blanc</p>
+    </div>
+  </footer>
+
+  <!-- COMPLETE APPLICATION LOGIC & EDUCATIONAL DATA -->
+  <script>
+    /*************************************************************************
+     * 1. CRYPTOGRAPHIC TABLES & BINARY UTILITIES (EXACT FROM PDF)
+     *************************************************************************/
+    const DES_SHIFTS = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
+
+    // Table S3 exacte de la Page 39 du PDF pour résoudre Q1: S3(101011)
+    const S3_BOX = [
+      [10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8],
+      [13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1],
+      [13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7],
+      [1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12]
+    ];
+
+    // Tables f1 et f2 de l'exercice sur le Schéma de Feistel (Page 19 du PDF)
+    const FEISTEL_F1 = {
+      "000": "101", "001": "100", "010": "111", "011": "001",
+      "100": "000", "101": "101", "110": "010", "111": "110"
+    };
+    const FEISTEL_F2 = {
+      "000": "010", "001": "001", "010": "110", "011": "110",
+      "100": "111", "101": "011", "110": "001", "111": "010"
+    };
+
+    // Trace officielle des 16 tours de l'exemple DES de la Page 42 du PDF
+    const DES_PDF_TRACE = [
+      { round: "IP", k: "— (Permutation Initiale)", L: "5a005a00", R: "3cf03c0f" },
+      { round: "1",  k: "1e030f03080d2930", L: "3cf03c0f", R: "bad22845" },
+      { round: "2",  k: "0a31293432242318", L: "bad22845", R: "99e9b723" },
+      { round: "3",  k: "23072318201d0c1d", L: "99e9b723", R: "0bae3b9e" },
+      { round: "4",  k: "05261d3824311a20", L: "0bae3b9e", R: "42415649" },
+      { round: "8",  k: "1c10372a2832002b", L: "67117cf2", R: "c11bfc09" },
+      { round: "12", k: "12071c241a0a0f08", L: "f596506e", R: "738538b8" },
+      { round: "15", k: "283d3e0227072528", L: "56b0bd75", R: "75e8fd8f" },
+      { round: "16", k: "2921080b13143025", L: "75e8fd8f", R: "25896490" },
+      { round: "IP⁻¹", k: "— (Permutation Finale)", L: "da02ce3a", R: "89ecac3b" }
+    ];
+
+    function xorBits(a, b) {
+      let res = "";
+      for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        res += a[i] === b[i] ? "0" : "1";
+      }
+      return res;
+    }
+
+    function cleanBits(str, len, fallback) {
+      const cleaned = (str || "").replace(/[^01]/g, "");
+      if (!cleaned) return fallback;
+      return cleaned.padEnd(len, "0").slice(0, len);
+    }
+
+    function rotateLeft(bits, n) {
+      return bits.slice(n) + bits.slice(0, n);
+    }
+
+    // Toy 4-bit block cipher permutation for visual demonstration of ECB/CBC/CFB/CTR modes
+    function toyBlockEncrypt4(bits4, key4) {
+      const x = xorBits(bits4, key4);
+      // Simple reversible nibble substitution + bit rotation
+      return x[1] + x[2] + x[3] + x[0];
+    }
+
+    function toyBlockDecrypt4(bits4, key4) {
+      const unrot = bits4[3] + bits4[0] + bits4[1] + bits4[2];
+      return xorBits(unrot, key4);
+    }
+
+    /*************************************************************************
+     * 2. STATE MANAGEMENT
+     *************************************************************************/
+    let currentAlgoId = 'ecb_intro';
+    let currentStepIndex = 0;
+    let playInterval = null;
+
+    const stateParams = {
+      ecb_intro: {
+        b1: "1010",
+        b2: "1010",
+        b3: "0110",
+        key: "1100"
+      },
+      cbc_star: {
+        modeVariant: "cbc", // 'cbc' or 'cbc_star'
+        iv: "1001",
+        p1: "1010",
+        p2: "1010",
+        p3: "0101",
+        key: "1100"
+      },
+      cfb_ctr: {
+        subMode: "cfb", // 'cfb' or 'ctr'
+        iv: "1011",
+        m1: "0101",
+        m2: "1100",
+        m3: "0011",
+        key: "1010"
+      },
+      feistel: {
+        w: "101110" // Exact PDF Page 19 input: 101110 = (101 | 110)
+      },
+      des_keys: {
+        roundInspect: 1 // Round 1 answers PDF Pages 31 & 32 questions (C1, D1, K1)
+      },
+      des_sbox: {
+        bits6: "101011" // Exact PDF Page 40 Question Q1: S3(101011)
+      },
+      des_weak_whitening: {
+        weakKeyIdx: 0 // 0..3 among the 4 weak keys
+      },
+      double_triple_des: {
+        variant: "2des_mitm" // '2des_mitm' or '3des'
+      }
+    };
+
+    /*************************************************************************
+     * 3. FULL COURSE CATALOG (STRICTLY THE ALGORITHMS & EXERCISES OF THE PDF)
+     *************************************************************************/
+    const ALGORITHMS = [
+      {
+        id: 'ecb_intro',
+        shortTitle: '1. Schéma par Bloc & Mode ECB',
+        badge: 'Pages 1 à 7 • Chiffrement par Bloc & ECB',
+        title: 'Schéma Général à Clé Secrète & Mode Electronic Code Book (ECB)',
+        summary: `Dans la <strong>cryptographie à clé secrète (symétrique)</strong>, la clé de cryptage et la clé de décryptage sont les mêmes (<strong>K</strong>) et doivent rester secrètes. Le <strong>schéma général par bloc</strong> (Page 3) découpe le message binaire en blocs de taille fixe (64, 128 ou 256 bits), effectue un XOR avec la clé, déplace/permute les bits sur plusieurs tours (<em>Rounds</em>), puis passe au bloc suivant. Le <strong>mode ECB (Electronic Code Book, Pages 6–7)</strong> est le mode le plus simple : chaque bloc <strong>P<sub>i</sub></strong> est chiffré indépendamment avec la même clé <strong>K</strong>.`,
+        formulas: [
+          { label: 'Chiffrement ECB (Page 6)', eq: 'Cᵢ = Encrypt_K(Pᵢ)   pour chaque bloc i = 1..N' },
+          { label: 'Déchiffrement ECB (Page 6)', eq: 'Pᵢ = Decrypt_K(Cᵢ)   (Traitement indépendant)' },
+          { label: 'Sécurité du mode ECB (Page 7)', eq: 'P₁ = P₂  ⇒  C₁ = C₂ (Même bloc clair = Même bloc chiffré)' }
+        ],
+        examTip: `⚠️ <strong>À retenir pour l'examen (Page 7 du PDF) :</strong> La procédure ECB n'est <strong>jamais utilisée en pratique</strong> pour deux raisons : <strong>1)</strong> Un bloc de message <strong>m<sub>i</sub></strong> sera toujours codé de la même manière, ce qui nuit à la sécurité du codage, et <strong>2)</strong> Un attaquant malveillant peut permuter deux blocs ou remplacer un bloc par un autre.`,
+        pythonFilename: 'mode_ecb_et_schema_bloc.py',
+        pythonLines: [
+          { comment: "# Définition d'un chiffrement de bloc élémentaire (XOR avec la clé + permutation circulaire des bits)", code: "def chiffrer_bloc_symetrique(bloc, cle, nb_rounds=4):" },
+          { comment: "    # On copie le bloc binaire d'entrée pour lui appliquer les tours (Rounds) successifs", code: "    etat = bloc" },
+          { comment: "    # Boucle correspondant à l'étape 5 du PDF (Page 3) : répéter sur plusieurs Rounds", code: "    for r in range(nb_rounds):" },
+          { comment: "        # Étape 3 du PDF (Page 3) : XOR bit à bit entre le bloc courant et la clé secrète", code: "        etat = etat ^ cle" },
+          { comment: "        # Étape 4 du PDF (Page 3) : Déplacer et permuter certains bits du bloc (rotation sur 4 bits)", code: "        etat = ((etat << 1) & 0b1111) | (etat >> 3)" },
+          { comment: "    # Retourne le bloc chiffré après tous les tours", code: "    return etat" },
+          { comment: "# Implémentation du mode Electronic Code Book (ECB - Page 6 du PDF)", code: "def mode_ecb_chiffrer(liste_blocs_clairs, cle):" },
+          { comment: "    # Chaque bloc P_i est chiffré indépendamment : si P_1 == P_2 alors C_1 == C_2 !", code: "    return [chiffrer_bloc_symetrique(p_i, cle) for p_i in liste_blocs_clairs]" }
+        ]
+      },
+      {
+        id: 'cbc_star',
+        shortTitle: '2. Mode CBC & Exercice CBC*',
+        badge: 'Pages 8 à 10 • Chaînage & Parallélisme',
+        title: 'Mode Cipher Block Chaining (CBC) & Corrigé de l’Exercice CBC* (Page 10)',
+        summary: `Pour qu'un même bloc ne soit pas codé de la même manière, le mode <strong>CBC (Pages 8–9)</strong> lie les blocs entre eux par chaînage : chaque bloc clair <strong>P<sub>i</sub></strong> subit un <strong>XOR (⊕)</strong> avec le bloc chiffré précédent <strong>C<sub>i−1</sub></strong> avant d'entrer dans la boîte <strong>Encrypt<sub>K</sub></strong>, en partant d'un bloc initial <strong>c<sub>0</sub> = IV</strong> (Vecteur d'initialisation). La <strong>Page 10 propose l'exercice du mode modifié CBC*</strong> où le chaînage XOR est effectué directement entre le Vecteur d'initialisation et les blocs du Texte clair avant les boîtes <em>Chiffrement par bloc</em>, ce qui permet de <strong>paralléliser</strong> le chiffrement et le déchiffrement !`,
+        formulas: [
+          { label: 'Mode CBC Standard (Page 8)', eq: 'Cᵢ = Encrypt_K(Pᵢ ⊕ Cᵢ₋₁)  et  Pᵢ = Decrypt_K(Cᵢ) ⊕ Cᵢ₋₁' },
+          { label: 'Chiffrement CBC* (Figure p.10)', eq: 'C₁ = Encrypt_K(IV ⊕ P₁)  ;  Cᵢ = Encrypt_K(IV ⊕ P₁ ⊕ ... ⊕ Pᵢ)' },
+          { label: 'Déchiffrement CBC* (Corrigé p.10)', eq: 'P₁ = Decrypt_K(C₁) ⊕ IV  ;  Pᵢ = Decrypt_K(Cᵢ) ⊕ Decrypt_K(Cᵢ₋₁)' }
+        ],
+        examTip: `🎯 <strong>Corrigé type Examen — Exercice Page 10 (Mode opératoire CBC*) :</strong><br>
+        D'après la figure de la Page 10, le 1<sup>er</sup> bloc du Texte clair est combiné par XOR avec le <strong>Vecteur d'initialisation (IV)</strong>, puis le résultat de ce XOR est à la fois envoyé dans la 1<sup>re</sup> boîte <strong>Chiffrement par bloc</strong> et propagé vers le XOR du 2<sup>e</sup> bloc clair, et ainsi de suite.<br>
+        • <strong>Comment effectuer le déchiffrement de CBC* en parallèle :</strong><br>
+        <strong>1)</strong> On applique l'opération inverse <strong>Déchiffrement par bloc (Decrypt<sub>K</sub>)</strong> simultanément (en parallèle) sur chacun des blocs du Texte chiffré <strong>C<sub>1</sub>, C<sub>2</sub>, ..., C<sub>n</sub></strong>.<br>
+        <strong>2)</strong> La sortie de la boîte <strong>Decrypt<sub>K</sub>(C<sub>1</sub>)</strong> redonne <strong>IV ⊕ P<sub>1</sub></strong>, et la sortie de <strong>Decrypt<sub>K</sub>(C<sub>i</sub>)</strong> redonne <strong>(IV ⊕ P<sub>1</sub> ⊕ ... ⊕ P<sub>i−1</sub>) ⊕ P<sub>i</sub> = Decrypt<sub>K</sub>(C<sub>i−1</sub>) ⊕ P<sub>i</sub></strong>.<br>
+        <strong>3)</strong> Il suffit donc d'effectuer un XOR en parallèle entre deux sorties consécutives du déchiffrement par bloc :<br>
+        • Pour le 1<sup>er</sup> bloc : <strong>P<sub>1</sub> = Decrypt<sub>K</sub>(C<sub>1</sub>) ⊕ IV</strong><br>
+        • Pour tout bloc suivant (i ≥ 2) : <strong>P<sub>i</sub> = Decrypt<sub>K</sub>(C<sub>i</sub>) ⊕ Decrypt<sub>K</sub>(C<sub>i−1</sub>)</strong>.`,
+        pythonFilename: 'modes_cbc_et_cbc_etoile.py',
+        pythonLines: [
+          { comment: "# 1. Chiffrement CBC Standard (Page 8) : Séquentiel car C_i dépend du bloc chiffré précédent C_{i-1}", code: "def chiffrer_cbc(texte_clair, iv, Encrypt_k):" },
+          { comment: "    # Initialise la liste du texte chiffré et pose C_0 = IV (Vecteur d'initialisation)", code: "    texte_chiffre, c_precedent = [], iv" },
+          { comment: "    # Parcourt chaque bloc P_i du texte clair séquentiellement", code: "    for p_i in texte_clair:" },
+          { comment: "        # Applique le XOR avec C_{i-1} puis chiffre avec la boîte Encrypt_k", code: "        c_i = Encrypt_k(p_i ^ c_precedent)" },
+          { comment: "        # Sauvegarde C_i qui servira de chaînage pour le bloc suivant", code: "        texte_chiffre.append(c_i); c_precedent = c_i" },
+          { comment: "    return texte_chiffre" },
+          { comment: "# 2. Corrigé Exercice Page 10 : Chiffrement du mode modifié CBC* (Figure de la Page 10)", code: "def chiffrer_cbc_etoile(texte_clair, iv, Encrypt_k):" },
+          { comment: "    # Étape 1 : Chaînage XOR entre le Vecteur d'initialisation et les blocs du Texte clair", code: "    entrees_chiffrement = []" },
+          { comment: "    cumul_xor = iv" },
+          { comment: "    for p_i in texte_clair:" },
+          { comment: "        cumul_xor = cumul_xor ^ p_i" },
+          { comment: "        entrees_chiffrement.append(cumul_xor)" },
+          { comment: "    # Étape 2 : Les boîtes 'Chiffrement par bloc' s'exécutent toutes EN PARALLÈLE !", code: "    return [Encrypt_k(bloc) for bloc in entrees_chiffrement]" },
+          { comment: "# Fonction de déchiffrement du mode CBC* (Réponse à la question de la Page 10)", code: "def dechiffrer_cbc_etoile(texte_chiffre, iv, Decrypt_k):" },
+          { comment: "    # Étape 1 : Déchiffrement par bloc en parallèle sur chaque bloc C_i du Texte chiffré", code: "    sorties_decrypt = [Decrypt_k(c_i) for c_i in texte_chiffre]" },
+          { comment: "    # Étape 2 : P_1 = Decrypt_k(C_1) ^ IV  et  P_i = Decrypt_k(C_i) ^ Decrypt_k(C_{i-1})", code: "    return [sorties_decrypt[0] ^ iv] + [sorties_decrypt[i] ^ sorties_decrypt[i-1] for i in range(1, len(sorties_decrypt))]" }
+        ]
+      },
+      {
+        id: 'cfb_ctr',
+        shortTitle: '3. Modes CFB, CTR & Comparatif',
+        badge: 'Pages 11 à 15 • Chiffrement de Flux par Bloc',
+        title: 'Modes Cipher FeedBack (CFB), Counter (CTR) & Questions de Déchiffrement',
+        summary: `Les modes <strong>CFB (Pages 11–12)</strong> et <strong>CTR (Pages 13–14)</strong> transforment un chiffrement par bloc en générateur de suite chiffrante : le message clair <strong>m<sub>i</sub></strong> ne traverse jamais la boîte <strong>E<sub>k</sub></strong>, il est simplement ajouté par <strong>XOR (⊕)</strong> à la sortie de <strong>E<sub>k</sub></strong>. Par conséquent, <strong>le déchiffrement utilise exactement la même fonction de chiffrement E<sub>k</sub></strong> (aucun besoin de calculer la fonction inverse de E<sub>k</sub> !).`,
+        formulas: [
+          { label: 'CFB Chiffrement & Déchiffrement (p.11-12)', eq: 'cᵢ = E_k(cᵢ₋₁) ⊕ mᵢ    ⇒    Déchiffrement : mᵢ = E_k(cᵢ₋₁) ⊕ cᵢ' },
+          { label: 'CTR Chiffrement & Déchiffrement (p.13-14)', eq: 'cᵢ = mᵢ ⊕ E_k(IV ∥ compteurᵢ)  ⇒  mᵢ = cᵢ ⊕ E_k(IV ∥ compteurᵢ)' },
+          { label: 'Avantage Clé (Pages 12 & 14)', eq: 'Pas besoin de calculer l’inverse de E_k ! Gain de temps et parallélisme en CTR.' }
+        ],
+        examTip: `💡 <strong>Réponses aux 2 Questions du PDF (Pages 12 et 14 — « Question : Déchiffrement ?? ») :</strong><br>
+        • <strong>Pour CFB (Page 12) :</strong> Au chiffrement, on a <strong>c<sub>i</sub> = E<sub>k</sub>(c<sub>i−1</sub>) ⊕ m<sub>i</sub></strong>. Pour déchiffrer, on applique la <strong>même boîte de chiffrement E<sub>k</sub></strong> sur <strong>c<sub>i−1</sub></strong> puis un XOR avec <strong>c<sub>i</sub></strong> : <strong>m<sub>i</sub> = E<sub>k</sub>(c<sub>i−1</sub>) ⊕ c<sub>i</sub></strong> (gain de temps : pas besoin d'inverser E<sub>k</sub> !).<br>
+        • <strong>Pour CTR (Page 14) :</strong> Le déchiffreur chiffre le même bloc <strong>(vecteur d'initialisation ∥ compteur)</strong> avec <strong>E<sub>k</sub></strong> pour obtenir la <em>Suite chiffrante</em>, puis effectue un XOR avec le <em>Texte chiffré</em> : <strong>m<sub>i</sub> = c<sub>i</sub> ⊕ E<sub>k</sub>(IV ∥ compteur<sub>i</sub>)</strong>.`,
+        pythonFilename: 'modes_cfb_et_ctr.py',
+        pythonLines: [
+          { comment: "# 1. Mode CFB (Cipher FeedBack - Pages 11 & 12) : Chiffrement et Déchiffrement utilisent E_k !", code: "def chiffrer_cfb(blocs_m, c0, E_k):" },
+          { comment: "    # Initialise la liste des chiffrés et le registre de feedback avec le bloc initial c0", code: "    blocs_c, c_prec = [], c0" },
+          { comment: "    # Pour chaque bloc de message m_i (Figure de la Page 11)", code: "    for m_i in blocs_m:" },
+          { comment: "        # On chiffre c_{i-1} avec E_k puis on ajoute m_i par XOR", code: "        c_i = E_k(c_prec) ^ m_i" },
+          { comment: "        # Le résultat c_i sert de feedback pour l'étape suivante", code: "        blocs_c.append(c_i); c_prec = c_i" },
+          { comment: "    return blocs_c" },
+          { comment: "# Réponse Question Page 12 : Déchiffrement CFB SANS calculer la fonction inverse de E_k", code: "def dechiffrer_cfb(blocs_c, c0, E_k):" },
+          { comment: "    blocs_m, c_prec = [], c0" },
+          { comment: "    for c_i in blocs_c:" },
+          { comment: "        # On applique ENCORE E_k sur c_{i-1}, puis XOR avec c_i pour retrouver m_i !", code: "        m_i = E_k(c_prec) ^ c_i" },
+          { comment: "        blocs_m.append(m_i); c_prec = c_i" },
+          { comment: "    return blocs_m" },
+          { comment: "# 2. Mode CTR (Counter Mode - Pages 13 & 14) : Chiffrement == Déchiffrement en parallèle", code: "def mode_ctr(blocs_entree, iv_prefix, E_k):" },
+          { comment: "    # Chiffre (vecteur d'initialisation || compteur) avec E_k pour créer la Suite chiffrante et fait XOR", code: "    return [bloc ^ E_k((iv_prefix << 2) | (compteur & 0b11)) for compteur, bloc in enumerate(blocs_entree)]" }
+        ]
+      },
+      {
+        id: 'feistel',
+        shortTitle: '4. Schéma de Feistel (Exercice p.19)',
+        badge: 'Pages 16 à 19 • Confusion, Diffusion & Exercice',
+        title: 'Schéma de Feistel (1973) & Résolution Complète de l’Exercice (Page 19)',
+        summary: `Fondé sur les principes de <strong>confusion</strong> et de <strong>diffusion</strong> de C. Shannon (1949, Page 17), le <strong>schéma de Feistel</strong> (1973, Page 18) découpe un bloc en deux moitiés : Gauche (<strong>G</strong>) et Droite (<strong>D</strong>). À chaque tour, la moitié droite devient la nouvelle moitié gauche (<strong>L = D</strong>), tandis que la nouvelle moitié droite vaut <strong>R = G ⊕ f(D)</strong>.`,
+        formulas: [
+          { label: 'Schéma d’un tour (Page 18)', eq: 'L = D     et     R = G ⊕ f(D)' },
+          { label: 'Inversion / Décryptage (Page 19)', eq: 'D = L     et     G = R ⊕ f(L)   (Sans inverser la fonction f !)' },
+          { label: 'Résultat Exercice Page 19', eq: 'Entrée w = 101110 = (101 | 110)  ⇒  Après f₁ : 110111  ⇒  Sortie Finale : 111100' }
+        ],
+        examTip: `🎓 <strong>Corrigé Détaillé de l'Exercice de la Page 19 :</strong><br>
+        • <strong>Entrée :</strong> <code>w = 101110 = (101 | 110) ∈ {0,1}⁶</code> donc <strong>G = 101</strong> et <strong>D = 110</strong>.<br>
+        • <strong>1<sup>er</sup> Tour (avec la table f<sub>1</sub>) :</strong> La moitié droite passe à gauche : <strong>L<sub>1</sub> = D = 110</strong>. Dans la table de <strong>f<sub>1</sub></strong>, on lit <code>110 → 010</code>. On calcule le XOR : <strong>R<sub>1</sub> = G ⊕ f<sub>1</sub>(110) = 101 ⊕ 010 = 111</strong>. État après le 1<sup>er</sup> tour : <strong>(110 | 111) = 110111</strong>.<br>
+        • <strong>2<sup>e</sup> Tour (avec la table f<sub>2</sub>) :</strong> La droite passe à gauche : <strong>L<sub>2</sub> = R<sub>1</sub> = 111</strong>. Dans la table de <strong>f<sub>2</sub></strong>, on lit <code>111 → 010</code>. On calcule le XOR : <strong>R<sub>2</sub> = L<sub>1</sub> ⊕ f<sub>2</sub>(111) = 110 ⊕ 010 = 100</strong>. La sortie finale est donc <strong>111100</strong> (comme écrit en bas à droite de la Page 19 !).`,
+        pythonFilename: 'schema_feistel_exercice_p19.py',
+        pythonLines: [
+          { comment: "# Tables exactes des fonctions f1 et f2 données dans l'exercice de la Page 19 du PDF", code: "f1 = {'000':'101','001':'100','010':'111','011':'001','100':'000','101':'101','110':'010','111':'110'}" },
+          { comment: "# Table de la fonction du second tour f2 : {0,1}^3 -> {0,1}^3", code: "f2 = {'000':'010','001':'001','010':'110','011':'110','100':'111','101':'011','110':'001','111':'010'}" },
+          { comment: "# Fonction auxiliaire réalisant le XOR bit à bit entre deux chaînes binaires de 3 bits", code: "def xor_3bits(a, b): return ''.join('1' if x != y else '0' for x, y in zip(a, b))" },
+          { comment: "# Question 1 (Page 19) : Calculer la sortie pour w = 101110 sur les 2 tours de Feistel", code: "def chiffrer_feistel_p19(w):" },
+          { comment: "    # Découpage du mot w de 6 bits en deux blocs de 3 bits : G (gauche) et D (droite)", code: "    G, D = w[:3], w[3:]" },
+          { comment: "    # Tour 1 (avec f1) : L1 = D et R1 = G XOR f1(D)", code: "    L1, R1 = D, xor_3bits(G, f1[D])" },
+          { comment: "    # Tour 2 (avec f2) : L2 = R1 et R2 = L1 XOR f2(R1)", code: "    L2, R2 = R1, xor_3bits(L1, f2[R1])" },
+          { comment: "    # Retourne l'état intermédiaire (L1 || R1) et la sortie finale (L2 || R2)", code: "    return L1 + R1, L2 + R2" },
+          { comment: "# Question 2 (Page 19) : Décrypter un Cipher de 6 bits en inversant l'ordre des tours", code: "def dechiffrer_feistel_p19(cipher):" },
+          { comment: "    # Sépare le chiffré en L2 (gauche) et R2 (droite)", code: "    L2, R2 = cipher[:3], cipher[3:]" },
+          { comment: "    # Inversion du Tour 2 : R1 = L2 et L1 = R2 XOR f2(L2)", code: "    R1, L1 = L2, xor_3bits(R2, f2[L2])" },
+          { comment: "    # Inversion du Tour 1 : D = L1 et G = R1 XOR f1(L1)", code: "    D, G = L1, xor_3bits(R1, f1[L1])" },
+          { comment: "    # Reconstitue le mot clair initial w = (G | D)", code: "    return G + D" }
+        ]
+      },
+      {
+        id: 'des_keys',
+        shortTitle: '5. DES : Génération des Clés',
+        badge: 'Pages 20 à 32 • PC-1, Shifts & PC-2',
+        title: 'DES : Algorithme de Génération des 16 Sous-Clés & Corrigé (Pages 27–32)',
+        summary: `Le standard <strong>DES (Data Encryption Standard, 1976)</strong> est basé sur le schéma de Feistel à <strong>16 Rounds</strong> pour des blocs de <strong>64 bits</strong>. À partir d'une clé <strong>K</strong> de 64 bits, la table <strong>PC-1 (Permuted Choice 1, Pages 27–28)</strong> extrait <strong>56 bits utiles K<sup>+</sup></strong> divisés en deux blocs de 28 bits : <strong>C<sub>0</sub></strong> et <strong>D<sub>0</sub></strong> (Page 29). À chaque itération, on applique un décalage circulaire à gauche (<em>Left circular shift</em> de 1 ou 2 bits selon le tableau de la Page 30), puis la table <strong>PC-2 (Page 32)</strong> sélectionne et permute <strong>48 bits</strong> pour produire la sous-clé <strong>K<sub>i</sub></strong>.`,
+        formulas: [
+          { label: 'Étape I : PC-1 (Pages 27–28)', eq: 'Clé K (64 bits)  ──[PC-1]──►  K⁺ (56 bits) = C₀ (28 bits) ∥ D₀ (28 bits)' },
+          { label: 'Étape II : Left Shifts (Pages 29–31)', eq: 'Cᵢ = LeftShift(Cᵢ₋₁)  et  Dᵢ = LeftShift(Dᵢ₋₁)  (1 bit aux tours 1, 2, 9, 16)' },
+          { label: 'Étape III : PC-2 (Page 32)', eq: 'Cᵢ ∥ Dᵢ (56 bits)  ──[PC-2 : contraction]──►  Sous-clé Kᵢ (48 bits)' }
+        ],
+        examTip: `✅ <strong>Corrigé Exact des Questions des Pages 31 et 32 du PDF :</strong><br>
+        • À la Page 29, on a : <code>C₀ = 1111000 0110011 0010101 0101111</code> et <code>D₀ = 0101010 1011001 1001111 0001111</code>.<br>
+        • <strong>Question Page 31 (Calcul de C<sub>1</sub> et D<sub>1</sub> — Itération 1 = 1 shift à gauche) :</strong> Le 1<sup>er</sup> bit à gauche passe tout à droite :<br>
+          <code>C₁ = 1110000 1100110 0101010 1011111</code> et <code>D₁ = 1010101 0110011 0011110 0011110</code>.<br>
+        • <strong>Question Page 32 (Calcul de K<sub>1</sub> via la table PC-2 sur C<sub>1</sub>D<sub>1</sub>) :</strong> Le 1<sup>er</sup> bit de K<sub>1</sub> est le bit n°14 de C<sub>1</sub>D<sub>1</sub> (<code>0</code>), le 2<sup>e</sup> est le bit n°17 (<code>0</code>), le 3<sup>e</sup> est le bit n°11 (<code>0</code>), le 4<sup>e</sup> est le bit n°24 (<code>1</code>)... On obtient :<br>
+          <code>K₁ = 000110 110000 001011 101111 111111 000111 000001 110010</code>.`,
+        pythonFilename: 'des_generation_cles_p27_p32.py',
+        pythonLines: [
+          { comment: "# Table PC-2 officielle de la Page 32 du PDF (sélectionne 48 bits parmi les 56 bits de C_i || D_i)", code: "PC2 = [14,17,11,24,1,5, 3,28,15,6,21,10, 23,19,12,4,26,8, 16,7,27,20,13,2," },
+          { comment: "       41,52,31,37,47,55, 30,40,51,45,33,48, 44,49,39,56,34,53, 46,42,50,36,29,32]" },
+          { comment: "# Blocs de 28 bits C0 et D0 donnés à la Page 29 du PDF après application de PC-1", code: "C0 = '1111000011001100101010101111'" },
+          { comment: "D0 = '0101010101100110011110001111'" },
+          { comment: "# Fonction réalisant un décalage circulaire à gauche (Left circular shift) sur 28 bits", code: "def decaler_gauche(registre_28bits, nb_shifts):" },
+          { comment: "    # Coupe les 'nb_shifts' premiers bits à gauche et les recolle à la fin à droite", code: "    return registre_28bits[nb_shifts:] + registre_28bits[:nb_shifts]" },
+          { comment: "# Réponse à la Question de la Page 31 : Calcul de C1 et D1 (Itération 1 -> 1 shift à gauche)", code: "C1 = decaler_gauche(C0, 1)" },
+          { comment: "D1 = decaler_gauche(D0, 1)" },
+          { comment: "# Réponse à la Question de la Page 32 : Calcul de la sous-clé K1 (48 bits) via la table PC-2", code: "CD1 = C1 + D1" },
+          { comment: "# Les tables DES sont numérotées de 1 à 56 (on soustrait 1 pour l'indice Python 0..55)", code: "K1 = ''.join(CD1[pos - 1] for pos in PC2)" }
+        ]
+      },
+      {
+        id: 'des_sbox',
+        shortTitle: '6. DES : Tour, S-Box & Avalanche',
+        badge: 'Pages 33 à 44 • IP, E, S-Boxes, P, IP⁻¹',
+        title: 'DES : Fonction de Tour, Corrigé S₃(101011) (Page 40), Trace & Avalanche',
+        summary: `Après la <strong>Permutation initiale IP (Page 35)</strong>, le bloc de 64 bits est scindé en <strong>L<sub>0</sub></strong> (32 bits) et <strong>R<sub>0</sub></strong> (32 bits). À chaque tour, la fonction <strong>F</strong> (Pages 34 & 36) exécute 4 opérations sur <strong>R (32 bits)</strong> : <strong>1) Expansion E</strong> de 32 vers 48 bits (Page 37), <strong>2) XOR</strong> avec la sous-clé <strong>K<sub>i</sub> (48 bits)</strong>, <strong>3) Passage dans les 8 S-Boxes (S<sub>1</sub> à S<sub>8</sub>, Pages 39–40)</strong> qui transforment chacune 6 bits en 4 bits (32 bits au total), et <strong>4) Permutation P</strong> de 32 bits (Page 38). Après 16 tours et un échange 32-bit (<em>32-bit swap</em>), on applique la <strong>Permutation Finale IP<sup>−1</sup> (Page 41)</strong>.`,
+        formulas: [
+          { label: 'Adressage d’une S-Box (Page 40)', eq: 'Entrée : bit₁ bit₂ bit₃ bit₄ bit₅ bit₆  ⇒  Ligne = (bit₁bit₆)₂  |  Colonne = (bit₂bit₃bit₄bit₅)₂' },
+          { label: 'Corrigé Question Q1 Page 40', eq: 'S₃(101011) : Ligne = (11)₂ = 3, Colonne = (0101)₂ = 5  ⇒  S₃[3][5] = 9 = (1001)₂' },
+          { label: 'Déchiffrement & Propriété (Page 44)', eq: 'Même enchaînement en commençant par K₁₆   |   Si c = DES(p, k) alors c̄ = DES(p̄, k̄)' }
+        ],
+        examTip: `🎯 <strong>Corrigé Détaillé de la Page 40 — Q1 : S<sub>3</sub>(101011) = ?? :</strong><br>
+        Soit le bloc de 6 bits <code>101011</code> (<code>bit 1 = 1, bit 2 = 0, bit 3 = 1, bit 4 = 0, bit 5 = 1, bit 6 = 1</code>) :<br>
+        1) <strong>Numéro de ligne (formé par bit 1 et bit 6) :</strong> <code>11</code> en binaire = <code>1×2 + 1 =</code> <strong>3</strong>.<br>
+        2) <strong>Numéro de colonne (formé par bit 2, bit 3, bit 4, bit 5) :</strong> <code>0101</code> en binaire = <code>0 + 4 + 0 + 1 =</code> <strong>5</strong>.<br>
+        3) Dans le tableau de la boîte <strong>S<sub>3</sub> (Page 39)</strong>, à la <strong>ligne 3</strong> et <strong>colonne 5</strong>, on lit la valeur <strong>9</strong>, qui s'écrit sur 4 bits : <strong>1001</strong> !`,
+        pythonFilename: 'des_sbox_q1_et_q2_page40.py',
+        pythonLines: [
+          { comment: "# Réponse Question Q2 (Page 40) : Programmer la boîte de substitution S_i (ici S3 de la Page 39)", code: "S3 = [" },
+          { comment: "    # Ligne 0 de la boîte S3 (colonnes 0 à 15)", code: "    [10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8]," },
+          { comment: "    # Ligne 1 de la boîte S3", code: "    [13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1]," },
+          { comment: "    # Ligne 2 de la boîte S3", code: "    [13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7]," },
+          { comment: "    # Ligne 3 de la boîte S3", code: "    [1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12]" },
+          { comment: "]" },
+          { comment: "# Fonction qui calcule la sortie 4 bits d'une S-Box pour une entrée de 6 bits (ex: '101011')", code: "def evaluer_sbox(table_s, entree_6bits):" },
+          { comment: "    # bit 1 (indice 0) et bit 6 (indice 5) donnent le numéro de ligne (entre 0 et 3)", code: "    ligne = int(entree_6bits[0] + entree_6bits[5], 2)" },
+          { comment: "    # bit 2, bit 3, bit 4, bit 5 (indices 1 à 4) donnent le numéro de colonne (entre 0 et 15)", code: "    colonne = int(entree_6bits[1:5], 2)" },
+          { comment: "    # Lit l'entrée (Table entry entre 0 et 15) dans la S-Box à [ligne][colonne]", code: "    valeur_table = table_s[ligne][colonne]" },
+          { comment: "    # Convertit cet entier en binaire sur 4 bits (bit 1 bit 2 bit 3 bit 4, ex: 9 -> '1001')", code: "    return ligne, colonne, valeur_table, format(valeur_table, '04b')" }
+        ]
+      },
+      {
+        id: 'des_weak_whitening',
+        shortTitle: '7. Clés Faibles & DES Blanchiment',
+        badge: 'Pages 45 à 49 • Exercices & Cryptanalyse',
+        title: 'Clés Faibles de DES (Page 45), Fin de DES & Chiffrement avec Blanchiment (Page 49)',
+        summary: `Ce module traite la sécurité de DES et résout les deux exercices des Pages 45 et 49 : <strong>1) L'exercice sur les Clés faibles de DES (Page 45)</strong> où toutes les clés de tour <strong>K<sub>1</sub> = ... = K<sub>16</sub></strong> sont égales, rendant DES involutif (<strong>DES<sub>K</sub>(DES<sub>K</sub>(m)) = m</strong>), et <strong>2) L'exercice sur le Chiffrement avec blanchiment (Page 49)</strong> <strong>c = DES<sub>K1</sub>(m) ⊕ K<sub>2</sub></strong> utilisant une clé de 120 bits <strong>(K<sub>1</sub>, K<sub>2</sub>) ∈ {0,1}<sup>56</sup> × {0,1}<sup>64</sup></strong>, cassé en <strong>2<sup>57</sup> évaluations de DES</strong> par une attaque à deux clairs connus.`,
+        formulas: [
+          { label: 'Involution des Clés Faibles (p.45)', eq: 'Si K₁ = K₂ = ... = K₁₆  ⇒  DES_K(DES_K(m)) = m pour tout bloc m de 64 bits' },
+          { label: 'Les 4 Clés Faibles (Page 45 Q2)', eq: 'C₀ ∈ {0²⁸, 1²⁸} et D₀ ∈ {0²⁸, 1²⁸}  ⇒  0101010101010101, FEFEFEFEFEFEFEFE, E0..F1, 1F..0E' },
+          { label: 'Attaque Blanchiment (Page 49)', eq: 'c₁ ⊕ c₂ = DES_{K₁}(m₁) ⊕ DES_{K₁}(m₂)  (élimine K₂ ! Coût = 2 × 2⁵⁶ = 2⁵⁷ évaluations)' }
+        ],
+        examTip: `🏆 <strong>Corrigé Détaillé de l'Exercice de la Page 49 (Chiffrement avec blanchiment) :</strong><br>
+        On considère <strong>c = DES<sub>K1</sub>(m) ⊕ K<sub>2</sub></strong> avec deux couples de clairs/chiffrés connus <strong>(m<sub>1</sub>, c<sub>1</sub>)</strong> et <strong>(m<sub>2</sub>, c<sub>2</sub>)</strong> :<br>
+        • En effectuant le XOR bit à bit des deux chiffrés <strong>c<sub>1</sub></strong> et <strong>c<sub>2</sub></strong>, la sous-clé <strong>K<sub>2</sub></strong> de 64 bits s'annule car <strong>K<sub>2</sub> ⊕ K<sub>2</sub> = 0</strong> :<br>
+        <code>c₁ ⊕ c₂ = (DES_{K₁}(m₁) ⊕ K₂) ⊕ (DES_{K₁}(m₂) ⊕ K₂) = DES_{K₁}(m₁) ⊕ DES_{K₁}(m₂)</code>.<br>
+        • <strong>Attaque en 2<sup>57</sup> évaluations :</strong> Pour chacune des <strong>2<sup>56</sup></strong> clés possibles <strong>K<sub>1</sub> ∈ {0,1}<sup>56</sup></strong>, on calcule <strong>DES<sub>K1</sub>(m<sub>1</sub>)</strong> et <strong>DES<sub>K1</sub>(m<sub>2</sub>)</strong> (soit <strong>2 × 2<sup>56</sup> = 2<sup>57</sup> évaluations de la fonction DES</strong>) et on vérifie si leur XOR vaut <strong>c<sub>1</sub> ⊕ c<sub>2</sub></strong>. Dès que K<sub>1</sub> est trouvée, on déduit directement <strong>K<sub>2</sub> = c<sub>1</sub> ⊕ DES<sub>K1</sub>(m<sub>1</sub>)</strong> !`,
+        pythonFilename: 'cles_faibles_et_attaque_blanchiment.py',
+        pythonLines: [
+          { comment: "# 1. Les 4 Clés Faibles de DES en hexadécimal (Question 2 de la Page 45 du PDF)", code: "CLES_FAIBLES_DES = [" },
+          { comment: "    '0101010101010101', # C0 = 000...0 (28 zéros), D0 = 000...0 (28 zéros)", code: "    'FEFEFEFEFEFEFEFE', # C0 = 111...1 (28 uns),   D0 = 111...1 (28 uns)", code: "    'E0E0E0E0F1F1F1F1', # C0 = 111...1 (28 uns),   D0 = 000...0 (28 zéros)", code: "    '1F1F1F1F0E0E0E0E'  # C0 = 000...0 (28 zéros), D0 = 111...1 (28 uns)" },
+          { comment: "]" },
+          { comment: "# 2. Exercice Page 49 : Attaque à deux clairs connus sur c = DES_{K1}(m) XOR K2", code: "def attaque_des_blanchiment(m1, c1, m2, c2, espace_cles_k1, DES):" },
+          { comment: "    # Calcule c1 XOR c2 : la clé K2 (64 bits) disparaît car K2 ^ K2 == 0 !", code: "    xor_chiffres = c1 ^ c2" },
+          { comment: "    nb_evaluations_des = 0" },
+          { comment: "    # Parcourt les 2^56 clés K1 possibles", code: "    for k1 in espace_cles_k1:" },
+          { comment: "        # 2 évaluations de la fonction DES par clé K1 (total = 2 * 2^56 = 2^57 évaluations)", code: "        des_m1 = DES(m1, k1)" },
+          { comment: "        des_m2 = DES(m2, k1)" },
+          { comment: "        nb_evaluations_des += 2" },
+          { comment: "        # Teste l'égalité DES_{K1}(m1) ^ DES_{K1}(m2) == c1 ^ c2", code: "        if (des_m1 ^ des_m2) == xor_chiffres:" },
+          { comment: "            # Retrouve immédiatement K2 par : K2 = c1 ^ DES_{K1}(m1)", code: "            k2 = c1 ^ des_m1" },
+          { comment: "            return k1, k2, nb_evaluations_des" }
+        ]
+      },
+      {
+        id: 'double_triple_des',
+        shortTitle: '8. 2DES (Meet-in-the-Middle) & 3DES',
+        badge: 'Pages 50 à 52 • Double DES, Attaque MITM & 3DES',
+        title: 'Double DES, Corrigé de l’Attaque Meet-in-the-Middle (Page 51) & 3DES (Page 52)',
+        summary: `Le principe du <strong>Double DES (2DES, Page 50)</strong> est de chiffrer deux fois le message avec deux clés <strong>K<sub>1</sub></strong> et <strong>K<sub>2</sub></strong> (112 bits au total) : <strong>M' = 2DES<sub>K1,K2</sub>(M) = DES<sub>K1</sub>(DES<sub>K2</sub>(M))</strong>. Cependant, l'exercice de la <strong>Page 51 démontre l'attaque Meet-in-the-Middle</strong> à partir de deux couples connus <strong>(B<sub>1</sub>, B'<sub>1</sub>)</strong> et <strong>(B<sub>2</sub>, B'<sub>2</sub>)</strong> : en stockant <strong>B''<sub>1,i</sub> = DES<sub>K2,i</sub>(B<sub>1</sub>)</strong> dans un tableau et en comparant avec <strong>B'''<sub>1,j</sub> = DES<sup>−1</sup><sub>K1,j</sub>(B'<sub>1</sub>)</strong>, on retrouve la clé en <strong>2<sup>57</sup> clés testées</strong> au lieu de <strong>2<sup>112</sup></strong> ! C'est pourquoi on utilise le <strong>3DES (Page 52)</strong>.`,
+        formulas: [
+          { label: 'Équation de collision (Page 51)', eq: 'B′′₁,ᵢ = DES_{K₂,ᵢ}(B₁)   et   B′′′₁,ⱼ = DES⁻¹_{K₁,ⱼ}(B′₁)   ⇒   On cherche B′′′₁,ⱼ = B′′₁,ᵢ' },
+          { label: 'Coût Brute Force vs MITM (p.51)', eq: 'Brute Force = 2¹¹² clés   |   Meet-in-the-Middle = 2⁵⁶ + 2⁵⁶ = 2⁵⁷ clés testées !' },
+          { label: '3DES (Page 52 : 56? 112? 168?)', eq: '3 clés = 168 bits (sécurité effective 112 bits) | 2 clés (K₁,K₂,K₁) = 112 bits | 1 clé = 56 bits' }
+        ],
+        examTip: `🎓 <strong>Corrigé Complet de l'Exercice de la Page 51 (Toutes les questions a, b, c.1 à c.5) :</strong><br>
+        • <strong>a)</strong> Taille d'une clé DES = <strong>56 bits</strong> ⇒ Taille d'une clé double-DES = <code>2 × 56 =</code> <strong>112 bits</strong>.<br>
+        • <strong>b)</strong> Nombre maximum de clés pour une attaque Brute Force sur un double-DES = <strong>2<sup>112</sup> clés</strong>.<br>
+        • <strong>c.1)</strong> Le tableau sauvegarde les <strong>2<sup>56</sup></strong> blocs <strong>B''<sub>1,i</sub></strong> de 64 bits (8 octets) associés aux clés <strong>K<sub>2,i</sub></strong> (7 octets) : soit <strong>2<sup>56</sup> × 8 = 2<sup>59</sup> octets</strong> pour les blocs (ou <strong>15 × 2<sup>56</sup> octets</strong> avec les clés).<br>
+        • <strong>c.2)</strong> Il y a <strong>2<sup>112</sup></strong> couples <strong>(K<sub>1,j</sub> ; K<sub>2,i</sub>)</strong> possibles et <strong>2<sup>64</sup></strong> valeurs de blocs possibles, donc le nombre de couples donnant <strong>B'''<sub>1,j</sub> = B''<sub>1,i</sub></strong> est <code>2¹¹² / 2⁶⁴ =</code> <strong>2<sup>48</sup> couples de clés</strong>.<br>
+        • <strong>c.3)</strong> Nombre de clés testées : <code>2⁵⁶ + 2⁵⁶ = 2 × 2⁵⁶ =</code> <strong>2<sup>57</sup> clés</strong>.<br>
+        • <strong>c.4)</strong> On teste les <strong>2<sup>48</sup></strong> couples candidats sur le second couple connu <strong>(B<sub>2</sub>, B'<sub>2</sub>)</strong> en vérifiant si <strong>DES<sub>K1,j</sub>(DES<sub>K2,i</sub>(B<sub>2</sub>)) = B'<sub>2</sub></strong> (il reste <code>2⁴⁸ / 2⁶⁴ = 2⁻¹⁶</code> fausse clé, ce qui donne l'unique bonne paire <strong>K<sub>1</sub>, K<sub>2</sub></strong>).<br>
+        • <strong>c.5)</strong> Amélioration par rapport à la Brute Force Attack : on teste <strong>2<sup>57</sup> clés au lieu de 2<sup>112</sup></strong>, soit un gain d'un facteur <strong>2<sup>55</sup></strong> !`,
+        pythonFilename: 'attaque_meet_in_the_middle_2des.py',
+        pythonLines: [
+          { comment: "# Corrigé Algorithmique de l'Exercice Page 51 : Attaque Meet-in-the-Middle sur Double-DES", code: "def meet_in_the_middle_2des(B1, B1_prime, B2, B2_prime, ensemble_cles, DES, DES_inv):" },
+          { comment: "    # Étape 1 : On chiffre B1 avec toutes les clés K2_i et on sauvegarde B''_{1,i} dans un tableau", code: "    tableau_B_seconde = {}" },
+          { comment: "    for k2_i in ensemble_cles:" },
+          { comment: "        b_seconde_1_i = DES(B1, k2_i)" },
+          { comment: "        tableau_B_seconde.setdefault(b_seconde_1_i, []).append(k2_i)" },
+          { comment: "    # Étape 2 : On décrypte B'_1 avec chaque clé K1_j (soit B'''_{1,j}) et on cherche B'''_{1,j} == B''_{1,i}", code: "    couples_possibles = []" },
+          { comment: "    for k1_j in ensemble_cles:" },
+          { comment: "        b_tierce_1_j = DES_inv(B1_prime, k1_j)" },
+          { comment: "        if b_tierce_1_j in tableau_B_seconde:" },
+          { comment: "            for k2_i in tableau_B_seconde[b_tierce_1_j]:" },
+          { comment: "                couples_possibles.append((k1_j, k2_i))" },
+          { comment: "    # Étape 3 (Question c.4) : On teste les couples possibles sur le second couple connu (B2, B'_2)", code: "    for k1_j, k2_i in couples_possibles:" },
+          { comment: "        if DES(DES(B2, k2_i), k1_j) == B2_prime:" },
+          { comment: "            return k1_j, k2_i, len(couples_possibles)" }
+        ]
+      }
+    ];
+
+    /*************************************************************************
+     * 4. INITIALIZATION & REFERENCE TABLES
+     *************************************************************************/
+    function initReferenceTables() {
+      const shiftsGrid = document.getElementById('shifts-reference-grid');
+      if (shiftsGrid) {
+        shiftsGrid.innerHTML = DES_SHIFTS.map((s, idx) => `
+          <div class="bg-slate-800/90 border ${s === 1 ? 'border-yellow-400/80' : 'border-slate-700'} rounded p-1.5 flex flex-col items-center">
+            <span class="text-slate-400 text-[10px]">T${idx + 1}</span>
+            <span class="${s === 1 ? 'text-yellow-300' : 'text-emerald-400'} font-bold text-xs">◀${s}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function toggleAlphabetModal() {
+      const drawer = document.getElementById('alphabet-drawer');
+      drawer.classList.toggle('hidden');
+    }
+
+    function renderNavigationTabs() {
+      const nav = document.getElementById('algo-tabs');
+      nav.innerHTML = ALGORITHMS.map(algo => {
+        const isActive = algo.id === currentAlgoId;
+        return `
+          <button onclick="selectAlgorithm('${algo.id}')"
+            class="px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2 ${
+              isActive
+                ? 'tab-btn-active'
+                : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-white hover:border-slate-500'
+            }">
+            <span>${algo.shortTitle}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectAlgorithm(algoId) {
+      stopAutoPlay();
+      currentAlgoId = algoId;
+      currentStepIndex = 0;
+      renderNavigationTabs();
+      renderAllSections();
+    }
+
+    /*************************************************************************
+     * 5. STEP GENERATION FOR EACH ALGORITHM (ANIMATION + EXPLANATIONS)
+     *************************************************************************/
+    function getStepsForCurrentAlgo() {
+      if (currentAlgoId === 'ecb_intro') {
+        const b1 = cleanBits(stateParams.ecb_intro.b1, 4, "1010");
+        const b2 = cleanBits(stateParams.ecb_intro.b2, 4, "1010");
+        const b3 = cleanBits(stateParams.ecb_intro.b3, 4, "0110");
+        const k = cleanBits(stateParams.ecb_intro.key, 4, "1100");
+        const c1 = toyBlockEncrypt4(b1, k);
+        const c2 = toyBlockEncrypt4(b2, k);
+        const c3 = toyBlockEncrypt4(b3, k);
+
+        return [
+          {
+            title: "Étape 1 : Découpage du message binaire en blocs (Page 3)",
+            caption: `Le message source est codé en binaire puis découpé en blocs de taille fixe : ici <strong>P₁ = ${b1}</strong>, <strong>P₂ = ${b2}</strong> et <strong>P₃ = ${b3}</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Chiffrement indépendant de chaque bloc avec K (Page 6)",
+            caption: `Chaque bloc traverse la boîte <strong>Encrypt_K</strong> (XOR avec la clé <code>K=${k}</code> + permutation des bits sur plusieurs tours) : <strong>C₁ = ${c1}</strong>, <strong>C₂ = ${c2}</strong>, <strong>C₃ = ${c3}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Faille de sécurité du mode ECB (Page 7)",
+            caption: b1 === b2
+              ? `⚠️ Remarquez que <strong>P₁ = P₂ = ${b1}</strong> produit exactement le même chiffré <strong>C₁ = C₂ = ${c1}</strong> ! Un attaquant voit immédiatement la répétition et peut permuter les blocs.`
+              : `Si deux blocs clairs sont identiques, leurs blocs chiffrés seront identiques en mode ECB.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Déchiffrement ECB en parallèle (Page 6b)",
+            caption: `Chaque bloc chiffré <strong>Cᵢ</strong> passe dans <strong>Decrypt_K</strong> avec la même clé secrète <code>K=${k}</code> pour restituer <strong>P₁ = ${b1}, P₂ = ${b2}, P₃ = ${b3}</strong>.`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'cbc_star') {
+        const isStar = stateParams.cbc_star.modeVariant === 'cbc_star';
+        const iv = cleanBits(stateParams.cbc_star.iv, 4, "1001");
+        const p1 = cleanBits(stateParams.cbc_star.p1, 4, "1010");
+        const p2 = cleanBits(stateParams.cbc_star.p2, 4, "1010");
+        const p3 = cleanBits(stateParams.cbc_star.p3, 4, "0101");
+        const k = cleanBits(stateParams.cbc_star.key, 4, "1100");
+
+        /* STREAMING_CHUNK:Updating CBC and CBC* step descriptions with exact PDF notations... */
+        if (!isStar) {
+          const xor1 = xorBits(p1, iv);
+          const c1 = toyBlockEncrypt4(xor1, k);
+          const xor2 = xorBits(p2, c1);
+          const c2 = toyBlockEncrypt4(xor2, k);
+          const xor3 = xorBits(p3, c2);
+          const c3 = toyBlockEncrypt4(xor3, k);
+          return [
+            {
+              title: "Étape 1 : Bloc P₁ combiné avec IV (c₀)",
+              caption: `En mode CBC (Page 8), on calcule <strong>P₁ ⊕ IV = ${p1} ⊕ ${iv} = ${xor1}</strong>, puis on chiffre : <strong>C₁ = Encrypt<sub>K</sub>(P₁ ⊕ IV) = ${c1}</strong>.`,
+              highlight: 1
+            },
+            {
+              title: "Étape 2 : Chaînage séquentiel de C₁ vers le Bloc P₂",
+              caption: `Même si <strong>P₂ = P₁ = ${p2}</strong>, on le combine avec <strong>C₁ = ${c1}</strong> : <strong>P₂ ⊕ C₁ = ${xor2}</strong> puis <strong>C₂ = Encrypt<sub>K</sub>(P₂ ⊕ C₁) = ${c2} ≠ C₁</strong> !`,
+              highlight: 2
+            },
+            {
+              title: "Étape 3 : Chaînage séquentiel de C₂ vers le Bloc P₃",
+              caption: `Le bloc chiffré <strong>C₂ = ${c2}</strong> est envoyé dans le XOR du bloc 3 : <strong>P₃ ⊕ C₂ = ${p3} ⊕ ${c2} = ${xor3}</strong> puis <strong>C₃ = Encrypt<sub>K</sub>(P₃ ⊕ C₂) = ${c3}</strong>.`,
+              highlight: 3
+            },
+            {
+              title: "Étape 4 : Déchiffrement CBC (Page 8b) : Pᵢ = Decrypt_K(Cᵢ) ⊕ Cᵢ₋₁",
+              caption: `Au déchiffrement (Page 8b), on applique <strong>Decrypt<sub>K</sub>(Cᵢ)</strong> puis un XOR avec <strong>Cᵢ₋₁</strong> (ou IV pour le 1er bloc) pour retrouver P₁, P₂, P₃.`,
+              highlight: 4
+            }
+          ];
+        } else {
+          // Exercice Page 10 : Mode CBC* sans aucune notation X_i inventée
+          const in1 = xorBits(p1, iv);
+          const in2 = xorBits(p2, in1);
+          const in3 = xorBits(p3, in2);
+          const c1 = toyBlockEncrypt4(in1, k);
+          const c2 = toyBlockEncrypt4(in2, k);
+          const c3 = toyBlockEncrypt4(in3, k);
+          return [
+            {
+              title: "Étape 1 (Figure Page 10) : Chaînage XOR du Texte clair avec le Vecteur d'initialisation",
+              caption: `Dans la figure de la Page 10 (mode <strong>CBC*</strong>), le XOR se fait avant les boîtes <em>Chiffrement par bloc</em> : <strong>Entrée 1 = IV ⊕ P₁ = ${in1}</strong>, <strong>Entrée 2 = (IV ⊕ P₁) ⊕ P₂ = ${in2}</strong>, <strong>Entrée 3 = (IV ⊕ P₁ ⊕ P₂) ⊕ P₃ = ${in3}</strong>.`,
+              highlight: 1
+            },
+            {
+              title: "Étape 2 (Figure Page 10) : Chiffrement par bloc EN PARALLÈLE",
+              caption: `Comme les entrées des boîtes ne dépendent pas des sorties chiffrées précédentes, les 3 boîtes <strong>Chiffrement par bloc</strong> s'exécutent en parallèle : <strong>C₁ = ${c1}, C₂ = ${c2}, C₃ = ${c3}</strong>.`,
+              highlight: 2
+            },
+            {
+              title: "Étape 3 (Corrigé Page 10) : Déchiffrement par bloc en parallèle",
+              caption: `Pour déchiffrer le Texte chiffré en mode CBC*, on passe d'abord tous les blocs chiffrés <strong>C₁, C₂, C₃</strong> simultanément dans les boîtes <strong>Déchiffrement par bloc (Decrypt<sub>K</sub>)</strong> : on retrouve <strong>Decrypt<sub>K</sub>(C₁) = ${in1}</strong>, <strong>Decrypt<sub>K</sub>(C₂) = ${in2}</strong> et <strong>Decrypt<sub>K</sub>(C₃) = ${in3}</strong>.`,
+              highlight: 3
+            },
+            {
+              title: "Étape 4 (Corrigé Page 10) : XOR avec la sortie déchiffrée précédente",
+              caption: `On retrouve ensuite chaque bloc du Texte clair en parallèle : <strong>P₁ = Decrypt<sub>K</sub>(C₁) ⊕ IV = ${p1}</strong>, <strong>P₂ = Decrypt<sub>K</sub>(C₂) ⊕ Decrypt<sub>K</sub>(C₁) = ${p2}</strong> et <strong>P₃ = Decrypt<sub>K</sub>(C₃) ⊕ Decrypt<sub>K</sub>(C₂) = ${p3}</strong> !`,
+              highlight: 4
+            }
+          ];
+        }
+      }
+
+      if (currentAlgoId === 'cfb_ctr') {
+        const isCfb = stateParams.cfb_ctr.subMode === 'cfb';
+        const iv = cleanBits(stateParams.cfb_ctr.iv, 4, "1011");
+        const m1 = cleanBits(stateParams.cfb_ctr.m1, 4, "0101");
+        const m2 = cleanBits(stateParams.cfb_ctr.m2, 4, "1100");
+        const m3 = cleanBits(stateParams.cfb_ctr.m3, 4, "0011");
+        const k = cleanBits(stateParams.cfb_ctr.key, 4, "1010");
+
+        if (isCfb) {
+          const s1 = toyBlockEncrypt4(iv, k);
+          const c1 = xorBits(s1, m1);
+          const s2 = toyBlockEncrypt4(c1, k);
+          const c2 = xorBits(s2, m2);
+          const s3 = toyBlockEncrypt4(c2, k);
+          const c3 = xorBits(s3, m3);
+          return [
+            {
+              title: "Étape 1 (CFB Page 11) : Chiffrement de c₀ par E_k puis XOR avec m₁",
+              caption: `Le bloc initial <strong>c₀ = ${iv}</strong> passe dans <strong>E<sub>k</sub>(c₀) = ${s1}</strong>, puis est combiné avec <strong>m₁ = ${m1}</strong> : <strong>c₁ = ${s1} ⊕ ${m1} = ${c1}</strong>.`,
+              highlight: 1
+            },
+            {
+              title: "Étape 2 (Rétroaction / Feedback) : c₁ alimente E_k pour chiffrer m₂",
+              caption: `Le bloc chiffré <strong>c₁ = ${c1}</strong> sert de feedback : <strong>E<sub>k</sub>(c₁) = ${s2}</strong>, puis <strong>c₂ = ${s2} ⊕ m₂ = ${s2} ⊕ ${m2} = ${c2}</strong>.`,
+              highlight: 2
+            },
+            {
+              title: "Étape 3 : Chaînage CFB vers m₃",
+              caption: `De même, <strong>c₂ = ${c2}</strong> entre dans <strong>E<sub>k</sub>(c₂) = ${s3}</strong> et donne <strong>c₃ = ${s3} ⊕ m₃ = ${c3}</strong>.`,
+              highlight: 3
+            },
+            {
+              title: "Étape 4 (Réponse Question Page 12) : Comment déchiffrer en mode CFB ?",
+              caption: `Puisque <strong>cᵢ = E<sub>k</sub>(cᵢ₋₁) ⊕ mᵢ</strong>, le déchiffrement s'écrit <strong>mᵢ = E<sub>k</sub>(cᵢ₋₁) ⊕ cᵢ</strong> : on utilise la <strong>même fonction E<sub>k</sub></strong> (pas besoin d'inverser E<sub>k</sub>) !`,
+              highlight: 4
+            }
+          ];
+        } else {
+          // CTR Mode (Pages 13-14)
+          const ctr1 = iv.slice(0, 2) + "00";
+          const ctr2 = iv.slice(0, 2) + "01";
+          const ctr3 = iv.slice(0, 2) + "10";
+          const s1 = toyBlockEncrypt4(ctr1, k);
+          const s2 = toyBlockEncrypt4(ctr2, k);
+          const s3 = toyBlockEncrypt4(ctr3, k);
+          const c1 = xorBits(m1, s1);
+          const c2 = xorBits(m2, s2);
+          const c3 = xorBits(m3, s3);
+          return [
+            {
+              title: "Étape 1 (CTR Page 13) : Construction des blocs (IV || Compteur)",
+              caption: `On concatène le vecteur d'initialisation et un compteur incrémental : <strong>T₀ = ${ctr1}</strong>, <strong>T₁ = ${ctr2}</strong>, <strong>T₂ = ${ctr3}</strong>.`,
+              highlight: 1
+            },
+            {
+              title: "Étape 2 : Génération parallèle de la Suite Chiffrante (Préprocessing)",
+              caption: `Chaque compteur est chiffré par <strong>E_K</strong> en parallèle : <strong>S₁ = ${s1}</strong>, <strong>S₂ = ${s2}</strong>, <strong>S₃ = ${s3}</strong>.`,
+              highlight: 2
+            },
+            {
+              title: "Étape 3 : XOR avec le Texte Clair",
+              caption: `On combine la suite chiffrante avec le texte clair par XOR : <strong>c₁ = ${c1}</strong>, <strong>c₂ = ${c2}</strong>, <strong>c₃ = ${c3}</strong>.`,
+              highlight: 3
+            },
+            {
+              title: "Étape 4 (Réponse Question Page 14) : Comment déchiffrer en mode CTR ?",
+              caption: `Le déchiffrement est <strong>strictement identique au chiffrement</strong> : on régénère la suite chiffrante avec <strong>E_K(IV || compteur)</strong> et on fait un XOR avec le texte chiffré !`,
+              highlight: 4
+            }
+          ];
+        }
+      }
+
+      if (currentAlgoId === 'feistel') {
+        const w = cleanBits(stateParams.feistel.w, 6, "101110");
+        const G0 = w.slice(0, 3);
+        const D0 = w.slice(3, 6);
+        const f1Out = FEISTEL_F1[D0] || "010";
+        const L1 = D0;
+        const R1 = xorBits(G0, f1Out);
+        const f2Out = FEISTEL_F2[R1] || "010";
+        const L2 = R1;
+        const R2 = xorBits(L1, f2Out);
+
+        return [
+          {
+            title: "Étape 1 (Exercice Page 19) : Découpage w = (G₀ | D₀)",
+            caption: `Le mot de 6 bits <strong>w = ${w}</strong> est partagé en deux moitiés de 3 bits : <strong>G₀ = ${G0}</strong> (Gauche) et <strong>D₀ = ${D0}</strong> (Droite).`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Premier Tour de Feistel avec la table f₁",
+            caption: `La droite passe à gauche : <strong>L₁ = D₀ = ${L1}</strong>. La table f₁ donne <strong>f₁(${D0}) = ${f1Out}</strong>, d'où <strong>R₁ = G₀ ⊕ f₁(${D0}) = ${G0} ⊕ ${f1Out} = ${R1}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Deuxième Tour de Feistel avec la table f₂",
+            caption: `On croise à nouveau : <strong>L₂ = R₁ = ${L2}</strong>. La table f₂ donne <strong>f₂(${R1}) = ${f2Out}</strong>, d'où <strong>R₂ = L₁ ⊕ f₂(${R1}) = ${L1} ⊕ ${f2Out} = ${R2}</strong>. Sortie finale = <strong>${L2}${R2}</strong> !`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 (Question 2 Page 19) : Décryptage inverse du Cipher",
+            caption: `En partant de <strong>(${L2} | ${R2})</strong> : on retrouve <strong>R₁ = L₂ = ${L2}</strong> et <strong>L₁ = R₂ ⊕ f₂(${L2}) = ${R2} ⊕ ${f2Out} = ${L1}</strong>, puis <strong>D₀ = ${D0}</strong> et <strong>G₀ = ${R1} ⊕ f₁(${D0}) = ${G0}</strong> !`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'des_keys') {
+        const r = parseInt(stateParams.des_keys.roundInspect) || 1;
+        let totalShift = 0;
+        for (let i = 0; i < r; i++) totalShift += DES_SHIFTS[i];
+        const C0 = "1111000011001100101010101111";
+        const D0 = "0101010101100110011110001111";
+        const Cr = rotateLeft(C0, totalShift);
+        const Dr = rotateLeft(D0, totalShift);
+
+        return [
+          {
+            title: "Étape 1 (Pages 27–28) : Table PC-1 (64 bits → 56 bits)",
+            caption: `La clé initiale K de 64 bits perd ses 8 bits de parité (multiples de 8) et ses 56 bits sont permutés par <strong>PC-1</strong> pour former <strong>K⁺ = C₀ (28 bits) || D₀ (28 bits)</strong>.`,
+            highlight: 1
+          },
+          {
+            title: `Étape 2 (Pages 29–31) : Décalage Circulaire à Gauche (Tour ${r})`,
+            caption: `Au Tour ${r}, on décale de <strong>${DES_SHIFTS[r - 1]} bit(s)</strong> (cumul = ${totalShift} bits) : <strong>C_${r} = ${Cr.slice(0,14)}...</strong> et <strong>D_${r} = ${Dr.slice(0,14)}...</strong>.`,
+            highlight: 2
+          },
+          {
+            title: `Étape 3 (Page 32) : Table de Contraction PC-2 (56 bits → 48 bits)`,
+            caption: `La table <strong>PC-2</strong> sélectionne et réordonne 48 bits parmi les 56 bits de <strong>C_${r} || D_${r}</strong> pour produire la sous-clé <strong>K_${r} (48 bits)</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 (Page 44) : Ordre des sous-clés pour le Déchiffrement",
+            caption: `Après 16 tours (28 décalages au total), les registres reviennent à C₀ et D₀. Pour déchiffrer, on utilise exactement les mêmes sous-clés en ordre inverse : <strong>K₁₆, K₁₅, ..., K₁</strong>.`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'des_sbox') {
+        const b6 = cleanBits(stateParams.des_sbox.bits6, 6, "101011");
+        const rowBits = b6[0] + b6[5];
+        const colBits = b6.slice(1, 5);
+        const row = parseInt(rowBits, 2);
+        const col = parseInt(colBits, 2);
+        const val = S3_BOX[row][col];
+        const out4 = val.toString(2).padStart(4, "0");
+
+        return [
+          {
+            title: "Étape 1 (Pages 36–37) : Expansion E (32→48 bits) & XOR avec Kᵢ",
+            caption: `La moitié droite R (32 bits) est étendue à 48 bits par la table <strong>E</strong> (en dupliquant 16 bits), combinée par XOR avec <strong>Kᵢ (48 bits)</strong>, puis découpée en 8 blocs de 6 bits pour <strong>S₁..S₈</strong>.`,
+            highlight: 1
+          },
+          {
+            title: `Étape 2 (Page 40 Q1) : Décodage Ligne & Colonne pour S₃(${b6})`,
+            caption: `Pour le bloc de 6 bits <strong>${b6}</strong> : les 2 bits extrêmes (b₁b₆) donnent la <strong>Ligne = (${rowBits})₂ = ${row}</strong>, et les 4 bits centraux (b₂b₃b₄b₅) donnent la <strong>Colonne = (${colBits})₂ = ${col}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: `Étape 3 (Pages 39–40) : Lecture dans la Table S₃ et Sortie 4 bits`,
+            caption: `À l'intersection <strong>Ligne ${row}, Colonne ${col}</strong> de la boîte <strong>S₃</strong>, on lit l'entier <strong>${val}</strong>, converti sur 4 bits en <strong>${out4}</strong> !`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 (Pages 38, 42 & 43) : Permutation P et Effet Avalanche",
+            caption: `Les 8 sorties de 4 bits (32 bits) sont brassées par la <strong>Permutation P</strong> pour diffuser chaque bit vers différentes boîtes-S au tour suivant (créant l'<strong>Effet Avalanche</strong> de la Page 43).`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'des_weak_whitening') {
+        return [
+          {
+            title: "Étape 1 (Exercice Page 45 Q1) : Pourquoi K₁=...=K₁₆ crée une involution ?",
+            caption: `Le déchiffrement DES est identique au chiffrement mais avec les sous-clés dans l'ordre <strong>(K₁₆, ..., K₁)</strong>. Si toutes les Kᵢ sont égales, chiffrer deux fois équivaut à chiffrer puis déchiffrer : <strong>DES_K(DES_K(m)) = m</strong> !`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 (Exercice Page 45 Q2) : Les 4 Clés Faibles de DES",
+            caption: `Pour que Cᵢ et Dᵢ restent identiques après tous les décalages circulaires, C₀ doit être composé uniquement de 0 ou de 1 (2 choix) et D₀ aussi (2 choix), soit <strong>2 × 2 = 4 clés faibles</strong> !`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 (Exercice Page 49) : Chiffrement DES avec Blanchiment",
+            caption: `On chiffre par <strong>c = DES_{K₁}(m) ⊕ K₂</strong> avec K₁ (56 bits) et K₂ (64 bits), soit 120 bits de clé. Mais avec 2 couples clairs/chiffrés (m₁,c₁) et (m₂,c₂), on calcule <strong>c₁ ⊕ c₂ = DES_{K₁}(m₁) ⊕ DES_{K₁}(m₂)</strong> : K₂ disparaît !`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 (Corrigé Page 49) : Recherche exhaustive en 2⁵⁷ évaluations",
+            caption: `On teste chaque K₁ ∈ {0,1}⁵⁶ en calculant DES_{K₁}(m₁) et DES_{K₁}(m₂) (<strong>2 × 2⁵⁶ = 2⁵⁷ appels DES</strong>), puis on déduit K₂ = c₁ ⊕ DES_{K₁}(m₁). La sécurité n'augmente que d'un facteur 2 !`,
+            highlight: 4
+          }
+        ];
+      }
+
+      // Double DES & 3DES (Pages 50-52)
+      return [
+        {
+          title: "Étape 1 (Pages 50–51 a,b) : Double DES et Force Brute (2¹¹²)",
+          caption: `En 2DES, <strong>B' = DES_{K₁}(DES_{K₂}(B))</strong> avec deux clés de 56 bits (112 bits au total). Une attaque par force brute naïve testerait tous les couples (K₁, K₂), soit <strong>2¹¹² opérations</strong>.`,
+          highlight: 1
+        },
+        {
+          title: "Étape 2 (Page 51 c) : Attaque Meet-in-the-Middle — Table de Gauche (2⁵⁶)",
+          caption: `On chiffre le bloc clair connu B₁ avec les <strong>2⁵⁶ clés K_{2,i}</strong> possibles et on stocke les valeurs intermédiaires <strong>B''_{1,i} = DES_{K_{2,i}}(B₁)</strong> dans un tableau trié en mémoire.`,
+          highlight: 2
+        },
+        {
+          title: "Étape 3 (Page 51 c.2 & c.3) : Déchiffrement depuis la Droite & Collisions",
+          caption: `On déchiffre B'₁ avec les <strong>2⁵⁶ clés K_{1,j}</strong> : <strong>B'''_{1,j} = DES⁻¹_{K_{1,j}}(B'₁)</strong>. On cherche les égalités B'''_{1,j} = B''_{1,i}. Il reste <strong>2¹¹² / 2⁶⁴ = 2⁴⁸ couples candidats</strong> après <strong>2⁵⁷ opérations</strong>.`,
+          highlight: 3
+        },
+        {
+          title: "Étape 4 (Pages 51 c.4 & 52) : Second couple (B₂, B'₂) et passage au 3DES",
+          caption: `En testant les 2⁴⁸ candidats sur un 2ᵉ couple (B₂, B'₂), seule la vraie paire (K₁, K₂) survit (2⁴⁸ / 2⁶⁴ = 2⁻¹⁶). Pour contrer cette attaque, le <strong>3DES (Page 52)</strong> enchaîne 3 opérations DES !`,
+          highlight: 4
+        }
+      ];
+    }
+
+    /*************************************************************************
+     * 6. RENDER COURSE HEADER & INTERACTIVE INPUT CONTROLS
+     *************************************************************************/
+    function renderCourseHeader() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const container = document.getElementById('course-header-section');
+
+      container.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+          <div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+              ${algo.badge}
+            </span>
+            <h2 class="text-xl md:text-2xl font-extrabold text-white mt-2">${algo.title}</h2>
+          </div>
+          <div class="text-xs font-mono text-slate-400 bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-700">
+            Section ${ALGORITHMS.indexOf(algo) + 1} sur ${ALGORITHMS.length}
+          </div>
+        </div>
+
+        <p class="mt-4 text-sm md:text-base text-slate-200 leading-relaxed">
+          ${algo.summary}
+        </p>
+
+        <!-- Key Mathematical Formulas Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+          ${algo.formulas.map(f => `
+            <div class="bg-[#090d16] border border-slate-700/90 rounded-xl p-3.5">
+              <div class="text-xs font-mono uppercase tracking-wider text-yellow-400">${f.label}</div>
+              <div class="text-sm md:text-base font-mono font-bold text-emerald-300 mt-1">${f.eq}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderInteractiveControls() {
+      const bar = document.getElementById('interactive-inputs-bar');
+
+      if (currentAlgoId === 'ecb_intro') {
+        bar.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Bloc Clair P₁ (4 bits) :</label>
+              <input type="text" value="${stateParams.ecb_intro.b1}" maxlength="4"
+                oninput="updateParam('ecb_intro','b1', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Bloc Clair P₂ (4 bits) :</label>
+              <input type="text" value="${stateParams.ecb_intro.b2}" maxlength="4"
+                oninput="updateParam('ecb_intro','b2', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Bloc Clair P₃ (4 bits) :</label>
+              <input type="text" value="${stateParams.ecb_intro.b3}" maxlength="4"
+                oninput="updateParam('ecb_intro','b3', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-yellow-300 mb-1">Clé Secrète K (4 bits) :</label>
+              <input type="text" value="${stateParams.ecb_intro.key}" maxlength="4"
+                oninput="updateParam('ecb_intro','key', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-yellow-500/60 text-yellow-300 font-mono text-sm">
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'cbc_star') {
+        const isStar = stateParams.cbc_star.modeVariant === 'cbc_star';
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-mono text-emerald-300 mb-1">Schéma visualisé :</label>
+              <div class="flex gap-2">
+                <button onclick="updateParam('cbc_star','modeVariant','cbc')"
+                  class="flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold border transition ${!isStar ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                  Mode CBC Standard (p.8)
+                </button>
+                <button onclick="updateParam('cbc_star','modeVariant','cbc_star')"
+                  class="flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold border transition ${isStar ? 'bg-yellow-400 text-slate-950 border-yellow-300' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                  Exercice CBC* Parallèle (p.10)
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">IV (c₀) :</label>
+              <input type="text" value="${stateParams.cbc_star.iv}" maxlength="4"
+                oninput="updateParam('cbc_star','iv', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Blocs P₁, P₂ :</label>
+              <input type="text" value="${stateParams.cbc_star.p1}" maxlength="4"
+                oninput="updateParam('cbc_star','p1', this.value); updateParam('cbc_star','p2', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Clé K :</label>
+              <input type="text" value="${stateParams.cbc_star.key}" maxlength="4"
+                oninput="updateParam('cbc_star','key', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-emerald-500/50 text-emerald-300 font-mono text-sm">
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'cfb_ctr') {
+        const isCfb = stateParams.cfb_ctr.subMode === 'cfb';
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-mono text-emerald-300 mb-1">Choisir le mode à inspecter :</label>
+              <div class="flex gap-2">
+                <button onclick="updateParam('cfb_ctr','subMode','cfb')"
+                  class="flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold border transition ${isCfb ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                  Cipher FeedBack (CFB p.11-12)
+                </button>
+                <button onclick="updateParam('cfb_ctr','subMode','ctr')"
+                  class="flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold border transition ${!isCfb ? 'bg-yellow-400 text-slate-950 border-yellow-300' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                  Counter Mode (CTR p.13-14)
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Vecteur Init (c₀ / IV) :</label>
+              <input type="text" value="${stateParams.cfb_ctr.iv}" maxlength="4"
+                oninput="updateParam('cfb_ctr','iv', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Bloc m₁ (4 bits) :</label>
+              <input type="text" value="${stateParams.cfb_ctr.m1}" maxlength="4"
+                oninput="updateParam('cfb_ctr','m1', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'feistel') {
+        bar.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+            <div class="w-full sm:w-72">
+              <label class="block text-xs font-mono text-slate-300 mb-1">Mot d'entrée w ∈ {0,1}⁶ (Exercice Page 19) :</label>
+              <input type="text" value="${stateParams.feistel.w}" maxlength="6"
+                oninput="updateParam('feistel','w', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-emerald-500 text-white font-mono text-base tracking-widest">
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="updateParam('feistel','w','101110')"
+                class="px-3 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-mono text-xs font-semibold hover:bg-emerald-500/30">
+                ↺ Valeur exacte de l'énoncé Page 19 (w = 101110)
+              </button>
+              <button onclick="updateParam('feistel','w','010011')"
+                class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 font-mono text-xs hover:text-white">
+                Tester w = 010011
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_keys') {
+        const r = parseInt(stateParams.des_keys.roundInspect) || 1;
+        bar.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span class="text-xs font-mono text-slate-300">Inspecter l'itération de sous-clé DES (Tour 1 = Question Pages 31 &amp; 32) :</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${[1, 2, 3, 4, 8, 9, 12, 16].map(num => `
+                <button onclick="updateParam('des_keys','roundInspect', ${num})"
+                  class="px-3 py-1.5 rounded-lg font-mono text-xs font-bold border transition ${
+                    r === num
+                      ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                      : 'bg-slate-800 text-slate-300 border-slate-600 hover:border-emerald-400'
+                  }">
+                  Tour ${num} (Shift=${DES_SHIFTS[num - 1]})
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_sbox') {
+        bar.innerHTML = `
+          <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+            <div class="w-full sm:w-72">
+              <label class="block text-xs font-mono text-slate-300 mb-1">Entrée 6 bits dans la Boîte S₃ (Page 40) :</label>
+              <input type="text" value="${stateParams.des_sbox.bits6}" maxlength="6"
+                oninput="updateParam('des_sbox','bits6', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-yellow-400 text-yellow-300 font-mono text-base tracking-widest">
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="updateParam('des_sbox','bits6','101011')"
+                class="px-3 py-2 rounded-lg bg-yellow-500/20 border border-yellow-400/60 text-yellow-300 font-mono text-xs font-bold">
+                🎯 Question Q1 Page 40 : S₃(101011)
+              </button>
+              <button onclick="updateParam('des_sbox','bits6','011001')"
+                class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 font-mono text-xs">
+                Tester S₃(011001)
+              </button>
+              <button onclick="updateParam('des_sbox','bits6','000000')"
+                class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 font-mono text-xs">
+                Tester S₃(000000)
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_weak_whitening') {
+        const idx = stateParams.des_weak_whitening.weakKeyIdx;
+        const wkLabels = [
+          "Clé Faible 1 : 0101010101010101 (C₀=0²⁸, D₀=0²⁸)",
+          "Clé Faible 2 : FEFEFEFEFEFEFEFE (C₀=1²⁸, D₀=1²⁸)",
+          "Clé Faible 3 : E0E0E0E0F1F1F1F1 (C₀=1²⁸, D₀=0²⁸)",
+          "Clé Faible 4 : 1F1F1F1F0E0E0E0E (C₀=0²⁸, D₀=1²⁸)"
+        ];
+        bar.innerHTML = `
+          <div>
+            <label class="block text-xs font-mono text-slate-300 mb-2">Inspecter l'une des 4 clés faibles de DES (Exercice Page 45) :</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              ${wkLabels.map((lbl, i) => `
+                <button onclick="updateParam('des_weak_whitening','weakKeyIdx', ${i})"
+                  class="p-2 rounded-lg font-mono text-xs text-left border transition ${
+                    idx === i
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold'
+                      : 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white'
+                  }">${lbl}</button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        const isMitm = stateParams.double_triple_des.variant === '2des_mitm';
+        bar.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <span class="text-xs font-mono text-slate-300">Architecture &amp; Attaque à visualiser (Pages 50 à 52) :</span>
+            <div class="flex gap-2">
+              <button onclick="updateParam('double_triple_des','variant','2des_mitm')"
+                class="px-4 py-2 rounded-lg font-mono text-xs font-bold border transition ${isMitm ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                Double DES &amp; Attaque Meet-in-the-Middle (Pages 50–51)
+              </button>
+              <button onclick="updateParam('double_triple_des','variant','3des')"
+                class="px-4 py-2 rounded-lg font-mono text-xs font-bold border transition ${!isMitm ? 'bg-yellow-400 text-slate-950 border-yellow-300' : 'bg-slate-800 text-slate-300 border-slate-600'}">
+                Triple DES : 56? 112? 168? (Page 52)
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function updateParam(algo, key, val) {
+      stateParams[algo][key] = val;
+      renderAllSections();
+    }
+
+    /*************************************************************************
+     * 7. @SVG-EXPLAINED VISUAL DIAGRAM GENERATOR (NO RAW LATEX, PURE SVG)
+     *************************************************************************/
+    function renderSvgStage() {
+      const steps = getStepsForCurrentAlgo();
+      if (currentStepIndex >= steps.length) currentStepIndex = 0;
+      const activeStep = steps[currentStepIndex];
+
+      // Render Step Pills
+      const pillsEl = document.getElementById('step-pills-container');
+      pillsEl.innerHTML = steps.map((st, idx) => `
+        <button onclick="goToStep(${idx})"
+          class="px-3 py-1.5 rounded-lg font-mono text-xs transition whitespace-nowrap border ${
+            idx === currentStepIndex
+              ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
+              : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+          }">
+          ${st.title}
+        </button>
+      `).join('');
+
+      // Render Caption
+      document.getElementById('svg-step-caption').innerHTML = `
+        <div>
+          <div class="text-xs font-mono uppercase tracking-wider text-yellow-400 font-bold">${activeStep.title}</div>
+          <div class="text-sm text-slate-100 mt-1">${activeStep.caption}</div>
+        </div>
+        <div class="text-xs font-mono text-slate-400 shrink-0">
+          Étape ${currentStepIndex + 1} / ${steps.length}
+        </div>
+      `;
+
+      const svgContainer = document.getElementById('svg-canvas-container');
+      const h = activeStep.highlight;
+
+      if (currentAlgoId === 'ecb_intro') {
+        const b1 = cleanBits(stateParams.ecb_intro.b1, 4, "1010");
+        const b2 = cleanBits(stateParams.ecb_intro.b2, 4, "1010");
+        const b3 = cleanBits(stateParams.ecb_intro.b3, 4, "0110");
+        const k = cleanBits(stateParams.ecb_intro.key, 4, "1100");
+        const c1 = toyBlockEncrypt4(b1, k);
+        const c2 = toyBlockEncrypt4(b2, k);
+        const c3 = toyBlockEncrypt4(b3, k);
+        const blocks = [
+          { p: b1, c: c1, label: "Bloc 1" },
+          { p: b2, c: c2, label: "Bloc 2" },
+          { p: b3, c: c3, label: "Bloc 3" }
+        ];
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <defs>
+              <marker id="arrG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#10b981" />
+              </marker>
+            </defs>
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="36" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              MODE ELECTRONIC CODE BOOK (ECB — PAGES 6 &amp; 7) : Chaque bloc est chiffré indépendamment
+            </text>
+
+            ${blocks.map((blk, i) => {
+              const xCenter = 175 + i * 255;
+              const isDup = (i < 2 && b1 === b2);
+              return `
+                <!-- Plaintext P_i -->
+                <g class="${h === 1 ? 'svg-node-active' : ''}">
+                  <rect x="${xCenter - 70}" y="55" width="140" height="46" rx="8" fill="#111827" stroke="${isDup && h === 3 ? '#facc15' : '#10b981'}" stroke-width="2"/>
+                  <text x="${xCenter}" y="75" text-anchor="middle" fill="#94a3b8" font-size="11">P_${i + 1} (${blk.label})</text>
+                  <text x="${xCenter}" y="93" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-weight="bold" font-size="15">${blk.p}</text>
+                </g>
+
+                <line x1="${xCenter}" y1="101" x2="${xCenter}" y2="128" stroke="#10b981" stroke-width="2" class="svg-flow-line" marker-end="url(#arrG)"/>
+
+                <!-- Encrypt Box -->
+                <g class="${h === 2 ? 'svg-node-yellow' : ''}">
+                  <rect x="${xCenter - 75}" y="132" width="150" height="58" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+                  <text x="${xCenter}" y="156" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="13">Encrypt (E_K)</text>
+                  <text x="${xCenter}" y="176" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="11">Clé K = ${k}</text>
+                </g>
+
+                <line x1="${xCenter}" y1="190" x2="${xCenter}" y2="218" stroke="#10b981" stroke-width="2" class="svg-flow-line" marker-end="url(#arrG)"/>
+
+                <!-- Ciphertext C_i -->
+                <g class="${h === 3 && isDup ? 'svg-node-yellow' : ''}">
+                  <rect x="${xCenter - 70}" y="222" width="140" height="52" rx="8" fill="${isDup ? '#422006' : '#064e3b'}" stroke="${isDup ? '#facc15' : '#10b981'}" stroke-width="2.5"/>
+                  <text x="${xCenter}" y="242" text-anchor="middle" fill="#e2e8f0" font-size="11">Chiffré C_${i + 1}</text>
+                  <text x="${xCenter}" y="264" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="16">${blk.c}</text>
+                </g>
+              `;
+            }).join('')}
+          </svg>
+        `;
+      } else if (currentAlgoId === 'cbc_star') {
+        const isStar = stateParams.cbc_star.modeVariant === 'cbc_star';
+        const iv = cleanBits(stateParams.cbc_star.iv, 4, "1001");
+        const p1 = cleanBits(stateParams.cbc_star.p1, 4, "1010");
+        const p2 = cleanBits(stateParams.cbc_star.p2, 4, "1010");
+        const p3 = cleanBits(stateParams.cbc_star.p3, 4, "0101");
+        const k = cleanBits(stateParams.cbc_star.key, 4, "1100");
+
+        /* STREAMING_CHUNK:Rendering the CBC and CBC* SVG diagram without any X_i notation... */
+        const in1 = xorBits(p1, iv);
+        const c1 = toyBlockEncrypt4(in1, k);
+        const in2 = isStar ? xorBits(p2, in1) : xorBits(p2, c1);
+        const c2 = toyBlockEncrypt4(in2, k);
+        const in3 = isStar ? xorBits(p3, in2) : xorBits(p3, c2);
+        const c3 = toyBlockEncrypt4(in3, k);
+
+        const cols = [
+          { p: p1, xorVal: in1, c: c1, idx: 1 },
+          { p: p2, xorVal: in2, c: c2, idx: 2 },
+          { p: p3, xorVal: in3, c: c3, idx: 3 }
+        ];
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 320" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="300" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="34" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              ${isStar ? 'EXERCICE PAGE 10 : MODE OPÉRATOIRE CBC* (PARALLÉLISABLE : Chaînage XOR avant Chiffrement par bloc)' : 'MODE CBC STANDARD (PAGE 8 : Chaînage SÉQUENTIEL depuis la sortie Cᵢ₋₁)'}
+            </text>
+
+            <!-- Vecteur d'initialisation Box on Left -->
+            <rect x="20" y="106" width="115" height="44" rx="8" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+            <text x="77" y="124" text-anchor="middle" fill="#facc15" font-size="10" font-weight="bold">Vecteur d'init. (IV)</text>
+            <text x="77" y="142" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13">${iv}</text>
+            <line x1="135" y1="128" x2="212" y2="128" stroke="#facc15" stroke-width="2" class="svg-flow-line"/>
+
+            ${cols.map((col, i) => {
+              const cx = 230 + i * 240;
+              return `
+                <!-- Texte clair P_i -->
+                <rect x="${cx - 60}" y="48" width="120" height="38" rx="8" fill="#111827" stroke="#10b981" stroke-width="2"/>
+                <text x="${cx}" y="72" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="bold">Clair P${col.idx} = ${col.p}</text>
+                <line x1="${cx}" y1="86" x2="${cx}" y2="108" stroke="#10b981" stroke-width="2"/>
+
+                <!-- XOR Circle -->
+                <circle cx="${cx}" cy="128" r="18" fill="#111827" stroke="#facc15" stroke-width="2.5"/>
+                <text x="${cx}" y="134" text-anchor="middle" fill="#facc15" font-size="18" font-weight="bold">⊕</text>
+                <text x="${cx + 52}" y="148" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">XOR=${col.xorVal}</text>
+
+                <line x1="${cx}" y1="146" x2="${cx}" y2="174" stroke="#10b981" stroke-width="2"/>
+
+                <!-- Chiffrement par bloc Box -->
+                <rect x="${cx - 72}" y="175" width="144" height="48" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                <text x="${cx}" y="195" text-anchor="middle" fill="#10b981" font-size="11" font-weight="bold">Chiffrement par bloc</text>
+                <text x="${cx}" y="213" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="11">Clé K = ${k}</text>
+
+                <line x1="${cx}" y1="223" x2="${cx}" y2="248" stroke="#10b981" stroke-width="2"/>
+
+                <!-- Texte chiffré C_i -->
+                <rect x="${cx - 60}" y="248" width="120" height="42" rx="8" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+                <text x="${cx}" y="274" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="13" font-weight="bold">Chiffré C${col.idx}=${col.c}</text>
+
+                <!-- Chaining Line to Next Block (Exact match to Page 10 figure vs Page 8 figure) -->
+                ${i < 2 ? (
+                  isStar
+                    ? `<path d="M ${cx} 156 L ${cx + 120} 156 L ${cx + 120} 128 L ${cx + 222} 128" fill="none" stroke="#facc15" stroke-width="2.2" class="svg-flow-line"/>`
+                    : `<path d="M ${cx} 236 L ${cx + 115} 236 L ${cx + 115} 128 L ${cx + 222} 128" fill="none" stroke="#10b981" stroke-width="2.2" class="svg-flow-line"/>`
+                ) : ''}
+              `;
+            }).join('')}
+          </svg>
+        `;
+      } else if (currentAlgoId === 'cfb_ctr') {
+        const isCfb = stateParams.cfb_ctr.subMode === 'cfb';
+        const iv = cleanBits(stateParams.cfb_ctr.iv, 4, "1011");
+        const m1 = cleanBits(stateParams.cfb_ctr.m1, 4, "0101");
+        const m2 = cleanBits(stateParams.cfb_ctr.m2, 4, "1100");
+        const m3 = cleanBits(stateParams.cfb_ctr.m3, 4, "0011");
+        const k = cleanBits(stateParams.cfb_ctr.key, 4, "1010");
+
+        if (isCfb) {
+          const s1 = toyBlockEncrypt4(iv, k);
+          const c1 = xorBits(s1, m1);
+          const s2 = toyBlockEncrypt4(c1, k);
+          const c2 = xorBits(s2, m2);
+          const s3 = toyBlockEncrypt4(c2, k);
+          const c3 = xorBits(s3, m3);
+          const stages = [
+            { inBox: iv, s: s1, m: m1, c: c1, idx: 1 },
+            { inBox: c1, s: s2, m: m2, c: c2, idx: 2 },
+            { inBox: c2, s: s3, m: m3, c: c3, idx: 3 }
+          ];
+          svgContainer.innerHTML = `
+            <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+              <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+              <text x="30" y="35" fill="#10b981" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                MODE CIPHER FEEDBACK (CFB — PAGES 11 &amp; 12) : cᵢ = E_K(cᵢ₋₁) ⊕ mᵢ  |  Déchiffrement : mᵢ = E_K(cᵢ₋₁) ⊕ cᵢ
+              </text>
+              ${stages.map((st, i) => {
+                const cx = 165 + i * 265;
+                return `
+                  <rect x="${cx - 55}" y="52" width="110" height="36" rx="6" fill="#111827" stroke="#facc15" stroke-width="1.8"/>
+                  <text x="${cx}" y="75" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12">${i === 0 ? 'c₀=' : `c_${i}=`}${st.inBox}</text>
+                  <line x1="${cx}" y1="88" x2="${cx}" y2="112" stroke="#facc15" stroke-width="2"/>
+
+                  <rect x="${cx - 55}" y="112" width="110" height="44" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                  <text x="${cx}" y="138" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-weight="bold" font-size="13">E_K → ${st.s}</text>
+                  <line x1="${cx}" y1="156" x2="${cx}" y2="184" stroke="#10b981" stroke-width="2"/>
+
+                  <!-- m_i input from side -->
+                  <rect x="${cx + 42}" y="182" width="82" height="34" rx="6" fill="#111827" stroke="#94a3b8"/>
+                  <text x="${cx + 83}" y="203" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="11">m_${st.idx}=${st.m}</text>
+                  <line x1="${cx + 42}" y1="199" x2="${cx + 16}" y2="199" stroke="#ffffff" stroke-width="1.8"/>
+
+                  <circle cx="${cx}" cy="199" r="16" fill="#111827" stroke="#facc15" stroke-width="2"/>
+                  <text x="${cx}" y="205" text-anchor="middle" fill="#facc15" font-size="16" font-weight="bold">⊕</text>
+                  <line x1="${cx}" y1="215" x2="${cx}" y2="240" stroke="#10b981" stroke-width="2"/>
+
+                  <rect x="${cx - 55}" y="240" width="110" height="42" rx="8" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+                  <text x="${cx}" y="266" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="14">c_${st.idx} = ${st.c}</text>
+
+                  ${i < 2 ? `<path d="M ${cx} 232 L ${cx - 80} 232 L ${cx - 80} 42 L ${cx + 265} 42 L ${cx + 265} 52" fill="none" stroke="#facc15" stroke-width="1.8" class="svg-flow-line"/>` : ''}
+                `;
+              }).join('')}
+            </svg>
+          `;
+        } else {
+          // CTR Diagram (Page 13)
+          const ctr1 = iv.slice(0, 2) + "00";
+          const ctr2 = iv.slice(0, 2) + "01";
+          const ctr3 = iv.slice(0, 2) + "10";
+          const s1 = toyBlockEncrypt4(ctr1, k);
+          const s2 = toyBlockEncrypt4(ctr2, k);
+          const s3 = toyBlockEncrypt4(ctr3, k);
+          const c1 = xorBits(m1, s1);
+          const c2 = xorBits(m2, s2);
+          const c3 = xorBits(m3, s3);
+          const cols = [
+            { ctr: ctr1, s: s1, m: m1, c: c1, i: 1, cBits: "00" },
+            { ctr: ctr2, s: s2, m: m2, c: c2, i: 2, cBits: "01" },
+            { ctr: ctr3, s: s3, m: m3, c: c3, i: 3, cBits: "10" }
+          ];
+          svgContainer.innerHTML = `
+            <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+              <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+              <text x="30" y="35" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                COUNTER MODE (CTR — PAGES 13 &amp; 14) : Parallèle, Préprocessing &amp; Déchiffrement identique avec E_K
+              </text>
+              ${cols.map((col, idx) => {
+                const cx = 165 + idx * 265;
+                return `
+                  <rect x="${cx - 75}" y="52" width="150" height="40" rx="8" fill="#111827" stroke="#facc15" stroke-width="2"/>
+                  <text x="${cx}" y="69" text-anchor="middle" fill="#94a3b8" font-size="10">IV (${iv.slice(0,2)}) || Compteur (${col.cBits})</text>
+                  <text x="${cx}" y="85" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="13">${col.ctr}</text>
+                  <line x1="${cx}" y1="92" x2="${cx}" y2="115" stroke="#facc15" stroke-width="2"/>
+
+                  <rect x="${cx - 65}" y="115" width="130" height="44" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                  <text x="${cx}" y="134" text-anchor="middle" fill="#10b981" font-size="11" font-weight="bold">Chiffrement E_K</text>
+                  <text x="${cx}" y="151" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12">Suite S_${col.i} = ${col.s}</text>
+                  <line x1="${cx}" y1="159" x2="${cx}" y2="188" stroke="#10b981" stroke-width="2" class="svg-flow-line"/>
+
+                  <rect x="${cx + 35}" y="186" width="82" height="32" rx="6" fill="#111827" stroke="#cbd5e1"/>
+                  <text x="${cx + 76}" y="206" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="11">m_${col.i}=${col.m}</text>
+                  <line x1="${cx + 35}" y1="202" x2="${cx + 16}" y2="202" stroke="#ffffff" stroke-width="1.8"/>
+
+                  <circle cx="${cx}" cy="202" r="16" fill="#111827" stroke="#facc15" stroke-width="2"/>
+                  <text x="${cx}" y="208" text-anchor="middle" fill="#facc15" font-size="16" font-weight="bold">⊕</text>
+                  <line x1="${cx}" y1="218" x2="${cx}" y2="242" stroke="#10b981" stroke-width="2"/>
+
+                  <rect x="${cx - 60}" y="242" width="120" height="42" rx="8" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+                  <text x="${cx}" y="268" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="14">c_${col.i} = ${col.c}</text>
+                `;
+              }).join('')}
+            </svg>
+          `;
+        }
+      } else if (currentAlgoId === 'feistel') {
+        const w = cleanBits(stateParams.feistel.w, 6, "101110");
+        const G0 = w.slice(0, 3);
+        const D0 = w.slice(3, 6);
+        const f1Out = FEISTEL_F1[D0] || "010";
+        const L1 = D0;
+        const R1 = xorBits(G0, f1Out);
+        const f2Out = FEISTEL_F2[R1] || "010";
+        const L2 = R1;
+        const R2 = xorBits(L1, f2Out);
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 320" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="300" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="35" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              SCHÉMA DE FEISTEL (EXERCICE PAGE 19) : w = ${w} = (${G0} | ${D0})  ──►  Sortie = ${L2}${R2}
+            </text>
+
+            <!-- G0 and D0 -->
+            <rect x="40" y="65" width="125" height="52" rx="10" fill="#111827" stroke="#10b981" stroke-width="2.5"/>
+            <text x="102" y="85" text-anchor="middle" fill="#94a3b8" font-size="11">Gauche G₀</text>
+            <text x="102" y="107" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${G0}</text>
+
+            <rect x="40" y="205" width="125" height="52" rx="10" fill="#111827" stroke="#facc15" stroke-width="2.5"/>
+            <text x="102" y="225" text-anchor="middle" fill="#94a3b8" font-size="11">Droite D₀</text>
+            <text x="102" y="247" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="18" font-weight="bold">${D0}</text>
+
+            <!-- Round 1 f1 and XOR -->
+            <circle cx="255" cy="160" r="24" fill="#1e293b" stroke="#facc15" stroke-width="2.5"/>
+            <text x="255" y="156" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="13">f₁</text>
+            <text x="255" y="173" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="11">${f1Out}</text>
+            <line x1="165" y1="231" x2="255" y2="231" stroke="#facc15" stroke-width="2"/>
+            <line x1="255" y1="231" x2="255" y2="184" stroke="#facc15" stroke-width="2"/>
+
+            <circle cx="255" cy="91" r="18" fill="#111827" stroke="#10b981" stroke-width="2.5"/>
+            <text x="255" y="97" text-anchor="middle" fill="#10b981" font-size="18" font-weight="bold">⊕</text>
+            <line x1="165" y1="91" x2="237" y2="91" stroke="#10b981" stroke-width="2"/>
+            <line x1="255" y1="136" x2="255" y2="109" stroke="#facc15" stroke-width="2"/>
+
+            <!-- Crossing Round 1 -> L1, R1 -->
+            <line x1="255" y1="231" x2="365" y2="91" stroke="#facc15" stroke-width="2.2" class="svg-flow-line"/>
+            <line x1="273" y1="91" x2="365" y2="231" stroke="#10b981" stroke-width="2.2" class="svg-flow-line"/>
+
+            <rect x="365" y="65" width="125" height="52" rx="10" fill="#111827" stroke="#10b981" stroke-width="2.5"/>
+            <text x="427" y="85" text-anchor="middle" fill="#94a3b8" font-size="11">L₁ = D₀</text>
+            <text x="427" y="107" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${L1}</text>
+
+            <rect x="365" y="205" width="125" height="52" rx="10" fill="#111827" stroke="#facc15" stroke-width="2.5"/>
+            <text x="427" y="225" text-anchor="middle" fill="#94a3b8" font-size="11">R₁ = G₀ ⊕ f₁(D₀)</text>
+            <text x="427" y="247" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="18" font-weight="bold">${R1}</text>
+
+            <!-- Round 2 f2 and XOR -->
+            <circle cx="580" cy="160" r="24" fill="#1e293b" stroke="#facc15" stroke-width="2.5"/>
+            <text x="580" y="156" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="13">f₂</text>
+            <text x="580" y="173" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="11">${f2Out}</text>
+            <line x1="490" y1="231" x2="580" y2="231" stroke="#facc15" stroke-width="2"/>
+            <line x1="580" y1="231" x2="580" y2="184" stroke="#facc15" stroke-width="2"/>
+
+            <circle cx="580" cy="91" r="18" fill="#111827" stroke="#10b981" stroke-width="2.5"/>
+            <text x="580" y="97" text-anchor="middle" fill="#10b981" font-size="18" font-weight="bold">⊕</text>
+            <line x1="490" y1="91" x2="562" y2="91" stroke="#10b981" stroke-width="2"/>
+            <line x1="580" y1="136" x2="580" y2="109" stroke="#facc15" stroke-width="2"/>
+
+            <!-- Crossing Round 2 -> Final L2, R2 -->
+            <line x1="580" y1="231" x2="690" y2="91" stroke="#facc15" stroke-width="2.2" class="svg-flow-line"/>
+            <line x1="598" y1="91" x2="690" y2="231" stroke="#10b981" stroke-width="2.2" class="svg-flow-line"/>
+
+            <rect x="690" y="65" width="135" height="52" rx="10" fill="#064e3b" stroke="#22c55e" stroke-width="2.5"/>
+            <text x="757" y="85" text-anchor="middle" fill="#a7f3d0" font-size="11">Sortie L₂ = R₁</text>
+            <text x="757" y="107" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="18" font-weight="bold">${L2}</text>
+
+            <rect x="690" y="205" width="135" height="52" rx="10" fill="#064e3b" stroke="#22c55e" stroke-width="2.5"/>
+            <text x="757" y="225" text-anchor="middle" fill="#a7f3d0" font-size="11">Sortie R₂ = L₁⊕f₂(R₁)</text>
+            <text x="757" y="247" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="18" font-weight="bold">${R2}</text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'des_keys') {
+        const r = parseInt(stateParams.des_keys.roundInspect) || 1;
+        let totalShift = 0;
+        for (let i = 0; i < r; i++) totalShift += DES_SHIFTS[i];
+        const C0 = "1111000011001100101010101111";
+        const D0 = "0101010101100110011110001111";
+        const Cr = rotateLeft(C0, totalShift);
+        const Dr = rotateLeft(D0, totalShift);
+        const PC2 = [14,17,11,24,1,5,3,28,15,6,21,10,23,19,12,4,26,8,16,7,27,20,13,2,41,52,31,37,47,55,30,40,51,45,33,48,44,49,39,56,34,53,46,42,50,36,29,32];
+        const CDr = Cr + Dr;
+        const Kr = PC2.map(pos => CDr[pos - 1]).join('');
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="36" fill="#10b981" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              GÉNÉRATION DE SOUS-CLÉ DES (PAGES 27 À 32) — INSPECTION DU TOUR ${r}
+            </text>
+
+            <!-- Key 64 bits -> PC1 -->
+            <rect x="30" y="65" width="180" height="80" rx="10" fill="#111827" stroke="#10b981" stroke-width="2"/>
+            <text x="120" y="90" text-anchor="middle" fill="#10b981" font-size="12" font-weight="bold">1. Clé K (64 bits)</text>
+            <text x="120" y="112" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="11">0x133457799BBCDFF1</text>
+            <text x="120" y="132" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="11">──[PC-1]──► 56 bits</text>
+
+            <!-- C_r and D_r 28 bits -->
+            <rect x="245" y="55" width="335" height="95" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+            <text x="412" y="78" text-anchor="middle" fill="#facc15" font-size="12" font-weight="bold">
+              2. Registres 28 bits après Shift (Tour ${r} : ◀ ${DES_SHIFTS[r - 1]} bit)
+            </text>
+            <text x="412" y="104" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="11">
+              C_${r} = ${Cr}
+            </text>
+            <text x="412" y="128" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="11">
+              D_${r} = ${Dr}
+            </text>
+
+            <!-- PC-2 Contraction -> K_r 48 bits -->
+            <rect x="615" y="65" width="210" height="80" rx="10" fill="#064e3b" stroke="#22c55e" stroke-width="2.5"/>
+            <text x="720" y="90" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="bold">3. Table PC-2 (Contraction)</text>
+            <text x="720" y="114" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="13" font-weight="bold">Sous-clé K_${r} (48 bits)</text>
+            <text x="720" y="134" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="10">Sélection de 48 bits sur 56</text>
+
+            <!-- Full 48-bit K_r Output Box -->
+            <rect x="30" y="180" width="795" height="95" rx="12" fill="#111827" stroke="#10b981" stroke-width="2"/>
+            <text x="427" y="206" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              RÉSULTAT EXACT DE LA QUESTION PAGE 32 POUR LE TOUR ${r} (K_${r} en 8 blocs de 6 bits) :
+            </text>
+            <text x="427" y="238" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">
+              ${Kr.match(/.{1,6}/g).join('   ')}
+            </text>
+            <text x="427" y="262" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="12">
+              Hexadécimal : 0x${parseInt(Kr, 2).toString(16).toUpperCase().padStart(12, '0')}
+            </text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'des_sbox') {
+        const b6 = cleanBits(stateParams.des_sbox.bits6, 6, "101011");
+        const rowBits = b6[0] + b6[5];
+        const colBits = b6.slice(1, 5);
+        const row = parseInt(rowBits, 2);
+        const col = parseInt(colBits, 2);
+        const val = S3_BOX[row][col];
+        const out4 = val.toString(2).padStart(4, "0");
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="36" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              CORRIGÉ VISUEL QUESTION Q1 PAGE 40 : S₃(${b6})  ──►  Ligne (${rowBits})₂ = ${row}, Colonne (${colBits})₂ = ${col}  ──►  ${val} (${out4}₂)
+            </text>
+
+            <!-- 6 Input Bits -->
+            ${b6.split('').map((bit, idx) => {
+              const isOuter = (idx === 0 || idx === 5);
+              const bx = 55 + idx * 72;
+              return `
+                <rect x="${bx}" y="62" width="58" height="52" rx="8"
+                  fill="${isOuter ? '#422006' : '#064e3b'}"
+                  stroke="${isOuter ? '#facc15' : '#10b981'}" stroke-width="2.5"/>
+                <text x="${bx + 29}" y="82" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">bit ${idx + 1}</text>
+                <text x="${bx + 29}" y="104" text-anchor="middle" fill="${isOuter ? '#facc15' : '#22c55e'}" font-family="JetBrains Mono" font-size="20" font-weight="bold">${bit}</text>
+              `;
+            }).join('')}
+
+            <!-- Row and Column Extraction Boxes -->
+            <rect x="55" y="145" width="195" height="62" rx="10" fill="#111827" stroke="#facc15" stroke-width="2"/>
+            <text x="152" y="168" text-anchor="middle" fill="#facc15" font-size="12" font-weight="bold">Bits extrêmes (b₁b₆) → Ligne</text>
+            <text x="152" y="194" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">(${rowBits})₂ = Ligne ${row}</text>
+
+            <rect x="275" y="145" width="215" height="62" rx="10" fill="#111827" stroke="#10b981" stroke-width="2"/>
+            <text x="382" y="168" text-anchor="middle" fill="#10b981" font-size="12" font-weight="bold">4 Bits centraux → Colonne</text>
+            <text x="382" y="194" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">(${colBits})₂ = Colonne ${col}</text>
+
+            <!-- S3 Lookup Result -->
+            <rect x="530" y="62" width="295" height="215" rx="14" fill="#064e3b" stroke="#22c55e" stroke-width="2.5"/>
+            <text x="677" y="94" text-anchor="middle" fill="#a7f3d0" font-size="13" font-weight="bold">TABLE S₃ (PAGE 39 DU PDF)</text>
+            <text x="677" y="128" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15">S₃[Ligne ${row}][Colonne ${col}]</text>
+            <text x="677" y="172" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="32" font-weight="bold">= ${val}</text>
+            <line x1="560" y1="192" x2="795" y2="192" stroke="#10b981"/>
+            <text x="677" y="220" text-anchor="middle" fill="#a7f3d0" font-size="12">Sortie sur 4 bits :</text>
+            <text x="677" y="255" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="26" font-weight="bold">${out4}</text>
+
+            <!-- Bottom Summary Formula -->
+            <rect x="55" y="225" width="435" height="52" rx="10" fill="#1e293b" stroke="#475569"/>
+            <text x="272" y="256" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="13">
+              S₃(${b6}) = ${val}₁₀ = ${out4}₂ (Compression 6 bits → 4 bits)
+            </text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'des_weak_whitening') {
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="36" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+              EXERCICE PAGE 49 : CHIFFREMENT AVEC BLANCHIMENT  c = DES_{K₁}(m) ⊕ K₂  &amp; ATTAQUE EN 2⁵⁷
+            </text>
+
+            <!-- Encryption Scheme Top -->
+            <rect x="35" y="60" width="130" height="50" rx="8" fill="#111827" stroke="#10b981" stroke-width="2"/>
+            <text x="100" y="90" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="bold">Clair m (64b)</text>
+            <line x1="165" y1="85" x2="230" y2="85" stroke="#10b981" stroke-width="2" class="svg-flow-line"/>
+
+            <rect x="230" y="55" width="180" height="60" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2.5"/>
+            <text x="320" y="82" text-anchor="middle" fill="#10b981" font-weight="bold" font-size="14">DES_{K₁}(m)</text>
+            <text x="320" y="102" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="11">Clé K₁ ∈ {0,1}⁵⁶</text>
+            <line x1="410" y1="85" x2="495" y2="85" stroke="#10b981" stroke-width="2" class="svg-flow-line"/>
+
+            <circle cx="515" cy="85" r="20" fill="#111827" stroke="#facc15" stroke-width="2.5"/>
+            <text x="515" y="92" text-anchor="middle" fill="#facc15" font-size="20" font-weight="bold">⊕</text>
+            <text x="515" y="48" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">Blanchiment K₂ (64 bits)</text>
+            <line x1="535" y1="85" x2="620" y2="85" stroke="#10b981" stroke-width="2" class="svg-flow-line"/>
+
+            <rect x="620" y="60" width="195" height="50" rx="8" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+            <text x="717" y="90" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="14" font-weight="bold">c = DES_{K₁}(m) ⊕ K₂</text>
+
+            <!-- Mathematical Elimination of K2 Box -->
+            <rect x="35" y="140" width="780" height="138" rx="12" fill="#111827" stroke="#facc15" stroke-width="2"/>
+            <text x="425" y="168" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">
+              POURQUOI K₂ (64 BITS) NE PROTÈGE PAS CONTRE 2 CLAIRS CONNUS (m₁, c₁) ET (m₂, c₂) :
+            </text>
+            <text x="425" y="198" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14">
+              c₁ ⊕ c₂ = (DES_{K₁}(m₁) ⊕ K₂) ⊕ (DES_{K₁}(m₂) ⊕ K₂) = DES_{K₁}(m₁) ⊕ DES_{K₁}(m₂)
+            </text>
+            <text x="425" y="228" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="13" font-weight="bold">
+              ⇒ K₂ s'annule ! On cherche K₁ ∈ {0,1}⁵⁶ en 2 × 2⁵⁶ = 2⁵⁷ évaluations de DES,
+            </text>
+            <text x="425" y="254" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="13">
+              puis on récupère immédiatement K₂ = c₁ ⊕ DES_{K₁}(m₁).
+            </text>
+          </svg>
+        `;
+      } else {
+        const isMitm = stateParams.double_triple_des.variant === '2des_mitm';
+        if (isMitm) {
+          svgContainer.innerHTML = `
+            <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+              <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+              <text x="30" y="36" fill="#10b981" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                EXERCICE PAGE 51 : ATTAQUE MEET-IN-THE-MIDDLE SUR DOUBLE-DES : B' = DES_{K₁}(DES_{K₂}(B))
+              </text>
+
+              <!-- B1 Plaintext -->
+              <rect x="30" y="85" width="115" height="58" rx="10" fill="#111827" stroke="#10b981" stroke-width="2"/>
+              <text x="87" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">Clair Connu</text>
+              <text x="87" y="130" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-weight="bold" font-size="16">Bloc B₁</text>
+
+              <line x1="145" y1="114" x2="205" y2="114" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <!-- DES K2 Forward -->
+              <rect x="205" y="78" width="160" height="72" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2.5"/>
+              <text x="285" y="104" text-anchor="middle" fill="#10b981" font-weight="bold" font-size="13">Chiffrement DES</text>
+              <text x="285" y="124" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12">2⁵⁶ clés K_{2,i}</text>
+              <text x="285" y="142" text-anchor="middle" fill="#94a3b8" font-size="10">B''_{1,i} = DES_{K₂}(B₁)</text>
+
+              <line x1="365" y1="114" x2="405" y2="114" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <!-- Middle Collision Table -->
+              <rect x="405" y="64" width="110" height="100" rx="12" fill="#422006" stroke="#facc15" stroke-width="3"/>
+              <text x="460" y="92" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="12">MILIEU X</text>
+              <text x="460" y="114" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="bold">B'' = B'''</text>
+              <text x="460" y="136" text-anchor="middle" fill="#fde047" font-family="JetBrains Mono" font-size="10">Table 2⁵⁶</text>
+              <text x="460" y="152" text-anchor="middle" fill="#a7f3d0" font-family="JetBrains Mono" font-size="10">2⁴⁸ collisions</text>
+
+              <line x1="555" y1="114" x2="515" y2="114" stroke="#facc15" stroke-width="2.5" class="svg-flow-line"/>
+
+              <!-- DES^-1 K1 Backward -->
+              <rect x="555" y="78" width="160" height="72" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="2.5"/>
+              <text x="635" y="104" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="13">Déchiffrement DES⁻¹</text>
+              <text x="635" y="124" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12">2⁵⁶ clés K_{1,j}</text>
+              <text x="635" y="142" text-anchor="middle" fill="#94a3b8" font-size="10">B'''_{1,j} = DES⁻¹_{K₁}(B'₁)</text>
+
+              <line x1="775" y1="114" x2="715" y2="114" stroke="#facc15" stroke-width="2.5" class="svg-flow-line"/>
+
+              <!-- B'1 Ciphertext -->
+              <rect x="745" y="85" width="90" height="58" rx="10" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+              <text x="790" y="110" text-anchor="middle" fill="#a7f3d0" font-size="11">Chiffré</text>
+              <text x="790" y="130" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="16">B'₁</text>
+
+              <!-- Summary Box Bottom -->
+              <rect x="30" y="190" width="805" height="88" rx="10" fill="#111827" stroke="#334155"/>
+              <text x="432" y="216" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                BILAN MATHÉMATIQUE DE L'EXERCICE PAGE 51 :
+              </text>
+              <text x="432" y="240" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12">
+                1er couple (B₁, B'₁) : 2⁵⁶ + 2⁵⁶ = 2⁵⁷ opérations DES  ──►  Isolent 2¹¹² / 2⁶⁴ = 2⁴⁸ couples (K₁, K₂)
+              </text>
+              <text x="432" y="262" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="12">
+                2e couple (B₂, B'₂) : Filtre les 2⁴⁸ candidats  ──►  Reste 2⁴⁸ / 2⁶⁴ = 2⁻¹⁶ (Unique clé trouvée !)
+              </text>
+            </svg>
+          `;
+        } else {
+          // 3DES Diagram (Page 52)
+          svgContainer.innerHTML = `
+            <svg viewBox="0 0 860 300" class="w-full max-w-4xl h-auto select-none">
+              <rect x="10" y="10" width="840" height="280" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+              <text x="30" y="38" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                TRIPLE DES (3DES — PAGE 52 : "56? 112? 168?") : C = E_{K₃}(D_{K₂}(E_{K₁}(P)))
+              </text>
+
+              <rect x="35" y="95" width="110" height="55" rx="8" fill="#111827" stroke="#10b981" stroke-width="2"/>
+              <text x="90" y="128" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-weight="bold" font-size="15">Clair P</text>
+              <line x1="145" y1="122" x2="195" y2="122" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <rect x="195" y="88" width="135" height="68" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+              <text x="262" y="116" text-anchor="middle" fill="#10b981" font-weight="bold" font-size="14">DES Encrypt</text>
+              <text x="262" y="138" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12">Clé K₁ (56b)</text>
+              <line x1="330" y1="122" x2="375" y2="122" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <rect x="375" y="88" width="135" height="68" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+              <text x="442" y="116" text-anchor="middle" fill="#facc15" font-weight="bold" font-size="14">DES Decrypt</text>
+              <text x="442" y="138" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12">Clé K₂ (56b)</text>
+              <line x1="510" y1="122" x2="555" y2="122" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <rect x="555" y="88" width="135" height="68" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+              <text x="622" y="116" text-anchor="middle" fill="#10b981" font-weight="bold" font-size="14">DES Encrypt</text>
+              <text x="622" y="138" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12">K₃ ou K₁ (56b)</text>
+              <line x1="690" y1="122" x2="730" y2="122" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+
+              <rect x="730" y="95" width="100" height="55" rx="8" fill="#064e3b" stroke="#22c55e" stroke-width="2"/>
+              <text x="780" y="128" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="15">Chiffré C</text>
+
+              <rect x="35" y="190" width="795" height="75" rx="10" fill="#111827" stroke="#334155"/>
+              <text x="432" y="216" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12" font-weight="bold">
+                EXPLICATION DE LA DIAPOSITIVE 52 ("3DES : 56? 112? 168?") :
+              </text>
+              <text x="432" y="242" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="12">
+                • Si K₁=K₂=K₃ : rétrocompatible DES simple (56 bits) | • 2 clés (K₁,K₂,K₁) : 112 bits | • 3 clés (K₁,K₂,K₃) : 168 bits (sécurité MITM = 112 bits)
+              </text>
+            </svg>
+          `;
+        }
+      }
+    }
+
+    /*************************************************************************
+     * 8. WORKED EXAMPLE & LINE-BY-LINE PYTHON CODE RENDERER
+     *************************************************************************/
+    function renderWorkedExampleAndCode() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const exampleEl = document.getElementById('worked-example-content');
+      const tipEl = document.getElementById('exam-tip-box');
+
+      tipEl.innerHTML = `<div class="text-xs sm:text-sm text-emerald-200 leading-relaxed">${algo.examTip}</div>`;
+
+      if (currentAlgoId === 'ecb_intro') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2.5 text-xs sm:text-sm">
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">1. Les 6 étapes du schéma général à clé secrète (Page 3) :</strong>
+              <ol class="list-decimal list-inside mt-1.5 space-y-1 text-slate-300">
+                <li>Coder l'information source en binaire.</li>
+                <li>Découper cette chaîne en blocs de longueur donnée (64, 128 ou 256 bits).</li>
+                <li>Chiffrer un bloc par un <strong>XOR bit à bit</strong> avec une clé secrète.</li>
+                <li>Déplacer et permuter certains bits du bloc.</li>
+                <li>Recommencer un certain nombre de fois l'étape précédente (<strong>Round</strong>).</li>
+                <li>Passer au bloc suivant et retourner à l'étape 3.</li>
+              </ol>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <strong class="text-yellow-400">2. Comparaison avec le schéma à clé publique (Page 4) :</strong>
+              <p class="mt-1 text-slate-300">Découpage en blocs beaucoup plus grands (<strong>1024 à 2048 bits</strong> pour RSA/El Gamal, <strong>256 bits</strong> pour ECC) et application directe de la fonction mathématique de chiffrement sur chaque bloc.</p>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'cbc_star') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2.5 text-xs sm:text-sm">
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <strong class="text-yellow-400">Les 4 manières de choisir le bloc initial c₀ en CBC (Page 9) :</strong>
+              <ol class="list-decimal list-inside mt-1 space-y-1 text-slate-300">
+                <li>On génère aléatoirement et on le transmet en clair avec le message.</li>
+                <li>On génère aléatoirement et on le transmet de manière confidentielle.</li>
+                <li><code>c₀</code> fixe qui fait partie des constantes du cryptosystème.</li>
+                <li><code>c₀</code> fixe qui fait partie de la clé secrète du cryptosystème.</li>
+              </ol>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40">
+              <strong class="text-emerald-400">Corrigé de l'Exercice Page 10 (Déchiffrement du mode CBC*) :</strong>
+              <p class="mt-1 text-slate-200 font-mono text-xs leading-relaxed">
+                • <strong>Au chiffrement (Figure Page 10) :</strong><br>
+                C₁ = Encrypt<sub>K</sub>(IV ⊕ P₁)<br>
+                C₂ = Encrypt<sub>K</sub>(IV ⊕ P₁ ⊕ P₂)<br>
+                Cᵢ = Encrypt<sub>K</sub>(IV ⊕ P₁ ⊕ ... ⊕ Pᵢ)<br>
+                • <strong>Au déchiffrement (en parallèle) :</strong><br>
+                1) On passe tous les blocs du Texte chiffré C₁, C₂, ..., Cₙ en parallèle dans les boîtes <strong>Déchiffrement par bloc (Decrypt<sub>K</sub>)</strong>.<br>
+                2) On reconstitue chaque bloc du Texte clair en faisant un XOR avec la sortie déchiffrée du bloc précédent :<br>
+                <strong>P₁ = Decrypt<sub>K</sub>(C₁) ⊕ IV</strong><br>
+                <strong>Pᵢ = Decrypt<sub>K</sub>(Cᵢ) ⊕ Decrypt<sub>K</sub>(Cᵢ₋₁)</strong> (pour tout i ≥ 2).
+              </p>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'cfb_ctr') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2.5 text-xs sm:text-sm">
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">Corrigé Question Page 12 (Déchiffrement CFB) :</strong>
+              <p class="mt-1 text-slate-300 font-mono text-xs">
+                Puisque cᵢ = E_K(cᵢ₋₁) ⊕ mᵢ, alors en appliquant ⊕ E_K(cᵢ₋₁) des deux côtés :<br>
+                <strong class="text-yellow-300">mᵢ = E_K(cᵢ₋₁) ⊕ cᵢ</strong>.<br>
+                ⇒ Aucun besoin de coder l'inverse D_K ! On utilise uniquement la boîte de chiffrement E_K.
+              </p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+              <strong class="text-yellow-400">Corrigé Question Page 14 (Déchiffrement CTR) :</strong>
+              <p class="mt-1 text-slate-300 font-mono text-xs">
+                Puisque Suiteᵢ = E_K(IV || Compteurᵢ) et cᵢ = mᵢ ⊕ Suiteᵢ, alors :<br>
+                <strong class="text-emerald-300">mᵢ = cᵢ ⊕ E_K(IV || Compteurᵢ)</strong>.<br>
+                ⇒ Déchiffrement 100% parallélisable, avec préprocessing et accès aléatoire direct à n'importe quel bloc i !
+              </p>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'feistel') {
+        const w = cleanBits(stateParams.feistel.w, 6, "101110");
+        const G0 = w.slice(0, 3), D0 = w.slice(3, 6);
+        const f1Out = FEISTEL_F1[D0] || "010";
+        const L1 = D0, R1 = xorBits(G0, f1Out);
+        const f2Out = FEISTEL_F2[R1] || "010";
+        const L2 = R1, R2 = xorBits(L1, f2Out);
+
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-yellow-300">Énoncé Page 19 :</strong> w = ${w} = (${G0} | ${D0}) ∈ {0,1}⁶
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">1. Tour 1 (avec f₁) :</strong><br>
+              • L₁ = D₀ = <strong>${L1}</strong><br>
+              • f₁(${D0}) = <strong>${f1Out}</strong> (lu dans la table f₁)<br>
+              • R₁ = G₀ ⊕ f₁(${D0}) = ${G0} ⊕ ${f1Out} = <strong>${R1}</strong><br>
+              ⇒ Sortie du Tour 1 : <strong>(${L1} | ${R1}) = ${L1}${R1}</strong>
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-emerald-500/40">
+              <strong class="text-emerald-400">2. Tour 2 (avec f₂) :</strong><br>
+              • L₂ = R₁ = <strong>${L2}</strong><br>
+              • f₂(${R1}) = <strong>${f2Out}</strong> (lu dans la table f₂)<br>
+              • R₂ = L₁ ⊕ f₂(${R1}) = ${L1} ⊕ ${f2Out} = <strong>${R2}</strong><br>
+              ⇒ <strong class="text-yellow-300">Sortie Finale (Cipher) = ${L2}${R2}</strong>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_keys') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">Page 27–28 (PC-1) :</strong><br>
+              K = 00010011 00110100 01010111 01111001 10011011 10111100 11011111 11110001<br>
+              Après PC-1 (56 bits) :<br>
+              C₀ = 1111000 0110011 0010101 0101111<br>
+              D₀ = 0101010 1011001 1001111 0001111
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-yellow-500/40">
+              <strong class="text-yellow-300">Réponse Question Page 31 (C₁ et D₁ après 1 shift gauche) :</strong><br>
+              C₁ = <strong>1110000 1100110 0101010 1011111</strong><br>
+              D₁ = <strong>1010101 0110011 0011110 0011110</strong>
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-emerald-500/40">
+              <strong class="text-emerald-400">Réponse Question Page 32 (K₁ après PC-2 sur 48 bits) :</strong><br>
+              K₁ = <strong>000110 110000 001011 101111 111111 000111 000001 110010</strong>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_sbox') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-yellow-500/40">
+              <strong class="text-yellow-300">Corrigé Question Q1 Page 40 : S₃(101011) = ??</strong><br>
+              • Bits extrêmes (b₁b₆) = <strong>11₂ = 3</strong> (Ligne 3)<br>
+              • Bits centraux (b₂b₃b₄b₅) = <strong>0101₂ = 5</strong> (Colonne 5)<br>
+              • Table S₃ (Page 39) à [Ligne 3, Colonne 5] = <strong>9</strong> = <strong class="text-emerald-400">1001₂</strong>.
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">Trace Officielle DES (Page 42) — M=02468aceeca86420, K=0f1571c947d9e859 :</strong>
+              <div class="max-h-36 overflow-y-auto mt-1.5 space-y-1">
+                ${DES_PDF_TRACE.map(t => `
+                  <div class="flex justify-between text-[11px] border-b border-slate-800 pb-0.5">
+                    <span class="text-yellow-300 font-bold">Tour ${t.round}</span>
+                    <span class="text-slate-300">L=${t.L} | R=${t.R}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'des_weak_whitening') {
+        exampleEl.innerHTML = `
+          <div class="space-y-2.5 text-xs font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">
+              <strong class="text-emerald-400">Corrigé Exercice Page 45 (Clés Faibles de DES) :</strong><br>
+              1) Si K₁ = K₂ = ... = K₁₆, l'ordre des clés au chiffrement (K₁..K₁₆) est identique à l'ordre au déchiffrement (K₁₆..K₁). Donc DES_K = DES⁻¹_K, soit <strong>DES_K(DES_K(m)) = m</strong> (involution).<br>
+              2) Les <strong>4 clés faibles</strong> correspondent à C₀ ∈ {0²⁸, 1²⁸} et D₀ ∈ {0²⁸, 1²⁸} :<br>
+              • <code>0x0101010101010101</code> &nbsp; • <code>0xFEFEFEFEFEFEFEFE</code><br>
+              • <code>0xE0E0E0E0F1F1F1F1</code> &nbsp; • <code>0x1F1F1F1F0E0E0E0E</code>
+            </div>
+            <div class="p-2.5 rounded bg-slate-900 border border-yellow-500/40">
+              <strong class="text-yellow-300">Corrigé Exercice Page 49 (DES avec Blanchiment) :</strong><br>
+              Avec 2 couples (m₁, c₁) et (m₂, c₂), on a :<br>
+              <code>c₁ ⊕ c₂ = DES_{K₁}(m₁) ⊕ DES_{K₁}(m₂)</code>.<br>
+              On teste chaque K₁ ∈ {0,1}⁵⁶ (coût = <strong>2 × 2⁵⁶ = 2⁵⁷ évaluations DES</strong>) puis on retrouve K₂ = c₁ ⊕ DES_{K₁}(m₁).
+            </div>
+          </div>
+        `;
+      } else {
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-emerald-500/40">
+              <strong class="text-emerald-400">Corrigé Complet Exercice Page 51 (2DES Meet-in-the-Middle) :</strong><br>
+              • <strong>a)</strong> Clé DES = 56 bits ⇒ Clé 2DES = <strong>112 bits</strong>.<br>
+              • <strong>b)</strong> Brute Force Attack = <strong>2¹¹² clés</strong> max.<br>
+              • <strong>c.1)</strong> Taille du tableau des 2⁵⁶ blocs B''_{1,i} (64 bits = 8 octets) : <strong>2⁵⁶ × 8 = 2⁵⁹ octets</strong> (ou 15 × 2⁵⁶ octets avec les clés de 56 bits).<br>
+              • <strong>c.2)</strong> Nombre de couples (K_{1,j}, K_{2,i}) compatibles avec (B₁, B'₁) : <strong>2¹¹² / 2⁶⁴ = 2⁴⁸ couples</strong>.<br>
+              • <strong>c.3)</strong> Nombre de clés testées (opérations DES) : 2⁵⁶ + 2⁵⁶ = <strong>2⁵⁷</strong>.<br>
+              • <strong>c.4)</strong> On teste les 2⁴⁸ couples sur le 2ᵉ couple (B₂, B'₂) : il reste 2⁴⁸ / 2⁶⁴ = 2⁻¹⁶ fausse piste ⇒ unique clé (K₁, K₂) identifiée !<br>
+              • <strong>c.5)</strong> Amélioration : <strong>2⁵⁷ au lieu de 2¹¹²</strong> (gain d'un facteur 2⁵⁵).
+            </div>
+          </div>
+        `;
+      }
+
+      // Render Python Code with Line-by-Line French Comments
+      document.getElementById('python-filename').textContent = algo.pythonFilename;
+      const codeContainer = document.getElementById('python-code-container');
+      codeContainer.innerHTML = algo.pythonLines.map((item, idx) => `
+        <div class="code-line rounded px-2 py-1 transition">
+          <div class="text-emerald-400/90 italic text-xs">${item.comment}</div>
+          <div class="text-slate-100 font-semibold flex items-center gap-3 mt-0.5">
+            <span class="text-slate-600 select-none w-5 text-right text-[11px]">${idx + 1}</span>
+            <span class="text-yellow-300/95 whitespace-pre">${item.code}</span>
+          </div>
+        </div>
+      `).join('');
+
+      runSimulatedPython();
+    }
+
+    /*************************************************************************
+     * 9. LIVE PYTHON CONSOLE SIMULATOR & CLIPBOARD COPY
+     *************************************************************************/
+    function runSimulatedPython() {
+      const out = document.getElementById('python-console-output');
+      if (currentAlgoId === 'ecb_intro') {
+        const b1 = cleanBits(stateParams.ecb_intro.b1, 4, "1010");
+        const b2 = cleanBits(stateParams.ecb_intro.b2, 4, "1010");
+        const b3 = cleanBits(stateParams.ecb_intro.b3, 4, "0110");
+        const k = cleanBits(stateParams.ecb_intro.key, 4, "1100");
+        const c1 = toyBlockEncrypt4(b1, k), c2 = toyBlockEncrypt4(b2, k), c3 = toyBlockEncrypt4(b3, k);
+        out.textContent = `>>> blocs_clairs = [0b${b1}, 0b${b2}, 0b${b3}]\n>>> mode_ecb_chiffrer(blocs_clairs, cle=0b${k})\n['0b${c1}', '0b${c2}', '0b${c3}']  # Note: P1==P2 => C1==C2 !`;
+      } else if (currentAlgoId === 'cbc_star') {
+        const iv = cleanBits(stateParams.cbc_star.iv, 4, "1001");
+        const p1 = cleanBits(stateParams.cbc_star.p1, 4, "1010");
+        const p2 = cleanBits(stateParams.cbc_star.p2, 4, "1010");
+        const p3 = cleanBits(stateParams.cbc_star.p3, 4, "0101");
+        const k = cleanBits(stateParams.cbc_star.key, 4, "1100");
+        const x1 = xorBits(p1, iv), x2 = xorBits(p2, x1), x3 = xorBits(p3, x2);
+        const c1 = toyBlockEncrypt4(x1, k), c2 = toyBlockEncrypt4(x2, k), c3 = toyBlockEncrypt4(x3, k);
+        out.textContent = `>>> C = chiffrer_cbc_etoile(['${p1}', '${p2}', '${p3}'], iv='${iv}', K='${k}')\n>>> print("Chiffré CBC* :", C)\nChiffré CBC* : ['${c1}', '${c2}', '${c3}']\n>>> dechiffrer_cbc_etoile(C, iv='${iv}', K='${k}')\n['${p1}', '${p2}', '${p3}']  # Déchiffré en parallèle avec succès !`;
+      } else if (currentAlgoId === 'cfb_ctr') {
+        const iv = cleanBits(stateParams.cfb_ctr.iv, 4, "1011");
+        const m1 = cleanBits(stateParams.cfb_ctr.m1, 4, "0101");
+        const k = cleanBits(stateParams.cfb_ctr.key, 4, "1010");
+        const s1 = toyBlockEncrypt4(iv, k);
+        const c1 = xorBits(s1, m1);
+        out.textContent = `>>> # Chiffrement et Déchiffrement utilisent tous les deux E_k (pas d'inverse D_k) :\n>>> E_k(c0='${iv}') -> '${s1}'\n>>> c1 = '${s1}' ^ '${m1}' = '${c1}'\n>>> m1_dechiffre = E_k(c0='${iv}') ^ '${c1}' = '${m1}'`;
+      } else if (currentAlgoId === 'feistel') {
+        const w = cleanBits(stateParams.feistel.w, 6, "101110");
+        const G0 = w.slice(0, 3), D0 = w.slice(3, 6);
+        const L1 = D0, R1 = xorBits(G0, FEISTEL_F1[D0] || "010");
+        const L2 = R1, R2 = xorBits(L1, FEISTEL_F2[R1] || "010");
+        out.textContent = `>>> tour1, chiffre_final = chiffrer_feistel_p19("${w}")\n>>> print(f"Après Tour 1 (f1): {tour1} | Sortie Finale (f2): {chiffre_final}")\nAprès Tour 1 (f1): ${L1}${R1} | Sortie Finale (f2): ${L2}${R2}\n>>> dechiffrer_feistel_p19("${L2}${R2}")\n'${w}'`;
+      } else if (currentAlgoId === 'des_keys') {
+        const C0 = "1111000011001100101010101111";
+        const D0 = "0101010101100110011110001111";
+        const C1 = rotateLeft(C0, 1), D1 = rotateLeft(D0, 1);
+        out.textContent = `>>> print("C1 =", C1)\nC1 = ${C1}\n>>> print("D1 =", D1)\nD1 = ${D1}\n>>> print("K1 (48 bits via PC-2) = 000110 110000 001011 101111 111111 000111 000001 110010")`;
+      } else if (currentAlgoId === 'des_sbox') {
+        const b6 = cleanBits(stateParams.des_sbox.bits6, 6, "101011");
+        const r = parseInt(b6[0] + b6[5], 2);
+        const c = parseInt(b6.slice(1, 5), 2);
+        const val = S3_BOX[r][c];
+        out.textContent = `>>> ligne, col, entier, binaire_4bits = evaluer_sbox(S3, "${b6}")\n>>> print(f"S3(${b6}) -> Ligne={ligne}, Colonne={col} -> Valeur={entier} -> '{binaire_4bits}'")\nS3(${b6}) -> Ligne=${r}, Colonne=${c} -> Valeur=${val} -> '${val.toString(2).padStart(4, '0')}'`;
+      } else if (currentAlgoId === 'des_weak_whitening') {
+        out.textContent = `>>> # Attaque à 2 clairs connus sur c = DES_{K1}(m) ^ K2 (Exercice Page 49)\n>>> # c1 ^ c2 == DES_{K1}(m1) ^ DES_{K1}(m2) -> K2 est éliminé !\n>>> k1_trouve, k2_trouve, nb_eval = attaque_des_blanchiment(m1, c1, m2, c2, cles_56b, E_des)\n>>> print("Coût maximal : 2 * 2^56 = 2^57 évaluations de DES (facteur 2 seulement)")`;
+      } else {
+        out.textContent = `>>> # Exercice Page 51 : Attaque Meet-in-the-Middle sur Double-DES\n>>> # 1) Stocke B''_{1,i} = DES_{K2,i}(B1) dans une table de 2^56 entrées\n>>> # 2) Teste B'''_{1,j} = DES^-1_{K1,j}(B'1) -> 2^48 couples candidats\n>>> # 3) Filtre avec (B2, B'2) -> Trouve (K1, K2) en 2^57 opérations au lieu de 2^112 !`;
+      }
+    }
+
+    function copyPythonCode() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const rawCode = algo.pythonLines.map(l => `${l.comment}\n${l.code}`).join('\n');
+      const tempArea = document.createElement('textarea');
+      tempArea.value = rawCode;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempArea);
+
+      const btn = document.getElementById('copy-code-btn');
+      btn.textContent = '✅ Code copié !';
+      setTimeout(() => { btn.innerHTML = '📋 Copier le code'; }, 2000);
+    }
+
+    /*************************************************************************
+     * 10. ANIMATION STEPPER CONTROLS
+     *************************************************************************/
+    function nextStep() {
+      const steps = getStepsForCurrentAlgo();
+      currentStepIndex = (currentStepIndex + 1) % steps.length;
+      renderSvgStage();
+    }
+
+    function prevStep() {
+      const steps = getStepsForCurrentAlgo();
+      currentStepIndex = (currentStepIndex - 1 + steps.length) % steps.length;
+      renderSvgStage();
+    }
+
+    function goToStep(idx) {
+      currentStepIndex = idx;
+      renderSvgStage();
+    }
+
+    function resetSteps() {
+      stopAutoPlay();
+      currentStepIndex = 0;
+      renderSvgStage();
+    }
+
+    function togglePlay() {
+      if (playInterval) {
+        stopAutoPlay();
+      } else {
+        const btn = document.getElementById('play-pause-btn');
+        btn.innerHTML = '⏸ Pause';
+        btn.classList.replace('bg-emerald-500', 'bg-yellow-400');
+        playInterval = setInterval(() => {
+          nextStep();
+        }, 2400);
+      }
+    }
+
+    function stopAutoPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+      const btn = document.getElementById('play-pause-btn');
+      if (btn) {
+        btn.innerHTML = '▶ Lecture Auto';
+        btn.classList.replace('bg-yellow-400', 'bg-emerald-500');
+      }
+    }
+
+    function renderAllSections() {
+      renderCourseHeader();
+      renderInteractiveControls();
+      renderSvgStage();
+      renderWorkedExampleAndCode();
+    }
+
+    // Initialize Application on Load
+    window.onload = function () {
+      initReferenceTables();
+      renderNavigationTabs();
+      renderAllSections();
+    };
+  </script>
+</body>
+</html>

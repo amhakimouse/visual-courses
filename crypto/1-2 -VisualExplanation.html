@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoLab — Cours Interactif & Animations SVG de Cryptographie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            crypto: {
+              bg: '#090d16',
+              card: '#111827',
+              cardHover: '#1e293b',
+              border: '#334155',
+              green: '#10b981',
+              greenBright: '#22c55e',
+              yellow: '#eab308',
+              yellowBright: '#facc15',
+              text: '#f8fafc',
+              muted: '#94a3b8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+
+    /* Animated SVG Dashed Flow */
+    @keyframes dashFlow {
+      to {
+        stroke-dashoffset: -24;
+      }
+    }
+    .svg-flow-line {
+      stroke-dasharray: 6 6;
+      animation: dashFlow 1s linear infinite;
+    }
+    .svg-node-active {
+      filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.55));
+      transition: all 0.35s ease;
+    }
+    .svg-node-yellow {
+      filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.5));
+      transition: all 0.35s ease;
+    }
+    .code-line:hover {
+      background-color: rgba(16, 185, 129, 0.08);
+    }
+    .tab-btn-active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(234, 179, 8, 0.12));
+      border-color: #10b981 !important;
+      color: #f8fafc !important;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-700/80 px-4 lg:px-8 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/50 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+          <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            <circle cx="12" cy="16" r="1.5" fill="#facc15"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">
+              Crypto<span class="text-emerald-400">Lab</span> <span class="text-yellow-400 font-mono text-base font-semibold">v2.5</span>
+            </h1>
+            <span class="px-2.5 py-0.5 text-xs font-mono uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 rounded-full">
+              Professeur Interactif
+            </span>
+          </div>
+          <p class="text-xs md:text-sm text-slate-400">
+            Explications visuelles animées (@svg-explained), preuves mathématiques étape par étape &amp; Python commenté ligne par ligne
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Alphabet Reference Toggle -->
+      <div class="flex items-center gap-2.5 self-end md:self-auto">
+        <button onclick="toggleAlphabetModal()" class="px-3.5 py-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-xs sm:text-sm font-medium text-yellow-300 flex items-center gap-2 transition">
+          <span>🔢</span> Table Alphabet (A=0..Z=25) &amp; Inverses mod 26
+        </button>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS FOR ALGORITHMS -->
+    <nav class="max-w-7xl mx-auto mt-4 pt-2 overflow-x-auto">
+      <div class="flex items-center gap-2 min-w-max pb-1" id="algo-tabs">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </nav>
+  </header>
+
+  <!-- COLLAPSIBLE ALPHABET & MODULAR INVERSE REFERENCE BAR -->
+  <div id="alphabet-drawer" class="hidden bg-slate-900/95 border-b border-emerald-500/40 px-4 lg:px-8 py-4 transition-all">
+    <div class="max-w-7xl mx-auto space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-2">
+          <span>📐</span> Référentiel Mathématique : Correspondance Z₂₆ (A=0 à Z=25) &amp; Inverses Multiplicatifs Modulo 26
+        </h3>
+        <button onclick="toggleAlphabetModal()" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-700">Fermer ✕</button>
+      </div>
+      <!-- A-Z Grid -->
+      <div class="grid grid-cols-13 sm:grid-cols-13 md:grid-cols-26 gap-1 text-center font-mono text-xs" id="az-reference-grid"></div>
+      <!-- Modular Inverse Table -->
+      <div class="bg-slate-950/90 border border-slate-700 rounded-xl p-3">
+        <p class="text-xs text-slate-300 mb-2">
+          <strong class="text-emerald-400">Règle d'inversibilité modulo 26 :</strong> Un entier <span class="font-mono text-yellow-300">a</span> possède un inverse multiplicatif <span class="font-mono text-yellow-300">a⁻¹ mod 26</span> si et seulement si <span class="font-mono text-emerald-300">pgcd(a, 26) = 1</span> (c'est-à-dire <span class="font-mono">a</span> n'est ni pair, ni multiple de 13).
+        </p>
+        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2 text-center font-mono text-xs" id="mod-inverse-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-8">
+
+    <!-- SECTION 1: ALGORITHM HEADER & COURSE EXPLANATION -->
+    <section id="course-header-section" class="bg-[#111827] border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <!-- Dynamic Content -->
+    </section>
+
+    <!-- SECTION 2: INTERACTIVE ANIMATED SVG EXPLAINER WORKSPACE -->
+    <section class="bg-[#111827] border border-emerald-500/40 rounded-2xl p-5 lg:p-6 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-700/80">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold">Schéma Interactif @svg-explained</span>
+          </div>
+          <h2 id="svg-section-title" class="text-lg md:text-xl font-bold text-white mt-0.5">
+            Visualisation Animée Étape par Étape
+          </h2>
+        </div>
+
+        <!-- Animation Playback Controls -->
+        <div class="flex flex-wrap items-center gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700">
+          <button onclick="prevStep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold flex items-center gap-1.5 transition">
+            ⏮ Étape Préc.
+          </button>
+          <button id="play-pause-btn" onclick="togglePlay()" class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-500/20">
+            ▶ Lecture Auto
+          </button>
+          <button onclick="nextStep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold flex items-center gap-1.5 transition">
+            Étape Suiv. ⏭
+          </button>
+          <button onclick="resetSteps()" class="px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-yellow-400 border border-slate-700 text-xs font-mono transition" title="Réinitialiser l'animation">
+            ↺ Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Parameter Bar for Current Algorithm -->
+      <div id="interactive-inputs-bar" class="mb-5 bg-slate-900/90 border border-slate-700/90 rounded-xl p-4">
+        <!-- Populated dynamically per algorithm -->
+      </div>
+
+      <!-- Step Progress Pill Bar -->
+      <div id="step-pills-container" class="flex items-center gap-2 overflow-x-auto pb-3 mb-4">
+        <!-- Step indicators populated by JS -->
+      </div>
+
+      <!-- THE SVG STAGE -->
+      <div class="bg-[#090d16] border border-slate-700/90 rounded-xl p-3 md:p-5 flex flex-col items-center justify-center min-h-[340px] relative">
+        <div id="svg-canvas-container" class="w-full overflow-x-auto flex justify-center">
+          <!-- Crisp Dynamic SVG Injected Here -->
+        </div>
+
+        <!-- Live Step Explanation Banner inside Stage -->
+        <div id="svg-step-caption" class="w-full mt-4 bg-slate-900/95 border-l-4 border-yellow-400 rounded-r-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <!-- Caption injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: WORKED EXAMPLE & MATHEMATICAL RESOLUTION + PYTHON CODE -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Detailed Step-by-Step Mathematical Proof (5 cols) -->
+      <section class="lg:col-span-5 bg-[#111827] border border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-yellow-400">Démonstration de Cours</span>
+              <h3 class="text-lg font-bold text-white">Résolution Détaillée de l'Exemple</h3>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 font-mono text-xs">
+              Calcul Exact
+            </span>
+          </div>
+          <div id="worked-example-content" class="space-y-3 text-sm text-slate-200 leading-relaxed">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Pedagogical Tip Box -->
+        <div id="exam-tip-box" class="mt-6 bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Right Column: Line-by-Line Commented Python Code (7 cols) -->
+      <section class="lg:col-span-7 bg-[#111827] border border-slate-700 rounded-2xl p-6 flex flex-col shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3 mb-4">
+          <div>
+            <span class="text-xs font-mono uppercase tracking-wider text-emerald-400">Implémentation Algorithmique</span>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              🐍 Code Python 3 — Commenté Ligne par Ligne
+            </h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="runSimulatedPython()" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-semibold transition flex items-center gap-1.5">
+              ▶ Exécuter avec mes valeurs
+            </button>
+            <button onclick="copyPythonCode()" id="copy-code-btn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-mono transition flex items-center gap-1.5">
+              📋 Copier le code
+            </button>
+          </div>
+        </div>
+
+        <!-- Code Viewer with Line-by-Line French Explanations -->
+        <div class="bg-[#090d16] border border-slate-800 rounded-xl overflow-hidden flex-1 flex flex-col">
+          <div class="bg-slate-900/90 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+            <span id="python-filename">algorithme_crypto.py</span>
+            <span class="text-yellow-400">Chaque instruction est expliquée en commentaire</span>
+          </div>
+          <div id="python-code-container" class="p-4 overflow-x-auto font-mono text-xs sm:text-sm space-y-1 max-h-[540px] overflow-y-auto">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Simulated Python Console Output -->
+        <div class="mt-4 bg-[#090d16] border border-emerald-500/30 rounded-xl p-3.5 font-mono text-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1.5 pb-1 border-b border-slate-800">
+            <span class="text-emerald-400 font-semibold">Terminal Python (Sortie Console Temps Réel)</span>
+            <span>python3 -u script.py</span>
+          </div>
+          <pre id="python-console-output" class="text-slate-200 whitespace-pre-wrap leading-relaxed overflow-x-auto"></pre>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800 bg-[#090d16] py-5 px-4 lg:px-8 mt-12 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>📚 <strong class="text-white">CryptoLab Academy</strong> — Cours Complet de Cryptographie Classique &amp; Moderne en Français.</p>
+      <p class="font-mono text-emerald-400">Thème : Noir (#090d16) • Émeraude (#10b981) • Jaune (#facc15) • Gris/Blanc</p>
+    </div>
+  </footer>
+
+  <!-- COMPLETE APPLICATION LOGIC & EDUCATIONAL DATA -->
+  <script>
+    /*************************************************************************
+     * 1. MATHEMATICAL UTILITIES FOR CRYPTOGRAPHY
+     *************************************************************************/
+    const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    function mod(n, m) {
+      return ((n % m) + m) % m;
+    }
+
+    function gcd(a, b) {
+      a = Math.abs(a);
+      b = Math.abs(b);
+      while (b !== 0) {
+        let t = b;
+        b = a % b;
+        a = t;
+      }
+      return a;
+    }
+
+    // Extended Euclidean Algorithm to find modular inverse a^-1 mod m
+    function modInverse(a, m) {
+      a = mod(a, m);
+      for (let x = 1; x < m; x++) {
+        if (mod(a * x, m) === 1) return x;
+      }
+      return null;
+    }
+
+    // Modular exponentiation: (base^exp) % modulus
+    function modPow(base, exp, modulus) {
+      if (modulus === 1) return 0;
+      let result = 1;
+      base = mod(base, modulus);
+      while (exp > 0) {
+        if (exp % 2 === 1) result = (result * base) % modulus;
+        exp = Math.floor(exp / 2);
+        base = (base * base) % modulus;
+      }
+      return result;
+    }
+
+    function cleanAlpha(str) {
+      return (str || "CRYPTO").toUpperCase().replace(/[^A-Z]/g, "") || "CRYPTO";
+    }
+
+    /*************************************************************************
+     * 2. STATE MANAGEMENT
+     *************************************************************************/
+    let currentAlgoId = 'caesar';
+    let currentStepIndex = 0;
+    let playInterval = null;
+
+    // Interactive parameters per algorithm (editable live by the student)
+    const stateParams = {
+      caesar: {
+        plaintext: "CRYPTO",
+        shift: 3,
+        charIndex: 0
+      },
+      affine: {
+        plaintext: "CODE",
+        a: 5,
+        b: 8,
+        charIndex: 0
+      },
+      vigenere: {
+        plaintext: "SECRET",
+        key: "CLE",
+        charIndex: 0
+      },
+      hill: {
+        plaintext: "HELP",
+        k11: 3, k12: 3,
+        k21: 2, k22: 5,
+        blockIndex: 0
+      },
+      vernam: {
+        plaintext: "OK",
+        key: "XY",
+        charIndex: 0
+      },
+      rsa: {
+        p: 3,
+        q: 11,
+        e: 7,
+        m: 5
+      },
+      dh: {
+        p: 23,
+        g: 5,
+        a: 6,
+        b: 15
+      },
+      custom: {
+        mode: "affine",
+        text: "EXAMEN",
+        p1: 7,
+        p2: 3
+      }
+    };
+
+    /*************************************************************************
+     * 3. FULL COURSE CATALOG (ALL ALGORITHMS STEP BY STEP)
+     *************************************************************************/
+    const ALGORITHMS = [
+      {
+        id: 'caesar',
+        shortTitle: '1. Chiffrement de César',
+        badge: 'Symétrique • Monoalphabétique',
+        title: 'Le Chiffrement de César (Décalage Additif Modulo 26)',
+        summary: `Utilisé par Jules César pour ses communications militaires, ce chiffrement consiste à remplacer chaque lettre du message clair par une lettre située à une distance fixe <strong>k</strong> (la clé) dans l'alphabet. Mathématiquement, on associe chaque lettre à son rang dans <strong>ℤ₂₆</strong> (A = 0, B = 1, ..., Z = 25) et on applique une addition circulaire modulo 26.`,
+        formulas: [
+          { label: 'Chiffrement Eₖ(x)', eq: 'C ≡ (x + k) mod 26' },
+          { label: 'Déchiffrement Dₖ(C)', eq: 'x ≡ (C - k) mod 26' },
+          { label: 'Espace des clés', eq: '25 clés utiles (k ∈ {1, ..., 25})' }
+        ],
+        examTip: `💡 <strong>Astuce Examen :</strong> Lors du déchiffrement, si <code>(C - k)</code> donne un nombre négatif (ex: <code>1 - 3 = -2</code>), ajoutez immédiatement <code>26</code> pour retomber dans l'intervalle <code>[0, 25]</code> : <code>-2 + 26 = 24 (Y)</code>.`,
+        pythonFilename: 'chiffrement_cesar.py',
+        pythonLines: [
+          { comment: "# Définition de la fonction de chiffrement de César prenant le texte clair et la clé k", code: "def chiffrer_cesar(texte_clair, k):" },
+          { comment: "    # Initialisation d'une chaîne vide qui stockera le message chiffré final", code: "    message_chiffre = ''" },
+          { comment: "    # Conversion du message en majuscules pour travailler proprement sur A-Z", code: "    texte_clair = texte_clair.upper()" },
+          { comment: "    # Boucle parcourant chaque caractère du message clair un par un", code: "    for caractere in texte_clair:" },
+          { comment: "        # Vérifie si le caractère est bien une lettre de l'alphabet (A à Z)", code: "        if caractere.isalpha():" },
+          { comment: "            # Convertit la lettre en entier entre 0 et 25 grâce au code ASCII de 'A' (65)", code: "            x = ord(caractere) - ord('A')" },
+          { comment: "            # Applique la formule mathématique de César : addition de la clé k modulo 26", code: "            c = (x + k) % 26" },
+          { comment: "            # Reconvertit le nombre obtenu (0..25) en lettre majuscule correspondante", code: "            lettre_chiffree = chr(c + ord('A'))" },
+          { comment: "            # Ajoute la nouvelle lettre chiffrée au résultat", code: "            message_chiffre += lettre_chiffree" },
+          { comment: "        # Si le caractère est un espace ou une ponctuation, on le garde intact", code: "        else:" },
+          { comment: "            # Concaténation directe du caractère non-alphabétique", code: "            message_chiffre += caractere" },
+          { comment: "    # Retourne la chaîne complète chiffrée", code: "    return message_chiffre" },
+          { comment: "# Fonction de déchiffrement : le déchiffrement est simplement un chiffrement avec (-k)", code: "def dechiffrer_cesar(texte_chiffre, k):" },
+          { comment: "    # Appelle la fonction de chiffrement en inversant le décalage modulo 26", code: "    return chiffrer_cesar(texte_chiffre, -k)" }
+        ]
+      },
+      {
+        id: 'affine',
+        shortTitle: '2. Chiffrement Affine',
+        badge: 'Symétrique • Arithmétique Modulaire',
+        title: 'Le Chiffrement Affine : E(x) = (a × x + b) mod 26',
+        summary: `Le chiffrement affine généralise le chiffre de César en combinant une multiplication par un coefficient <strong>a</strong> suivie d'une addition d'un décalage <strong>b</strong> modulo 26. Pour que le destinataire puisse déchiffrer le message de manière unique, le coefficient <strong>a</strong> doit impérativement être <strong>premier avec 26</strong> (c'est-à-dire <code>pgcd(a, 26) = 1</code>), ce qui garantit l'existence d'un inverse multiplicatif <strong>a⁻¹ mod 26</strong>.`,
+        formulas: [
+          { label: 'Condition de validité', eq: 'pgcd(a, 26) = 1 (12 valeurs possibles pour a)' },
+          { label: 'Chiffrement E(x)', eq: 'C ≡ (a × x + b) mod 26' },
+          { label: 'Déchiffrement D(C)', eq: 'x ≡ a⁻¹ × (C - b) mod 26' }
+        ],
+        examTip: `⚠️ <strong>Piège classique en examen :</strong> Ne divisez jamais par <code>a</code> sous forme de fraction décimale ! Au lieu de diviser par <code>a</code>, on multiplie par son <strong>inverse modulaire a⁻¹ mod 26</strong> (ex: l'inverse de <code>5</code> mod 26 est <code>21</code> car <code>5 × 21 = 105 = 4 × 26 + 1 ≡ 1 mod 26</code>). Attention aussi à bien mettre les parenthèses : <code>a⁻¹ × (C - b) mod 26</code>.`,
+        pythonFilename: 'chiffrement_affine.py',
+        pythonLines: [
+          { comment: "# Importation de la fonction gcd (PGCD) depuis la bibliothèque math standard", code: "from math import gcd" },
+          { comment: "# Fonction qui calcule l'inverse modulaire de 'a' modulo 26", code: "def inverse_mod26(a):" },
+          { comment: "    # Teste tous les entiers x de 1 à 25 pour trouver celui qui vérifie (a * x) % 26 == 1", code: "    for x in range(1, 26):" },
+          { comment: "        # Vérifie la définition de l'inverse multiplicatif modulo 26", code: "        if (a * x) % 26 == 1:" },
+          { comment: "            # Retourne l'inverse dès qu'il est trouvé", code: "            return x" },
+          { comment: "    # Si aucun inverse n'existe (pgcd(a,26) != 1), retourne None", code: "    return None" },
+          { comment: "# Fonction de chiffrement affine avec la paire de clés (a, b)", code: "def chiffrer_affine(texte, a, b):" },
+          { comment: "    # Vérifie d'abord que 'a' est premier avec 26 avant de chiffrer", code: "    if gcd(a, 26) != 1:" },
+          { comment: "        # Lève une erreur explicite si la clé 'a' est invalide", code: "        raise ValueError('Clé invalide : pgcd(a, 26) doit être égal à 1')" },
+          { comment: "    # Initialise la chaîne de résultat", code: "    resultat = ''" },
+          { comment: "    # Parcourt chaque lettre du message mis en majuscules", code: "    for char in texte.upper():" },
+          { comment: "        # Convertit la lettre en rang numérique x de 0 à 25", code: "        x = ord(char) - ord('A')" },
+          { comment: "        # Applique la transformation affine : (a * x + b) mod 26", code: "        c = (a * x + b) % 26" },
+          { comment: "        # Convertit la valeur chiffrée en caractère majuscule", code: "        resultat += chr(c + ord('A'))" },
+          { comment: "    # Retourne le message chiffré complet", code: "    return resultat" },
+          { comment: "# Fonction de déchiffrement affine utilisant l'inverse modulaire a_inv", code: "def dechiffrer_affine(texte_chiffre, a, b):" },
+          { comment: "    # Récupère l'inverse multiplicatif a^-1 mod 26", code: "    a_inv = inverse_mod26(a)" },
+          { comment: "    # Applique la formule D(C) = a^-1 * (C - b) mod 26 pour chaque lettre", code: "    return ''.join(chr(((a_inv * ((ord(c) - 65) - b)) % 26) + 65) for c in texte_chiffre)" }
+        ]
+      },
+      {
+        id: 'vigenere',
+        shortTitle: '3. Chiffrement de Vigenère',
+        badge: 'Symétrique • Polyalphabétique',
+        title: 'Le Chiffrement de Vigenère (Substitution Polyalphabétique)',
+        summary: `Contrairement au chiffrement de César où une même lettre claire donne toujours la même lettre chiffrée (vulnérable à l'analyse des fréquences), Blaise de Vigenère utilise un <strong>mot-clé répété périodiquement</strong> sous le message clair. Chaque lettre du message clair <span class="font-mono text-emerald-300">Mᵢ</span> est alors décalée par la lettre correspondante de la clé <span class="font-mono text-yellow-300">K₍ᵢ ₘₒ𝒹 L₎</span>.`,
+        formulas: [
+          { label: 'Alignement cyclique', eq: 'Clé active à la position i : Kᵢ = Clé[i mod Longueur(Clé)]' },
+          { label: 'Chiffrement E(Mᵢ)', eq: 'Cᵢ ≡ (Mᵢ + Kᵢ) mod 26' },
+          { label: 'Déchiffrement D(Cᵢ)', eq: 'Mᵢ ≡ (Cᵢ - Kᵢ) mod 26' }
+        ],
+        examTip: `💡 <strong>Méthode infaillible sur feuille :</strong> Écrivez toujours un tableau à 4 lignes : <strong>1)</strong> Lettres du message clair, <strong>2)</strong> Valeurs numériques <code>Mᵢ</code>, <strong>3)</strong> Lettres de la clé répétée et leurs valeurs <code>Kᵢ</code>, puis <strong>4)</strong> La somme <code>(Mᵢ + Kᵢ) mod 26</code>.`,
+        pythonFilename: 'chiffrement_vigenere.py',
+        pythonLines: [
+          { comment: "# Définition de la fonction de chiffrement de Vigenère avec texte et mot-clé", code: "def chiffrer_vigenere(message, cle):" },
+          { comment: "    # Nettoyage et mise en majuscules du message et de la clé", code: "    message, cle = message.upper(), cle.upper()" },
+          { comment: "    # Liste qui accumulera les lettres chiffrées", code: "    chiffre = []" },
+          { comment: "    # Stocke la longueur L du mot-clé pour la répétition cyclique", code: "    longueur_cle = len(cle)" },
+          { comment: "    # Parcourt chaque caractère du message avec son indice de position i", code: "    for i, lettre in enumerate(message):" },
+          { comment: "        # Rang numérique (0..25) de la lettre du message clair M_i", code: "        m_i = ord(lettre) - ord('A')" },
+          { comment: "        # Sélectionne cycliquement la lettre de la clé grâce à (i % longueur_cle)", code: "        lettre_cle = cle[i % longueur_cle]" },
+          { comment: "        # Rang numérique (0..25) de la lettre de clé K_i", code: "        k_i = ord(lettre_cle) - ord('A')" },
+          { comment: "        # Addition modulaire : C_i = (M_i + K_i) mod 26", code: "        c_i = (m_i + k_i) % 26" },
+          { comment: "        # Ajoute la lettre chiffrée correspondante dans la liste", code: "        chiffre.append(chr(c_i + ord('A')))" },
+          { comment: "    # Fusionne toutes les lettres en une seule chaîne de caractères", code: "    return ''.join(chiffre)" },
+          { comment: "# Fonction de déchiffrement de Vigenère : soustraction (C_i - K_i) mod 26", code: "def dechiffrer_vigenere(chiffre, cle):" },
+          { comment: "    # Soustrait le rang de la clé cyclique modulo 26 pour retrouver le texte clair", code: "    return ''.join(chr(((ord(c)-65) - (ord(cle[i%len(cle)])-65)) % 26 + 65) for i, c in enumerate(chiffre))" }
+        ]
+      },
+      {
+        id: 'hill',
+        shortTitle: '4. Chiffrement de Hill (Matriciel)',
+        badge: 'Symétrique • Algèbre Linéaire mod 26',
+        title: 'Le Chiffrement de Hill (Chiffrement par Blocs Matriciels 2×2)',
+        summary: `Inventé par le mathématicien Lester S. Hill en 1929, cet algorithme chiffre des <strong>blocs de m lettres simultanément</strong> à l'aide d'un produit matriciel modulo 26. Pour une matrice clé <strong>K de taille 2×2</strong>, on découpe le texte clair en paires de lettres (vecteurs colonnes de taille 2). Le déchiffrement nécessite de calculer la matrice inverse <strong>K⁻¹ mod 26</strong> à l'aide de l'inverse modulaire du déterminant.`,
+        formulas: [
+          { label: 'Chiffrement matriciel', eq: 'C = (K × P) mod 26   où K = [[k₁₁, k₁₂], [k₂₁, k₂₂]]' },
+          { label: 'Déterminant de K', eq: 'det(K) ≡ (k₁₁×k₂₂ - k₁₂×k₂₁) mod 26  (doit vérifier pgcd(det, 26) = 1)' },
+          { label: 'Matrice inverse K⁻¹', eq: 'K⁻¹ ≡ det(K)⁻¹ × [[k₂₂, -k₁₂], [-k₂₁, k₁₁]] mod 26' }
+        ],
+        examTip: `📐 <strong>Formule de la comatrice transposée 2×2 :</strong> Pour inverser <code>[[a, b], [c, d]]</code> modulo 26 : <strong>1)</strong> Échangez la diagonale principale (<code>a</code> et <code>d</code>), <strong>2)</strong> Mettez un signe moins devant l'autre diagonale (<code>-b</code> et <code>-c</code>), <strong>3)</strong> Multipliez chaque coefficient par <code>det⁻¹ mod 26</code> et réduisez modulo 26 !`,
+        pythonFilename: 'chiffrement_hill.py',
+        pythonLines: [
+          { comment: "# Chiffrement d'un bloc de 2 lettres avec une matrice clé K (2x2) modulo 26", code: "def chiffrer_hill_2x2(texte, K):" },
+          { comment: "    # Si la longueur du message est impaire, on ajoute un 'X' de bourrage (padding)", code: "    if len(texte) % 2 != 0: texte += 'X'" },
+          { comment: "    # Initialisation de la chaîne qui contiendra le texte chiffré", code: "    chiffre = ''" },
+          { comment: "    # Parcourt le message par pas de 2 (un bloc [P1, P2] à chaque itération)", code: "    for i in range(0, len(texte), 2):" },
+          { comment: "        # Convertit la première lettre du bloc en entier p1 (0..25)", code: "        p1 = ord(texte[i]) - ord('A')" },
+          { comment: "        # Convertit la deuxième lettre du bloc en entier p2 (0..25)", code: "        p2 = ord(texte[i+1]) - ord('A')" },
+          { comment: "        # Produit matriciel ligne 1 : c1 = (k11 * p1 + k12 * p2) mod 26", code: "        c1 = (K[0][0] * p1 + K[0][1] * p2) % 26" },
+          { comment: "        # Produit matriciel ligne 2 : c2 = (k21 * p1 + k22 * p2) mod 26", code: "        c2 = (K[1][0] * p1 + K[1][1] * p2) % 26" },
+          { comment: "        # Convertit les deux résultats numériques en lettres majuscules", code: "        chiffre += chr(c1 + ord('A')) + chr(c2 + ord('A'))" },
+          { comment: "    # Retourne le message chiffré par blocs", code: "    return chiffre" },
+          { comment: "# Calcul du déterminant modulo 26 : (k11*k22 - k12*k21) % 26", code: "def determinant_mod26(K):" },
+          { comment: "    # Retourne la valeur du déterminant ramenée dans [0, 25]", code: "    return (K[0][0] * K[1][1] - K[0][1] * K[1][0]) % 26" }
+        ]
+      },
+      {
+        id: 'vernam',
+        shortTitle: '5. Vernam & XOR (Masque Jetable)',
+        badge: 'Symétrique • Sécurité Inconditionnelle',
+        title: 'Chiffrement de Vernam & Opérateur XOR (One-Time Pad)',
+        summary: `Inventé par Gilbert Vernam en 1917 et prouvé mathématiquement inviolable par Claude Shannon en 1949, le <strong>Masque Jetable (One-Time Pad)</strong> combine le message binaire et une clé binaire de même taille via l'opérateur logique <strong>OU Exclusif (XOR, noté ⊕)</strong>. Comme l'opération XOR est involutive (<code>(M ⊕ K) ⊕ K = M</code>), l'algorithme de chiffrement et de déchiffrement est strictement identique !`,
+        formulas: [
+          { label: 'Table de vérité XOR (⊕)', eq: '0⊕0 = 0  |  0⊕1 = 1  |  1⊕0 = 1  |  1⊕1 = 0' },
+          { label: 'Chiffrement & Déchiffrement', eq: 'C = M ⊕ K    et    M = C ⊕ K' },
+          { label: '3 Règles de Shannon', eq: '1) Clé vraiment aléatoire  2) Longueur(Clé) ≥ Longueur(M)  3) Usage unique' }
+        ],
+        examTip: `🔑 <strong>Astuce Binaire XOR :</strong> Pour calculer <code>A ⊕ B</code> bit à bit : si les deux bits sont <strong>identiques</strong>, le résultat vaut <code>0</code> ; s'ils sont <strong>différents</strong>, le résultat vaut <code>1</code>. En version alphabétique mod 26, le masque jetable s'écrit aussi <code>Cᵢ = (Mᵢ + Kᵢ) mod 26</code> avec une clé aléatoire aussi longue que le message.`,
+        pythonFilename: 'chiffrement_vernam_xor.py',
+        pythonLines: [
+          { comment: "# Fonction réalisant le chiffrement/déchiffrement de Vernam par XOR sur octets ASCII", code: "def vernam_xor(message, cle):" },
+          { comment: "    # Règle de Shannon : la clé doit être au moins aussi longue que le message", code: "    if len(cle) < len(message):" },
+          { comment: "        # Lève une exception si la clé est trop courte", code: "        raise ValueError('La clé doit avoir la même longueur que le message !')" },
+          { comment: "    # Liste qui stockera les octets obtenus après l'opération XOR", code: "    octets_xor = []" },
+          { comment: "    # Parcourt simultanément chaque caractère du message et de la clé avec zip()", code: "    for char_m, char_k in zip(message, cle):" },
+          { comment: "        # Récupère le code ASCII (sur 8 bits) du caractère du message", code: "        octet_m = ord(char_m)" },
+          { comment: "        # Récupère le code ASCII (sur 8 bits) du caractère de la clé", code: "        octet_k = ord(char_k)" },
+          { comment: "        # Applique l'opérateur bit-à-bit XOR (^) entre les deux octets", code: "        octet_c = octet_m ^ octet_k" },
+          { comment: "        # Ajoute l'octet résultant dans notre liste", code: "        octets_xor.append(octet_c)" },
+          { comment: "    # Retourne la liste des valeurs entières (ou hexadécimales) chiffrées", code: "    return octets_xor" },
+          { comment: "# Pour déchiffrer, on applique exactement le même XOR entre le chiffré et la clé", code: "def dechiffrer_vernam(octets_chiffres, cle):" },
+          { comment: "    # Propriété d'involution : (M ^ K) ^ K redonne exactement M", code: "    return ''.join(chr(c ^ ord(k)) for c, k in zip(octets_chiffres, cle))" }
+        ]
+      },
+      {
+        id: 'rsa',
+        shortTitle: '6. Chiffrement RSA',
+        badge: 'Asymétrique • Clé Publique / Privée',
+        title: 'Chiffrement Asymétrique RSA (Rivest, Shamir, Adleman — 1977)',
+        summary: `Le chiffrement <strong>RSA</strong> repose sur l'asymétrie entre une <strong>clé publique (e, n)</strong> connue de tous pour chiffrer, et une <strong>clé privée (d, n)</strong> gardée secrète pour déchiffrer. Sa sécurité repose sur l'extrême difficulté de factoriser un grand entier <strong>n = p × q</strong> en ses deux facteurs premiers <strong>p</strong> et <strong>q</strong>.`,
+        formulas: [
+          { label: '1. Module & Indicatrice d’Euler', eq: 'n = p × q     et     φ(n) = (p - 1) × (q - 1)' },
+          { label: '2. Exposants public (e) et privé (d)', eq: 'pgcd(e, φ(n)) = 1    et    d ≡ e⁻¹ mod φ(n)  (soit e×d ≡ 1 mod φ(n))' },
+          { label: '3. Chiffrement & Déchiffrement', eq: 'C ≡ Mᵉ mod n        et        M ≡ Cᵈ mod n   (avec M < n)' }
+        ],
+        examTip: `🎯 <strong>Méthode Examen RSA en 5 étapes :</strong> 1) Calculez <code>n = p × q</code>. 2) Calculez <code>φ(n) = (p-1)(q-1)</code>. 3) Vérifiez que <code>pgcd(e, φ(n)) = 1</code>. 4) Trouvez <code>d</code> tel que <code>(e × d) mod φ(n) = 1</code> (attention : c'est modulo <code>φ(n)</code>, pas modulo <code>n</code> !). 5) Chiffrez avec <code>C = Mᵉ mod n</code> et déchiffrez avec <code>M = Cᵈ mod n</code>.`,
+        pythonFilename: 'chiffrement_rsa.py',
+        pythonLines: [
+          { comment: "# Importation du calcul de PGCD pour vérifier l'exposant public e", code: "from math import gcd" },
+          { comment: "# Fonction complète de génération des clés RSA à partir de deux nombres premiers p et q", code: "def generer_cles_rsa(p, q, e):" },
+          { comment: "    # Étape 1 : Calcul du module public n = p * q", code: "    n = p * q" },
+          { comment: "    # Étape 2 : Calcul de l'indicatrice d'Euler phi(n) = (p - 1) * (q - 1)", code: "    phi_n = (p - 1) * (q - 1)" },
+          { comment: "    # Étape 3 : Vérification que e est premier avec phi(n)", code: "    if gcd(e, phi_n) != 1:" },
+          { comment: "        # Lève une erreur si e et phi(n) ont un diviseur commun > 1", code: "        raise ValueError('e doit être premier avec phi(n)')" },
+          { comment: "    # Étape 4 : Calcul de l'exposant privé d = inverse de e modulo phi_n", code: "    d = pow(e, -1, phi_n)" },
+          { comment: "    # Retourne le couple Clé Publique (e, n) et Clé Privée (d, n)", code: "    return (e, n), (d, n), phi_n" },
+          { comment: "# Fonction de chiffrement RSA : C = (M ^ e) mod n", code: "def chiffrer_rsa(message_entier, cle_publique):" },
+          { comment: "    # Décompose le tuple de la clé publique en e et n", code: "    e, n = cle_publique" },
+          { comment: "    # Utilise l'exponentiation modulaire rapide pow(base, exp, mod) de Python", code: "    return pow(message_entier, e, n)" },
+          { comment: "# Fonction de déchiffrement RSA : M = (C ^ d) mod n", code: "def dechiffrer_rsa(chiffre_entier, cle_privee):" },
+          { comment: "    # Décompose le tuple de la clé privée en d et n", code: "    d, n = cle_privee" },
+          { comment: "    # Calcule C^d mod n pour retrouver exactement le message original M", code: "    return pow(chiffre_entier, d, n)" }
+        ]
+      },
+      {
+        id: 'dh',
+        shortTitle: '7. Diffie-Hellman',
+        badge: 'Asymétrique • Échange de Clé',
+        title: 'Protocole d’Échange de Clés de Diffie-Hellman (1976)',
+        summary: `Comment <strong>Alice</strong> et <strong>Bob</strong> peuvent-ils établir une <strong>clé secrète commune K</strong> en communiquant uniquement sur un canal public espionné par un attaquant (Ève) ? Grâce au problème du <strong>logarithme discret</strong> : il est très facile de calculer <code>gᵃ mod p</code>, mais calculatoirement impossible de retrouver le secret <code>a</code> à partir de <code>gᵃ mod p</code> lorsque <code>p</code> est grand.`,
+        formulas: [
+          { label: 'Paramètres publics partagés', eq: 'Un nombre premier p et un générateur g (connus de tous)' },
+          { label: 'Clés publiques échangées', eq: 'Alice envoie A = gᵃ mod p   |   Bob envoie B = gᵇ mod p' },
+          { label: 'Secret commun établi', eq: 'Alice calcule K = Bᵃ mod p  |   Bob calcule K = Aᵇ mod p  ⇒ K = gᵃᵇ mod p' }
+        ],
+        examTip: `🛡️ <strong>Pourquoi Ève est bloquée ?</strong> Ève intercepte <code>p</code>, <code>g</code>, <code>A = gᵃ mod p</code> et <code>B = gᵇ mod p</code>. Mais sans connaître ni le secret privé <code>a</code> d'Alice, ni le secret privé <code>b</code> de Bob, multiplier <code>A × B</code> donne <code>gᵃ⁺ᵇ mod p</code> et <strong>non</strong> <code>gᵃᵇ mod p</code> !`,
+        pythonFilename: 'echange_diffie_hellman.py',
+        pythonLines: [
+          { comment: "# Simulation complète du protocole d'échange de clés de Diffie-Hellman", code: "def protocole_diffie_hellman(p, g, secret_alice, secret_bob):" },
+          { comment: "    # Alice calcule sa valeur publique : A = (g ^ secret_alice) mod p", code: "    A_public = pow(g, secret_alice, p)" },
+          { comment: "    # Bob calcule sa valeur publique : B = (g ^ secret_bob) mod p", code: "    B_public = pow(g, secret_bob, p)" },
+          { comment: "    # --- Échange de A_public et B_public sur le canal public ---", code: "    # Alice reçoit B_public et l'élève à sa puissance secrète : K_alice = (B ^ a) mod p", code: "    cle_commune_alice = pow(B_public, secret_alice, p)" },
+          { comment: "    # Bob reçoit A_public et l'élève à sa puissance secrète : K_bob = (A ^ b) mod p", code: "    cle_commune_bob = pow(A_public, secret_bob, p)" },
+          { comment: "    # Vérifie mathématiquement que les deux clés calculées sont identiques", code: "    assert cle_commune_alice == cle_commune_bob" },
+          { comment: "    # Retourne toutes les valeurs intermédiaires et la clé secrète partagée K", code: "    return A_public, B_public, cle_commune_alice" }
+        ]
+      },
+      {
+        id: 'custom',
+        shortTitle: '8. Résolveur d’Exercices PDF',
+        badge: 'Simulateur Universel • TD / Examen',
+        title: 'Résolveur Sur-Mesure : Testez n’importe quel exercice de votre PDF',
+        summary: `Cet atelier vous permet de saisir <strong>n'importe quel énoncé de TD ou d'examen</strong> issu de votre support PDF (texte à chiffrer/déchiffrer, clés personnalisées, recherche d'inverse modulaire ou table complète de chiffrement) et génère instantanément la <strong>table de résolution complète lettre par lettre</strong> ainsi que le diagramme de vérification.`,
+        formulas: [
+          { label: 'Chiffrement & Déchiffrement Direct', eq: 'Résolution automatique avec affichage des étapes intermédiaires' },
+          { label: 'Table de Correspondance Complète', eq: 'Vérification instantanée de chaque indice i, Mᵢ, Kᵢ et Cᵢ' },
+          { label: 'Calculateur Modulaire Intégré', eq: 'PGCD, Inverse modulaire a⁻¹ mod n et Exponentiation rapide' }
+        ],
+        examTip: `🎓 <strong>Conseil de révision :</strong> Entrez ici les valeurs exactes des exercices de votre PDF pour vérifier vos calculs manuels étape par étape avant votre examen !`,
+        pythonFilename: 'boite_a_outils_examen_crypto.py',
+        pythonLines: [
+          { comment: "# Boîte à outils universelle pour vérifier tous vos exercices de TD de cryptographie", code: "from math import gcd" },
+          { comment: "# 1. Convertit un mot en liste de nombres entre 0 et 25 (A=0, B=1, ..., Z=25)", code: "def texte_vers_nombres(mot):" },
+          { comment: "    # Retourne la liste des rangs alphabétiques", code: "    return [ord(c) - ord('A') for c in mot.upper() if c.isalpha()]" },
+          { comment: "# 2. Convertit une liste de nombres (0..25) en mot majuscule", code: "def nombres_vers_texte(liste_nombres):" },
+          { comment: "    # Applique modulo 26 par sécurité et convertit en caractère ASCII", code: "    return ''.join(chr((n % 26) + ord('A')) for n in liste_nombres)" },
+          { comment: "# 3. Algorithme d'Euclide étendu : trouve l'inverse de 'a' modulo 'm'", code: "def inverse_modulaire(a, m=26):" },
+          { comment: "    # Si le PGCD n'est pas 1, l'inverse n'existe pas", code: "    if gcd(a, m) != 1: return None" },
+          { comment: "    # Utilise pow(a, -1, m) disponible nativement depuis Python 3.8+", code: "    return pow(a, -1, m)" }
+        ]
+      }
+    ];
+
+    /*************************************************************************
+     * 4. INITIALIZATION & REFERENCE TABLES
+     *************************************************************************/
+    function initReferenceTables() {
+      // A-Z 0-25 grid
+      const azGrid = document.getElementById('az-reference-grid');
+      let azHtml = '';
+      for (let i = 0; i < 26; i++) {
+        azHtml += `
+          <div class="bg-slate-800/90 border border-slate-700 rounded p-1.5 flex flex-col items-center">
+            <span class="text-emerald-400 font-bold">${ALPHABET[i]}</span>
+            <span class="text-slate-300 text-[11px]">${i}</span>
+          </div>
+        `;
+      }
+      azGrid.innerHTML = azHtml;
+
+      // Coprime modular inverses mod 26
+      const invGrid = document.getElementById('mod-inverse-grid');
+      const coprimes = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25];
+      invGrid.innerHTML = coprimes.map(a => {
+        const inv = modInverse(a, 26);
+        return `
+          <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-2">
+            <div class="text-slate-400 text-[11px]">a = <strong class="text-white">${a}</strong></div>
+            <div class="text-yellow-400 font-bold mt-0.5">a⁻¹ = ${inv}</div>
+            <div class="text-[10px] text-emerald-400/80">${a}×${inv} ≡ 1</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleAlphabetModal() {
+      const drawer = document.getElementById('alphabet-drawer');
+      drawer.classList.toggle('hidden');
+    }
+
+    function renderNavigationTabs() {
+      const nav = document.getElementById('algo-tabs');
+      nav.innerHTML = ALGORITHMS.map(algo => {
+        const isActive = algo.id === currentAlgoId;
+        return `
+          <button onclick="selectAlgorithm('${algo.id}')"
+            class="px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2 ${
+              isActive
+                ? 'tab-btn-active'
+                : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-white hover:border-slate-500'
+            }">
+            <span>${algo.shortTitle}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectAlgorithm(algoId) {
+      stopAutoPlay();
+      currentAlgoId = algoId;
+      currentStepIndex = 0;
+      renderNavigationTabs();
+      renderAllSections();
+    }
+
+    /*************************************************************************
+     * 5. STEP GENERATION FOR EACH ALGORITHM (ANIMATION + EXPLANATIONS)
+     *************************************************************************/
+    function getStepsForCurrentAlgo() {
+      if (currentAlgoId === 'caesar') {
+        const text = cleanAlpha(stateParams.caesar.plaintext);
+        const k = mod(parseInt(stateParams.caesar.shift) || 0, 26);
+        const idx = Math.min(stateParams.caesar.charIndex, text.length - 1);
+        const ch = text[idx];
+        const x = ch.charCodeAt(0) - 65;
+        const sum = x + k;
+        const c = mod(sum, 26);
+        const cipherChar = ALPHABET[c];
+
+        return [
+          {
+            title: "Étape 1 : Extraction de la lettre claire",
+            caption: `On sélectionne la lettre <strong>'${ch}'</strong> (position ${idx + 1} du mot <code>${text}</code>) et on cherche son indice dans l'alphabet ℤ₂₆ : <strong>x = ${x}</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Addition du décalage (Clé k)",
+            caption: `On ajoute la clé de décalage <strong>k = ${k}</strong> à la valeur numérique : <strong>x + k = ${x} + ${k} = ${sum}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Réduction circulaire Modulo 26",
+            caption: `On applique l'opération modulo 26 pour rester entre 0 et 25 : <strong>${sum} mod 26 = ${c}</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Conversion en lettre chiffrée & Déchiffrement",
+            caption: `Le rang <strong>${c}</strong> correspond à la lettre chiffrée <strong>'${cipherChar}'</strong>. Pour déchiffrer : <strong>(${c} - ${k}) mod 26 = ${x} ('${ch}')</strong>.`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'affine') {
+        const text = cleanAlpha(stateParams.affine.plaintext);
+        const a = parseInt(stateParams.affine.a) || 5;
+        const b = mod(parseInt(stateParams.affine.b) || 8, 26);
+        const idx = Math.min(stateParams.affine.charIndex, text.length - 1);
+        const ch = text[idx];
+        const x = ch.charCodeAt(0) - 65;
+        const mult = a * x;
+        const add = mult + b;
+        const c = mod(add, 26);
+        const cipherChar = ALPHABET[c];
+        const aInv = modInverse(a, 26);
+
+        return [
+          {
+            title: "Étape 1 : Numérisation & Validation de la clé a",
+            caption: `Lettre claire <strong>'${ch}' → x = ${x}</strong>. On vérifie que <strong>pgcd(${a}, 26) = ${gcd(a, 26)}</strong>. ${aInv ? `Clé valide ! Inverse : <strong>a⁻¹ = ${aInv}</strong>.` : `<span class="text-red-400">Attention : a=${a} n'est pas inversible mod 26 !</span>`}`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Multiplication par le coefficient a",
+            caption: `On multiplie le rang de la lettre par <strong>a = ${a}</strong> : <strong>a × x = ${a} × ${x} = ${mult}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Addition du décalage b et Modulo 26",
+            caption: `On ajoute <strong>b = ${b}</strong> puis on réduit modulo 26 : <strong>(${mult} + ${b}) mod 26 = ${add} mod 26 = ${c} ('${cipherChar}')</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Vérification du Déchiffrement avec a⁻¹",
+            caption: aInv
+              ? `Pour retrouver '${ch}' : <strong>x = a⁻¹ × (C - b) mod 26 = ${aInv} × (${c} - ${b}) mod 26 = ${x} ('${ch}')</strong>.`
+              : `Déchiffrement impossible car a = ${a} n'a pas d'inverse modulo 26 (choisissez a impair ≠ 13).`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'vigenere') {
+        const text = cleanAlpha(stateParams.vigenere.plaintext);
+        const key = cleanAlpha(stateParams.vigenere.key);
+        const idx = Math.min(stateParams.vigenere.charIndex, text.length - 1);
+        const mChar = text[idx];
+        const kChar = key[idx % key.length];
+        const mVal = mChar.charCodeAt(0) - 65;
+        const kVal = kChar.charCodeAt(0) - 65;
+        const cVal = mod(mVal + kVal, 26);
+        const cChar = ALPHABET[cVal];
+
+        return [
+          {
+            title: "Étape 1 : Alignement cyclique du mot-clé",
+            caption: `À l'indice <strong>i = ${idx}</strong>, la lettre claire est <strong>Mᵢ = '${mChar}' (${mVal})</strong>. On répète la clé <code>${key}</code> : position <strong>${idx} mod ${key.length} = ${idx % key.length} → Kᵢ = '${kChar}' (${kVal})</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Somme des rangs (Message + Clé)",
+            caption: `On additionne le rang de la lettre claire et celui de la lettre de clé : <strong>Mᵢ + Kᵢ = ${mVal} + ${kVal} = ${mVal + kVal}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Réduction Modulo 26",
+            caption: `On réduit modulo 26 : <strong>${mVal + kVal} mod 26 = ${cVal}</strong>, ce qui donne la lettre chiffrée <strong>Cᵢ = '${cChar}'</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Déchiffrement symétrique",
+            caption: `Pour déchiffrer : <strong>(Cᵢ - Kᵢ) mod 26 = (${cVal} - ${kVal}) mod 26 = ${mVal} ('${mChar}')</strong>.`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'hill') {
+        let text = cleanAlpha(stateParams.hill.plaintext);
+        if (text.length % 2 !== 0) text += 'X';
+        const maxBlocks = Math.floor(text.length / 2);
+        const bIdx = Math.min(stateParams.hill.blockIndex, maxBlocks - 1);
+        const p1Char = text[bIdx * 2];
+        const p2Char = text[bIdx * 2 + 1];
+        const p1 = p1Char.charCodeAt(0) - 65;
+        const p2 = p2Char.charCodeAt(0) - 65;
+        const { k11, k12, k21, k22 } = stateParams.hill;
+        const raw1 = k11 * p1 + k12 * p2;
+        const raw2 = k21 * p1 + k22 * p2;
+        const c1 = mod(raw1, 26);
+        const c2 = mod(raw2, 26);
+        const det = mod(k11 * k22 - k12 * k21, 26);
+        const detInv = modInverse(det, 26);
+
+        return [
+          {
+            title: "Étape 1 : Découpage en vecteur bloc 2×1",
+            caption: `Le bloc n°${bIdx + 1} est <strong>"${p1Char}${p2Char}"</strong>, représenté par le vecteur colonne <strong>P = [${p1}, ${p2}]ᵀ</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Produit Matriciel — 1ʳᵉ ligne",
+            caption: `On multiplie la 1ʳᵉ ligne de K par le vecteur P : <strong>C₁ = (${k11}×${p1} + ${k12}×${p2}) mod 26 = ${raw1} mod 26 = ${c1} ('${ALPHABET[c1]}')</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Produit Matriciel — 2ᵉ ligne",
+            caption: `On multiplie la 2ᵉ ligne de K par le vecteur P : <strong>C₂ = (${k21}×${p1} + ${k22}×${p2}) mod 26 = ${raw2} mod 26 = ${c2} ('${ALPHABET[c2]}')</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Déterminant & Matrice Inverse K⁻¹ mod 26",
+            caption: `<strong>det(K) = (${k11}×${k22} - ${k12}×${k21}) mod 26 = ${det}</strong>. ${
+              detInv
+                ? `Inverse du déterminant : <strong>det⁻¹ = ${detInv} mod 26</strong>. Le bloc chiffré est <strong>"${ALPHABET[c1]}${ALPHABET[c2]}"</strong>.`
+                : `<span class="text-red-400">Attention : det(K)=${det} n'est pas inversible mod 26 !</span>`
+            }`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'vernam') {
+        const text = cleanAlpha(stateParams.vernam.plaintext);
+        let key = cleanAlpha(stateParams.vernam.key);
+        while (key.length < text.length) key += "X";
+        const idx = Math.min(stateParams.vernam.charIndex, text.length - 1);
+        const mChar = text[idx];
+        const kChar = key[idx];
+        const mAscii = mChar.charCodeAt(0);
+        const kAscii = kChar.charCodeAt(0);
+        const cXor = mAscii ^ kAscii;
+        const mBin = mAscii.toString(2).padStart(8, '0');
+        const kBin = kAscii.toString(2).padStart(8, '0');
+        const cBin = cXor.toString(2).padStart(8, '0');
+
+        return [
+          {
+            title: "Étape 1 : Conversion binaire ASCII (8 bits) du message",
+            caption: `Caractère clair <strong>'${mChar}'</strong> → Code ASCII <strong>${mAscii}</strong> → Octet binaire <strong>M = ${mBin}</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Conversion binaire ASCII (8 bits) de la clé secrète",
+            caption: `Caractère clé <strong>'${kChar}'</strong> → Code ASCII <strong>${kAscii}</strong> → Octet binaire <strong>K = ${kBin}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Opération OU Exclusif (XOR ⊕) bit à bit",
+            caption: `On compare chaque bit : <code>0⊕0=0, 1⊕1=0, 1⊕0=1, 0⊕1=1</code> → Résultat : <strong>C = ${cBin}</strong> (décimal ${cXor}, hex 0x${cXor.toString(16).toUpperCase().padStart(2,'0')}).`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Réversibilité parfaite (Déchiffrement par XOR)",
+            caption: `En réappliquant <strong>C ⊕ K = ${cBin} ⊕ ${kBin}</strong>, on retrouve exactement <strong>${mBin} (${mAscii} = '${mChar}')</strong> !`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'rsa') {
+        const p = parseInt(stateParams.rsa.p) || 3;
+        const q = parseInt(stateParams.rsa.q) || 11;
+        const e = parseInt(stateParams.rsa.e) || 7;
+        const m = parseInt(stateParams.rsa.m) || 5;
+        const n = p * q;
+        const phi = (p - 1) * (q - 1);
+        const d = modInverse(e, phi);
+        const c = modPow(m, e, n);
+        const mDec = d ? modPow(c, d, n) : null;
+
+        return [
+          {
+            title: "Étape 1 : Génération du module n et de φ(n)",
+            caption: `Avec les nombres premiers <strong>p = ${p}</strong> et <strong>q = ${q}</strong> : on calcule <strong>n = p × q = ${n}</strong> et l'indicatrice d'Euler <strong>φ(n) = (${p}-1)×(${q}-1) = ${phi}</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Choix de la Clé Publique (e, n) et Clé Privée (d, n)",
+            caption: `Exposant public <strong>e = ${e}</strong> (pgcd(${e}, ${phi}) = ${gcd(e, phi)}). L'exposant privé est l'inverse de e modulo φ(n) : <strong>d = ${e}⁻¹ mod ${phi} = ${d ?? 'Invalide'}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Chiffrement Asymétrique avec la Clé Publique",
+            caption: `Pour chiffrer le message <strong>M = ${m}</strong> (avec M &lt; n) : <strong>C ≡ Mᵉ mod n ≡ ${m}<sup>${e}</sup> mod ${n} = ${c}</strong>.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Déchiffrement Asymétrique avec la Clé Privée",
+            caption: d
+              ? `Le destinataire utilise sa clé privée <strong>d = ${d}</strong> : <strong>M ≡ Cᵈ mod n ≡ ${c}<sup>${d}</sup> mod ${n} = ${mDec}</strong>. Le message initial est restauré !`
+              : `Choisissez un exposant e premier avec φ(n) = ${phi} pour calculer d.`,
+            highlight: 4
+          }
+        ];
+      }
+
+      if (currentAlgoId === 'dh') {
+        const p = parseInt(stateParams.dh.p) || 23;
+        const g = parseInt(stateParams.dh.g) || 5;
+        const a = parseInt(stateParams.dh.a) || 6;
+        const b = parseInt(stateParams.dh.b) || 15;
+        const A = modPow(g, a, p);
+        const B = modPow(g, b, p);
+        const Ka = modPow(B, a, p);
+        const Kb = modPow(A, b, p);
+
+        return [
+          {
+            title: "Étape 1 : Accord sur les paramètres publics (p, g)",
+            caption: `Alice et Bob choisissent publiquement un nombre premier <strong>p = ${p}</strong> et une base génératrice <strong>g = ${g}</strong>.`,
+            highlight: 1
+          },
+          {
+            title: "Étape 2 : Calcul des clés publiques d'Alice (A) et de Bob (B)",
+            caption: `Alice garde son secret <strong>a = ${a}</strong> et calcule <strong>A = ${g}<sup>${a}</sup> mod ${p} = ${A}</strong>. Bob garde son secret <strong>b = ${b}</strong> et calcule <strong>B = ${g}<sup>${b}</sup> mod ${p} = ${B}</strong>.`,
+            highlight: 2
+          },
+          {
+            title: "Étape 3 : Échange sur le canal public",
+            caption: `Alice envoie <strong>A = ${A}</strong> à Bob, et Bob envoie <strong>B = ${B}</strong> à Alice. L'espion Ève voit (p=${p}, g=${g}, A=${A}, B=${B}) mais ne connaît ni a ni b.`,
+            highlight: 3
+          },
+          {
+            title: "Étape 4 : Calcul indépendant de la Clé Secrète Commune K",
+            caption: `Alice calcule <strong>K = Bᵃ mod p = ${B}<sup>${a}</sup> mod ${p} = ${Ka}</strong>. Bob calcule <strong>K = Aᵇ mod p = ${A}<sup>${b}</sup> mod ${p} = ${Kb}</strong>. Ils partagent le même secret <strong>K = ${Ka}</strong> !`,
+            highlight: 4
+          }
+        ];
+      }
+
+      // Custom Solver Tab
+      return [
+        {
+          title: "Étape 1 : Analyse des paramètres de votre exercice",
+          caption: `Vérification automatique des paramètres saisis et préparation des équations modulaires.`,
+          highlight: 1
+        },
+        {
+          title: "Étape 2 : Transformation numérique (A=0 ... Z=25)",
+          caption: `Conversion de chaque lettre du message en son équivalent dans ℤ₂₆.`,
+          highlight: 2
+        },
+        {
+          title: "Étape 3 : Application de la fonction cryptographique",
+          caption: `Exécution pas à pas de la formule de chiffrement et de déchiffrement sur chaque bloc.`,
+          highlight: 3
+        },
+        {
+          title: "Étape 4 : Validation croisée et Preuve d'inversion",
+          caption: `Vérification que le déchiffrement du message chiffré redonne exactement le message initial.`,
+          highlight: 4
+        }
+      ];
+    }
+
+    /*************************************************************************
+     * 6. RENDER COURSE HEADER & INTERACTIVE INPUT CONTROLS
+     *************************************************************************/
+    function renderCourseHeader() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const container = document.getElementById('course-header-section');
+
+      container.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+          <div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+              ${algo.badge}
+            </span>
+            <h2 class="text-xl md:text-2xl font-extrabold text-white mt-2">${algo.title}</h2>
+          </div>
+          <div class="text-xs font-mono text-slate-400 bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-700">
+            Chapitre ${ALGORITHMS.indexOf(algo) + 1} sur ${ALGORITHMS.length}
+          </div>
+        </div>
+
+        <p class="mt-4 text-sm md:text-base text-slate-200 leading-relaxed">
+          ${algo.summary}
+        </p>
+
+        <!-- Key Mathematical Formulas Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+          ${algo.formulas.map(f => `
+            <div class="bg-[#090d16] border border-slate-700/90 rounded-xl p-3.5">
+              <div class="text-xs font-mono uppercase tracking-wider text-yellow-400">${f.label}</div>
+              <div class="text-sm md:text-base font-mono font-bold text-emerald-300 mt-1">${f.eq}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderInteractiveControls() {
+      const bar = document.getElementById('interactive-inputs-bar');
+
+      if (currentAlgoId === 'caesar') {
+        const text = cleanAlpha(stateParams.caesar.plaintext);
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message Clair (A-Z) :</label>
+              <input type="text" value="${text}" maxlength="12"
+                oninput="updateParam('caesar','plaintext', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm focus:border-emerald-400 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Clé de décalage k (0 à 25) :</label>
+              <input type="number" value="${stateParams.caesar.shift}" min="0" max="25"
+                oninput="updateParam('caesar','shift', parseInt(this.value)||0)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm focus:border-emerald-400 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Lettre inspectée dans le SVG :</label>
+              <div class="flex flex-wrap gap-1.5">
+                ${text.split('').map((ch, idx) => `
+                  <button onclick="updateParam('caesar','charIndex', ${idx})"
+                    class="px-2.5 py-1.5 rounded font-mono text-xs font-bold border transition ${
+                      idx === stateParams.caesar.charIndex
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-600 hover:border-emerald-400'
+                    }">
+                    ${ch} <span class="text-[10px] opacity-75">(${idx})</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'affine') {
+        const text = cleanAlpha(stateParams.affine.plaintext);
+        const coprimes = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25];
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message Clair :</label>
+              <input type="text" value="${text}" maxlength="10"
+                oninput="updateParam('affine','plaintext', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Clé multiplicative a (pgcd(a,26)=1) :</label>
+              <select onchange="updateParam('affine','a', parseInt(this.value))"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+                ${coprimes.map(val => `<option value="${val}" ${val === stateParams.affine.a ? 'selected' : ''}>a = ${val} (a⁻¹ = ${modInverse(val,26)})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Clé additive b (0..25) :</label>
+              <input type="number" value="${stateParams.affine.b}" min="0" max="25"
+                oninput="updateParam('affine','b', parseInt(this.value)||0)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-emerald-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Lettre inspectée :</label>
+              <div class="flex flex-wrap gap-1">
+                ${text.split('').map((ch, idx) => `
+                  <button onclick="updateParam('affine','charIndex', ${idx})"
+                    class="px-2.5 py-1.5 rounded font-mono text-xs font-bold border ${
+                      idx === stateParams.affine.charIndex
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-600'
+                    }">${ch}</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'vigenere') {
+        const text = cleanAlpha(stateParams.vigenere.plaintext);
+        const key = cleanAlpha(stateParams.vigenere.key);
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message Clair :</label>
+              <input type="text" value="${text}" maxlength="12"
+                oninput="updateParam('vigenere','plaintext', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Mot-Clé Répété :</label>
+              <input type="text" value="${key}" maxlength="8"
+                oninput="updateParam('vigenere','key', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Indice i inspecté :</label>
+              <div class="flex flex-wrap gap-1">
+                ${text.split('').map((ch, idx) => `
+                  <button onclick="updateParam('vigenere','charIndex', ${idx})"
+                    class="px-2.5 py-1.5 rounded font-mono text-xs font-bold border ${
+                      idx === stateParams.vigenere.charIndex
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-600'
+                    }">i=${idx} (${ch})</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'hill') {
+        let text = cleanAlpha(stateParams.hill.plaintext);
+        if (text.length % 2 !== 0) text += 'X';
+        const blocks = [];
+        for (let i = 0; i < text.length; i += 2) blocks.push(text.slice(i, i + 2));
+
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message Clair (Blocs de 2) :</label>
+              <input type="text" value="${text}" maxlength="10"
+                oninput="updateParam('hill','plaintext', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Matrice Clé K (2×2) mod 26 :</label>
+              <div class="grid grid-cols-2 gap-2 max-w-[200px]">
+                <input type="number" value="${stateParams.hill.k11}" oninput="updateParam('hill','k11', parseInt(this.value)||0)" class="px-2 py-1 rounded bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-center text-sm">
+                <input type="number" value="${stateParams.hill.k12}" oninput="updateParam('hill','k12', parseInt(this.value)||0)" class="px-2 py-1 rounded bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-center text-sm">
+                <input type="number" value="${stateParams.hill.k21}" oninput="updateParam('hill','k21', parseInt(this.value)||0)" class="px-2 py-1 rounded bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-center text-sm">
+                <input type="number" value="${stateParams.hill.k22}" oninput="updateParam('hill','k22', parseInt(this.value)||0)" class="px-2 py-1 rounded bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-center text-sm">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Bloc 2×1 inspecté :</label>
+              <div class="flex flex-wrap gap-1.5">
+                ${blocks.map((b, idx) => `
+                  <button onclick="updateParam('hill','blockIndex', ${idx})"
+                    class="px-3 py-1.5 rounded font-mono text-xs font-bold border ${
+                      idx === stateParams.hill.blockIndex
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-600'
+                    }">Bloc "${b}"</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'vernam') {
+        const text = cleanAlpha(stateParams.vernam.plaintext);
+        let key = cleanAlpha(stateParams.vernam.key);
+        while (key.length < text.length) key += 'X';
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message Clair :</label>
+              <input type="text" value="${text}" maxlength="8"
+                oninput="updateParam('vernam','plaintext', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Clé Jetable (Même taille) :</label>
+              <input type="text" value="${key}" maxlength="8"
+                oninput="updateParam('vernam','key', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Octet inspecté en binaire :</label>
+              <div class="flex flex-wrap gap-1.5">
+                ${text.split('').map((ch, idx) => `
+                  <button onclick="updateParam('vernam','charIndex', ${idx})"
+                    class="px-2.5 py-1.5 rounded font-mono text-xs font-bold border ${
+                      idx === stateParams.vernam.charIndex
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-600'
+                    }">${ch} ⊕ ${key[idx]}</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'rsa') {
+        bar.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Premier p :</label>
+              <input type="number" value="${stateParams.rsa.p}" min="2" max="97"
+                oninput="updateParam('rsa','p', parseInt(this.value)||3)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-emerald-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Premier q :</label>
+              <input type="number" value="${stateParams.rsa.q}" min="2" max="97"
+                oninput="updateParam('rsa','q', parseInt(this.value)||11)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-emerald-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Exposant public e :</label>
+              <input type="number" value="${stateParams.rsa.e}" min="2" max="99"
+                oninput="updateParam('rsa','e', parseInt(this.value)||7)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Message entier M (&lt; n) :</label>
+              <input type="number" value="${stateParams.rsa.m}" min="1" max="999"
+                oninput="updateParam('rsa','m', parseInt(this.value)||5)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'dh') {
+        bar.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Nombre premier public p :</label>
+              <input type="number" value="${stateParams.dh.p}" min="5" max="997"
+                oninput="updateParam('dh','p', parseInt(this.value)||23)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Générateur public g :</label>
+              <input type="number" value="${stateParams.dh.g}" min="2" max="100"
+                oninput="updateParam('dh','g', parseInt(this.value)||5)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-emerald-400 mb-1">Secret privé Alice (a) :</label>
+              <input type="number" value="${stateParams.dh.a}" min="1" max="100"
+                oninput="updateParam('dh','a', parseInt(this.value)||6)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-emerald-500/60 text-emerald-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-yellow-400 mb-1">Secret privé Bob (b) :</label>
+              <input type="number" value="${stateParams.dh.b}" min="1" max="100"
+                oninput="updateParam('dh','b', parseInt(this.value)||15)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-yellow-500/60 text-yellow-300 font-mono text-sm">
+            </div>
+          </div>
+        `;
+      } else {
+        // Custom PDF Solver
+        bar.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Algorithme de l'exercice :</label>
+              <select onchange="updateParam('custom','mode', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-emerald-300 font-mono text-sm">
+                <option value="caesar" ${stateParams.custom.mode === 'caesar' ? 'selected' : ''}>César (k = Param 1)</option>
+                <option value="affine" ${stateParams.custom.mode === 'affine' ? 'selected' : ''}>Affine (a = Param 1, b = Param 2)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Mot de l'énoncé :</label>
+              <input type="text" value="${stateParams.custom.text}" maxlength="14"
+                oninput="updateParam('custom','text', this.value)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-white font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Paramètre 1 (k ou a) :</label>
+              <input type="number" value="${stateParams.custom.p1}"
+                oninput="updateParam('custom','p1', parseInt(this.value)||0)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Paramètre 2 (b pour Affine) :</label>
+              <input type="number" value="${stateParams.custom.p2}"
+                oninput="updateParam('custom','p2', parseInt(this.value)||0)"
+                class="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-600 text-yellow-300 font-mono text-sm">
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function updateParam(algo, key, val) {
+      stateParams[algo][key] = val;
+      if (key === 'plaintext' || key === 'text') {
+        stateParams[algo].charIndex = 0;
+        stateParams[algo].blockIndex = 0;
+      }
+      renderAllSections();
+    }
+
+    /*************************************************************************
+     * 7. @SVG-EXPLAINED VISUAL DIAGRAM GENERATOR (NO RAW LATEX, PURE SVG)
+     *************************************************************************/
+    function renderSvgStage() {
+      const steps = getStepsForCurrentAlgo();
+      if (currentStepIndex >= steps.length) currentStepIndex = 0;
+      const activeStep = steps[currentStepIndex];
+
+      // Render Step Pills
+      const pillsEl = document.getElementById('step-pills-container');
+      pillsEl.innerHTML = steps.map((st, idx) => `
+        <button onclick="goToStep(${idx})"
+          class="px-3 py-1.5 rounded-lg font-mono text-xs transition whitespace-nowrap border ${
+            idx === currentStepIndex
+              ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
+              : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+          }">
+          ${st.title}
+        </button>
+      `).join('');
+
+      // Render Caption
+      document.getElementById('svg-step-caption').innerHTML = `
+        <div>
+          <div class="text-xs font-mono uppercase tracking-wider text-yellow-400 font-bold">${activeStep.title}</div>
+          <div class="text-sm text-slate-100 mt-1">${activeStep.caption}</div>
+        </div>
+        <div class="text-xs font-mono text-slate-400 shrink-0">
+          Étape ${currentStepIndex + 1} / ${steps.length}
+        </div>
+      `;
+
+      // Render the Algorithm-Specific SVG Diagram
+      const svgContainer = document.getElementById('svg-canvas-container');
+      const h = activeStep.highlight;
+
+      if (currentAlgoId === 'caesar') {
+        const text = cleanAlpha(stateParams.caesar.plaintext);
+        const k = mod(parseInt(stateParams.caesar.shift) || 0, 26);
+        const idx = Math.min(stateParams.caesar.charIndex, text.length - 1);
+        const ch = text[idx];
+        const x = ch.charCodeAt(0) - 65;
+        const sum = x + k;
+        const c = mod(sum, 26);
+        const cipherChar = ALPHABET[c];
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 300" class="w-full max-w-4xl h-auto select-none">
+            <defs>
+              <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+              </marker>
+              <marker id="arrowYellow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#facc15" />
+              </marker>
+            </defs>
+
+            <!-- Background Grid Card -->
+            <rect x="10" y="10" width="840" height="280" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">FLUX DU CHIFFREMENT DE CÉSAR : C ≡ (x + k) mod 26</text>
+
+            <!-- Node 1: Plaintext Letter -->
+            <g class="${h === 1 ? 'svg-node-active' : ''}">
+              <rect x="35" y="75" width="155" height="115" rx="12" fill="#111827" stroke="${h === 1 ? '#10b981' : '#475569'}" stroke-width="2.5"/>
+              <text x="112" y="102" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="Inter">1. Lettre Claire</text>
+              <text x="112" y="142" text-anchor="middle" fill="#f8fafc" font-size="34" font-weight="bold" font-family="JetBrains Mono">'${ch}'</text>
+              <text x="112" y="172" text-anchor="middle" fill="#10b981" font-size="14" font-weight="bold" font-family="JetBrains Mono">x = ${x}</text>
+            </g>
+
+            <!-- Flow Line 1 -> 2 -->
+            <line x1="190" y1="132" x2="255" y2="132" stroke="#10b981" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowGreen)"/>
+
+            <!-- Node 2: Addition + k -->
+            <g class="${h === 2 ? 'svg-node-yellow' : ''}">
+              <rect x="260" y="75" width="165" height="115" rx="12" fill="#111827" stroke="${h === 2 ? '#facc15' : '#475569'}" stroke-width="2.5"/>
+              <text x="342" y="102" text-anchor="middle" fill="#facc15" font-size="12" font-family="Inter">2. Décalage (+ k = ${k})</text>
+              <text x="342" y="138" text-anchor="middle" fill="#f8fafc" font-size="22" font-weight="bold" font-family="JetBrains Mono">${x} + ${k} = ${sum}</text>
+              <text x="342" y="170" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="JetBrains Mono">Somme brute</text>
+            </g>
+
+            <!-- Flow Line 2 -> 3 -->
+            <line x1="425" y1="132" x2="485" y2="132" stroke="#facc15" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowYellow)"/>
+
+            <!-- Node 3: Modulo 26 -->
+            <g class="${h === 3 ? 'svg-node-active' : ''}">
+              <rect x="490" y="75" width="155" height="115" rx="12" fill="#111827" stroke="${h === 3 ? '#10b981' : '#475569'}" stroke-width="2.5"/>
+              <text x="567" y="102" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="Inter">3. Réduction Mod 26</text>
+              <text x="567" y="138" text-anchor="middle" fill="#10b981" font-size="20" font-weight="bold" font-family="JetBrains Mono">${sum} mod 26</text>
+              <text x="567" y="170" text-anchor="middle" fill="#facc15" font-size="16" font-weight="bold" font-family="JetBrains Mono">C = ${c}</text>
+            </g>
+
+            <!-- Flow Line 3 -> 4 -->
+            <line x1="645" y1="132" x2="695" y2="132" stroke="#10b981" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowGreen)"/>
+
+            <!-- Node 4: Ciphertext Output -->
+            <g class="${h === 4 ? 'svg-node-yellow' : ''}">
+              <rect x="700" y="75" width="130" height="115" rx="12" fill="#064e3b" stroke="${h === 4 ? '#facc15' : '#10b981'}" stroke-width="2.5"/>
+              <text x="765" y="102" text-anchor="middle" fill="#a7f3d0" font-size="12" font-family="Inter">4. Chiffré</text>
+              <text x="765" y="142" text-anchor="middle" fill="#facc15" font-size="34" font-weight="bold" font-family="JetBrains Mono">'${cipherChar}'</text>
+              <text x="765" y="172" text-anchor="middle" fill="#ffffff" font-size="13" font-family="JetBrains Mono">Rang ${c}</text>
+            </g>
+
+            <!-- Reverse Decryption Path at Bottom -->
+            <path d="M 765 195 L 765 245 L 112 245 L 112 195" fill="none" stroke="#64748b" stroke-width="1.8" stroke-dasharray="5 5" marker-end="url(#arrowGreen)"/>
+            <rect x="295" y="226" width="290" height="34" rx="8" fill="#1e293b" stroke="#475569"/>
+            <text x="440" y="248" text-anchor="middle" fill="#e2e8f0" font-size="12" font-family="JetBrains Mono">
+              Déchiffrement : (${c} - ${k}) mod 26 = ${x} ('${ch}')
+            </text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'affine') {
+        const text = cleanAlpha(stateParams.affine.plaintext);
+        const a = parseInt(stateParams.affine.a) || 5;
+        const b = mod(parseInt(stateParams.affine.b) || 8, 26);
+        const idx = Math.min(stateParams.affine.charIndex, text.length - 1);
+        const ch = text[idx];
+        const x = ch.charCodeAt(0) - 65;
+        const mult = a * x;
+        const add = mult + b;
+        const c = mod(add, 26);
+        const cipherChar = ALPHABET[c];
+        const aInv = modInverse(a, 26);
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <defs>
+              <marker id="arrowG2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+              </marker>
+            </defs>
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              TRANSFORMATION AFFINE : E(x) = (${a} × x + ${b}) mod 26   |   Inverse modulaire : a⁻¹ = ${aInv}
+            </text>
+
+            <!-- Box 1: Input x -->
+            <g class="${h === 1 ? 'svg-node-active' : ''}">
+              <rect x="30" y="70" width="145" height="115" rx="12" fill="#111827" stroke="${h === 1 ? '#10b981' : '#475569'}" stroke-width="2.5"/>
+              <text x="102" y="96" text-anchor="middle" fill="#94a3b8" font-size="12">1. Entrée Claire</text>
+              <text x="102" y="138" text-anchor="middle" fill="#ffffff" font-size="32" font-weight="bold" font-family="JetBrains Mono">'${ch}'</text>
+              <text x="102" y="168" text-anchor="middle" fill="#10b981" font-size="14" font-family="JetBrains Mono">x = ${x}</text>
+            </g>
+
+            <line x1="175" y1="127" x2="225" y2="127" stroke="#10b981" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowG2)"/>
+
+            <!-- Box 2: Multiply a * x -->
+            <g class="${h === 2 ? 'svg-node-yellow' : ''}">
+              <rect x="230" y="70" width="175" height="115" rx="12" fill="#111827" stroke="${h === 2 ? '#facc15' : '#475569'}" stroke-width="2.5"/>
+              <text x="317" y="96" text-anchor="middle" fill="#facc15" font-size="12">2. Produit (a × x)</text>
+              <text x="317" y="135" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="bold" font-family="JetBrains Mono">${a} × ${x} = ${mult}</text>
+              <text x="317" y="166" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="JetBrains Mono">pgcd(${a}, 26) = 1</text>
+            </g>
+
+            <line x1="405" y1="127" x2="455" y2="127" stroke="#10b981" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowG2)"/>
+
+            <!-- Box 3: Add b & Mod 26 -->
+            <g class="${h === 3 ? 'svg-node-active' : ''}">
+              <rect x="460" y="70" width="185" height="115" rx="12" fill="#111827" stroke="${h === 3 ? '#10b981' : '#475569'}" stroke-width="2.5"/>
+              <text x="552" y="96" text-anchor="middle" fill="#10b981" font-size="12">3. Ajout (+b) &amp; Mod 26</text>
+              <text x="552" y="132" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="bold" font-family="JetBrains Mono">(${mult} + ${b}) mod 26</text>
+              <text x="552" y="164" text-anchor="middle" fill="#facc15" font-size="16" font-weight="bold" font-family="JetBrains Mono">${add} ≡ ${c} (mod 26)</text>
+            </g>
+
+            <line x1="645" y1="127" x2="695" y2="127" stroke="#10b981" stroke-width="2.5" class="svg-flow-line" marker-end="url(#arrowG2)"/>
+
+            <!-- Box 4: Output C -->
+            <g class="${h === 4 ? 'svg-node-yellow' : ''}">
+              <rect x="700" y="70" width="130" height="115" rx="12" fill="#064e3b" stroke="${h === 4 ? '#facc15' : '#10b981'}" stroke-width="2.5"/>
+              <text x="765" y="96" text-anchor="middle" fill="#a7f3d0" font-size="12">4. Chiffré C</text>
+              <text x="765" y="138" text-anchor="middle" fill="#facc15" font-size="32" font-weight="bold" font-family="JetBrains Mono">'${cipherChar}'</text>
+              <text x="765" y="168" text-anchor="middle" fill="#ffffff" font-size="14" font-family="JetBrains Mono">C = ${c}</text>
+            </g>
+
+            <!-- Decryption Feedback Loop -->
+            <path d="M 765 190 L 765 250 L 102 250 L 102 190" fill="none" stroke="#eab308" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#arrowG2)"/>
+            <rect x="210" y="230" width="450" height="36" rx="8" fill="#1e293b" stroke="#eab308"/>
+            <text x="435" y="253" text-anchor="middle" fill="#fef08a" font-size="12" font-family="JetBrains Mono">
+              Déchiffrement : D(${c}) = ${aInv} × (${c} - ${b}) mod 26 = ${aInv * (c - b)} mod 26 = ${x} ('${ch}')
+            </text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'vigenere') {
+        const text = cleanAlpha(stateParams.vigenere.plaintext);
+        const key = cleanAlpha(stateParams.vigenere.key);
+        const idx = Math.min(stateParams.vigenere.charIndex, text.length - 1);
+        const mChar = text[idx];
+        const kChar = key[idx % key.length];
+        const mVal = mChar.charCodeAt(0) - 65;
+        const kVal = kChar.charCodeAt(0) - 65;
+        const cVal = mod(mVal + kVal, 26);
+        const cChar = ALPHABET[cVal];
+
+        const cells = text.slice(0, 8).split('');
+        const cellW = 78;
+        const startX = 160;
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              TABLEAU D'ALIGNEMENT POLYALPHABÉTIQUE DE VIGENÈRE : Cᵢ ≡ (Mᵢ + Kᵢ) mod 26
+            </text>
+
+            <!-- Row Labels -->
+            <text x="30" y="88" fill="#cbd5e1" font-size="13" font-weight="bold">Message Mᵢ</text>
+            <text x="30" y="148" fill="#facc15" font-size="13" font-weight="bold">Clé Répétée Kᵢ</text>
+            <text x="30" y="228" fill="#10b981" font-size="13" font-weight="bold">Chiffré Cᵢ</text>
+
+            ${cells.map((ch, i) => {
+              const xPos = startX + i * cellW;
+              const kC = key[i % key.length];
+              const mV = ch.charCodeAt(0) - 65;
+              const kV = kC.charCodeAt(0) - 65;
+              const cV = mod(mV + kV, 26);
+              const isSelected = i === idx;
+              return `
+                <!-- Message Cell -->
+                <rect x="${xPos}" y="58" width="68" height="46" rx="8"
+                  fill="${isSelected ? '#064e3b' : '#111827'}"
+                  stroke="${isSelected ? '#10b981' : '#334155'}" stroke-width="${isSelected ? '2.5' : '1.5'}"/>
+                <text x="${xPos + 34}" y="79" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-weight="bold" font-size="16">${ch}</text>
+                <text x="${xPos + 34}" y="96" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">(${mV})</text>
+
+                <!-- Key Cell -->
+                <rect x="${xPos}" y="118" width="68" height="46" rx="8"
+                  fill="${isSelected ? '#422006' : '#111827'}"
+                  stroke="${isSelected ? '#facc15' : '#334155'}" stroke-width="${isSelected ? '2.5' : '1.5'}"/>
+                <text x="${xPos + 34}" y="139" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-weight="bold" font-size="16">${kC}</text>
+                <text x="${xPos + 34}" y="156" text-anchor="middle" fill="#fde047" font-family="JetBrains Mono" font-size="11">+(${kV})</text>
+
+                <!-- Connector -->
+                <line x1="${xPos + 34}" y1="166" x2="${xPos + 34}" y2="195" stroke="${isSelected ? '#10b981' : '#475569'}" stroke-width="2"/>
+
+                <!-- Cipher Cell -->
+                <rect x="${xPos}" y="198" width="68" height="48" rx="8"
+                  fill="${isSelected ? '#065f46' : '#111827'}"
+                  stroke="${isSelected ? '#22c55e' : '#334155'}" stroke-width="${isSelected ? '2.5' : '1.5'}"/>
+                <text x="${xPos + 34}" y="220" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-weight="bold" font-size="17">${ALPHABET[cV]}</text>
+                <text x="${xPos + 34}" y="238" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="11">=${cV}</text>
+              `;
+            }).join('')}
+
+            <!-- Bottom Active Formula Highlight -->
+            <rect x="160" y="258" width="615" height="32" rx="8" fill="#1e293b" stroke="#10b981"/>
+            <text x="467" y="279" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono" font-size="12">
+              Colonne active i=${idx} : '${mChar}' (${mVal}) + '${kChar}' (${kVal}) = ${mVal + kVal} ≡ ${cVal} mod 26 → '${cChar}'
+            </text>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'hill') {
+        let text = cleanAlpha(stateParams.hill.plaintext);
+        if (text.length % 2 !== 0) text += 'X';
+        const bIdx = Math.min(stateParams.hill.blockIndex, Math.floor(text.length / 2) - 1);
+        const p1Char = text[bIdx * 2];
+        const p2Char = text[bIdx * 2 + 1];
+        const p1 = p1Char.charCodeAt(0) - 65;
+        const p2 = p2Char.charCodeAt(0) - 65;
+        const { k11, k12, k21, k22 } = stateParams.hill;
+        const raw1 = k11 * p1 + k12 * p2;
+        const raw2 = k21 * p1 + k22 * p2;
+        const c1 = mod(raw1, 26);
+        const c2 = mod(raw2, 26);
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 300" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="280" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              PRODUIT MATRICIEL DE HILL 2×2 MODULO 26 : C = (K × P) mod 26
+            </text>
+
+            <!-- Matrix K -->
+            <g class="${h === 2 || h === 3 ? 'svg-node-yellow' : ''}">
+              <text x="115" y="75" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">Matrice Clé K</text>
+              <path d="M 55 90 L 40 90 L 40 210 L 55 210" fill="none" stroke="#facc15" stroke-width="3"/>
+              <path d="M 175 90 L 190 90 L 190 210 L 175 210" fill="none" stroke="#facc15" stroke-width="3"/>
+              <rect x="52" y="100" width="52" height="42" rx="6" fill="${h === 2 ? '#422006' : '#111827'}" stroke="#facc15"/>
+              <text x="78" y="127" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${k11}</text>
+              <rect x="122" y="100" width="52" height="42" rx="6" fill="${h === 2 ? '#422006' : '#111827'}" stroke="#facc15"/>
+              <text x="148" y="127" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${k12}</text>
+
+              <rect x="52" y="156" width="52" height="42" rx="6" fill="${h === 3 ? '#422006' : '#111827'}" stroke="#facc15"/>
+              <text x="78" y="183" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${k21}</text>
+              <rect x="122" y="156" width="52" height="42" rx="6" fill="${h === 3 ? '#422006' : '#111827'}" stroke="#facc15"/>
+              <text x="148" y="183" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="18" font-weight="bold">${k22}</text>
+            </g>
+
+            <text x="222" y="158" text-anchor="middle" fill="#10b981" font-size="26" font-weight="bold">×</text>
+
+            <!-- Vector P -->
+            <g class="${h === 1 ? 'svg-node-active' : ''}">
+              <text x="295" y="75" text-anchor="middle" fill="#10b981" font-size="13" font-weight="bold">Vecteur P</text>
+              <path d="M 260 90 L 248 90 L 248 210 L 260 210" fill="none" stroke="#10b981" stroke-width="3"/>
+              <path d="M 330 90 L 342 90 L 342 210 L 330 210" fill="none" stroke="#10b981" stroke-width="3"/>
+              <rect x="258" y="100" width="74" height="42" rx="6" fill="#111827" stroke="#10b981"/>
+              <text x="295" y="126" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">${p1} ('${p1Char}')</text>
+              <rect x="258" y="156" width="74" height="42" rx="6" fill="#111827" stroke="#10b981"/>
+              <text x="295" y="182" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">${p2} ('${p2Char}')</text>
+            </g>
+
+            <text x="378" y="158" text-anchor="middle" fill="#facc15" font-size="24" font-weight="bold">≡</text>
+
+            <!-- Intermediate Calculation -->
+            <rect x="405" y="92" width="245" height="115" rx="12" fill="#111827" stroke="#475569" stroke-width="2"/>
+            <text x="527" y="125" text-anchor="middle" fill="${h === 2 ? '#facc15' : '#e2e8f0'}" font-family="JetBrains Mono" font-size="14" font-weight="bold">
+              (${k11}×${p1} + ${k12}×${p2}) = ${raw1} mod 26
+            </text>
+            <text x="527" y="180" text-anchor="middle" fill="${h === 3 ? '#facc15' : '#e2e8f0'}" font-family="JetBrains Mono" font-size="14" font-weight="bold">
+              (${k21}×${p1} + ${k22}×${p2}) = ${raw2} mod 26
+            </text>
+
+            <text x="675" y="158" text-anchor="middle" fill="#10b981" font-size="24" font-weight="bold">=</text>
+
+            <!-- Resulting Cipher Vector C -->
+            <g class="${h === 4 ? 'svg-node-active' : ''}">
+              <text x="760" y="75" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">Bloc Chiffré C</text>
+              <path d="M 715 90 L 703 90 L 703 210 L 715 210" fill="none" stroke="#22c55e" stroke-width="3"/>
+              <path d="M 805 90 L 817 90 L 817 210 L 805 210" fill="none" stroke="#22c55e" stroke-width="3"/>
+              <rect x="712" y="100" width="96" height="42" rx="6" fill="#064e3b" stroke="#22c55e"/>
+              <text x="760" y="126" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="16" font-weight="bold">${c1} ('${ALPHABET[c1]}')</text>
+              <rect x="712" y="156" width="96" height="42" rx="6" fill="#064e3b" stroke="#22c55e"/>
+              <text x="760" y="182" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="16" font-weight="bold">${c2} ('${ALPHABET[c2]}')</text>
+            </g>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'vernam') {
+        const text = cleanAlpha(stateParams.vernam.plaintext);
+        let key = cleanAlpha(stateParams.vernam.key);
+        while (key.length < text.length) key += 'X';
+        const idx = Math.min(stateParams.vernam.charIndex, text.length - 1);
+        const mChar = text[idx];
+        const kChar = key[idx];
+        const mAscii = mChar.charCodeAt(0);
+        const kAscii = kChar.charCodeAt(0);
+        const cXor = mAscii ^ kAscii;
+        const mBits = mAscii.toString(2).padStart(8, '0').split('');
+        const kBits = kAscii.toString(2).padStart(8, '0').split('');
+        const cBits = cXor.toString(2).padStart(8, '0').split('');
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 300" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="280" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              OPÉRATION BIT-À-BIT OU EXCLUSIF (XOR ⊕) SUR 8 BITS : C = M ⊕ K
+            </text>
+
+            <text x="35" y="92" fill="#e2e8f0" font-family="JetBrains Mono" font-size="14" font-weight="bold">M : '${mChar}' (${mAscii})</text>
+            <text x="35" y="152" fill="#facc15" font-family="JetBrains Mono" font-size="14" font-weight="bold">K : '${kChar}' (${kAscii})</text>
+            <text x="35" y="232" fill="#10b981" font-family="JetBrains Mono" font-size="14" font-weight="bold">C = M ⊕ K (${cXor})</text>
+
+            ${mBits.map((bitM, bIndex) => {
+              const xPos = 220 + bIndex * 72;
+              const bitK = kBits[bIndex];
+              const bitC = cBits[bIndex];
+              const isDiff = bitM !== bitK;
+              return `
+                <!-- Bit M -->
+                <rect x="${xPos}" y="65" width="54" height="42" rx="8" fill="#111827" stroke="#475569" stroke-width="2"/>
+                <text x="${xPos + 27}" y="92" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="20" font-weight="bold">${bitM}</text>
+
+                <!-- Bit K -->
+                <rect x="${xPos}" y="125" width="54" height="42" rx="8" fill="#111827" stroke="#eab308" stroke-width="2"/>
+                <text x="${xPos + 27}" y="152" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="20" font-weight="bold">${bitK}</text>
+
+                <!-- XOR Gate symbol -->
+                <text x="${xPos + 27}" y="188" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="14">⊕</text>
+
+                <!-- Bit C -->
+                <rect x="${xPos}" y="202" width="54" height="46" rx="8"
+                  fill="${isDiff ? '#064e3b' : '#1e293b'}"
+                  stroke="${isDiff ? '#10b981' : '#64748b'}" stroke-width="2.5"/>
+                <text x="${xPos + 27}" y="232" text-anchor="middle" fill="${isDiff ? '#22c55e' : '#cbd5e1'}" font-family="JetBrains Mono" font-size="21" font-weight="bold">${bitC}</text>
+              `;
+            }).join('')}
+          </svg>
+        `;
+      } else if (currentAlgoId === 'rsa') {
+        const p = parseInt(stateParams.rsa.p) || 3;
+        const q = parseInt(stateParams.rsa.q) || 11;
+        const e = parseInt(stateParams.rsa.e) || 7;
+        const m = parseInt(stateParams.rsa.m) || 5;
+        const n = p * q;
+        const phi = (p - 1) * (q - 1);
+        const d = modInverse(e, phi);
+        const c = modPow(m, e, n);
+        const mDec = d ? modPow(c, d, n) : '?';
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <defs>
+              <marker id="arrowRSA" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+              </marker>
+            </defs>
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="36" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">
+              ARCHITECTURE ASYMÉTRIQUE RSA : Clé Publique (e=${e}, n=${n})  |  Clé Privée (d=${d ?? 'Err'}, n=${n})
+            </text>
+
+            <!-- Step 1: Key Gen -->
+            <g class="${h === 1 || h === 2 ? 'svg-node-yellow' : ''}">
+              <rect x="30" y="60" width="215" height="215" rx="12" fill="#111827" stroke="${h <= 2 ? '#facc15' : '#475569'}" stroke-width="2.5"/>
+              <text x="137" y="86" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">1. Génération des Clés</text>
+              <text x="137" y="114" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="13">p = ${p}, q = ${q}</text>
+              <text x="137" y="138" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="14" font-weight="bold">n = p×q = ${n}</text>
+              <text x="137" y="162" text-anchor="middle" fill="#cbd5e1" font-family="JetBrains Mono" font-size="13">φ(n) = (${p}-1)(${q}-1) = ${phi}</text>
+              <line x1="50" y1="178" x2="225" y2="178" stroke="#334155"/>
+              <text x="137" y="202" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="12">Publique : (e=${e}, n=${n})</text>
+              <text x="137" y="226" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12">Privée : (d=${d ?? '?'}, n=${n})</text>
+              <text x="137" y="252" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">${e}×${d ?? '?'} ≡ 1 mod ${phi}</text>
+            </g>
+
+            <!-- Step 3: Encryption -->
+            <g class="${h === 3 ? 'svg-node-active' : ''}">
+              <rect x="295" y="60" width="245" height="98" rx="12" fill="#111827" stroke="${h === 3 ? '#10b981' : '#475569'}" stroke-width="2.5"/>
+              <text x="417" y="85" text-anchor="middle" fill="#10b981" font-size="13" font-weight="bold">2. Chiffrement (Clé Publique)</text>
+              <text x="417" y="115" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">C ≡ Mᵉ mod n</text>
+              <text x="417" y="142" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="14">C = ${m}^${e} mod ${n} = ${c}</text>
+            </g>
+
+            <!-- Step 4: Decryption -->
+            <g class="${h === 4 ? 'svg-node-yellow' : ''}">
+              <rect x="295" y="177" width="245" height="98" rx="12" fill="#111827" stroke="${h === 4 ? '#facc15' : '#475569'}" stroke-width="2.5"/>
+              <text x="417" y="202" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">3. Déchiffrement (Clé Privée)</text>
+              <text x="417" y="232" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15" font-weight="bold">M ≡ Cᵈ mod n</text>
+              <text x="417" y="259" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="14">M = ${c}^${d ?? '?'} mod ${n} = ${mDec}</text>
+            </g>
+
+            <!-- Final Result Card -->
+            <rect x="590" y="95" width="235" height="145" rx="14" fill="#064e3b" stroke="#10b981" stroke-width="2.5"/>
+            <text x="707" y="125" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="bold">BILAN DE TRANSMISSION</text>
+            <text x="707" y="158" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="15">Message M = ${m}</text>
+            <text x="707" y="188" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="16" font-weight="bold">Chiffré C = ${c}</text>
+            <text x="707" y="218" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="15">Déchiffré = ${mDec}</text>
+
+            <line x1="540" y1="110" x2="590" y2="145" stroke="#10b981" stroke-width="2" class="svg-flow-line" marker-end="url(#arrowRSA)"/>
+            <line x1="540" y1="225" x2="590" y2="195" stroke="#facc15" stroke-width="2" class="svg-flow-line" marker-end="url(#arrowRSA)"/>
+          </svg>
+        `;
+      } else if (currentAlgoId === 'dh') {
+        const p = parseInt(stateParams.dh.p) || 23;
+        const g = parseInt(stateParams.dh.g) || 5;
+        const a = parseInt(stateParams.dh.a) || 6;
+        const b = parseInt(stateParams.dh.b) || 15;
+        const A = modPow(g, a, p);
+        const B = modPow(g, b, p);
+        const Ka = modPow(B, a, p);
+        const Kb = modPow(A, b, p);
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 310" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="290" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+
+            <!-- Public Parameters Top Banner -->
+            <rect x="250" y="24" width="360" height="44" rx="10" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+            <text x="430" y="51" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="14" font-weight="bold">
+              Paramètres Publics : p = ${p}, g = ${g}
+            </text>
+
+            <!-- Alice Column -->
+            <rect x="35" y="82" width="235" height="198" rx="14" fill="#111827" stroke="#10b981" stroke-width="2.5"/>
+            <text x="152" y="110" text-anchor="middle" fill="#10b981" font-size="15" font-weight="bold">👩🏼‍💻 ALICE</text>
+            <text x="152" y="138" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="13">Secret privé : a = ${a}</text>
+            <text x="152" y="168" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="13" font-weight="bold">
+              A = ${g}^${a} mod ${p} = ${A}
+            </text>
+            <line x1="55" y1="190" x2="250" y2="190" stroke="#334155"/>
+            <text x="152" y="218" text-anchor="middle" fill="#94a3b8" font-size="12">Reçoit B = ${B} de Bob :</text>
+            <text x="152" y="248" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="15" font-weight="bold">
+              K = ${B}^${a} mod ${p} = ${Ka}
+            </text>
+
+            <!-- Public Channel Exchange in Center -->
+            <line x1="275" y1="150" x2="580" y2="185" stroke="#10b981" stroke-width="2.5" class="svg-flow-line"/>
+            <line x1="580" y1="150" x2="275" y2="185" stroke="#facc15" stroke-width="2.5" class="svg-flow-line"/>
+            <rect x="335" y="142" width="190" height="54" rx="10" fill="#090d16" stroke="#475569"/>
+            <text x="430" y="164" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="12">Envoie A = ${A} →</text>
+            <text x="430" y="184" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="12">← Envoie B = ${B}</text>
+
+            <!-- Bob Column -->
+            <rect x="590" y="82" width="235" height="198" rx="14" fill="#111827" stroke="#facc15" stroke-width="2.5"/>
+            <text x="707" y="110" text-anchor="middle" fill="#facc15" font-size="15" font-weight="bold">👨🏻‍💻 BOB</text>
+            <text x="707" y="138" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="13">Secret privé : b = ${b}</text>
+            <text x="707" y="168" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="13" font-weight="bold">
+              B = ${g}^${b} mod ${p} = ${B}
+            </text>
+            <line x1="610" y1="190" x2="805" y2="190" stroke="#334155"/>
+            <text x="707" y="218" text-anchor="middle" fill="#94a3b8" font-size="12">Reçoit A = ${A} d'Alice :</text>
+            <text x="707" y="248" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="15" font-weight="bold">
+              K = ${A}^${b} mod ${p} = ${Kb}
+            </text>
+          </svg>
+        `;
+      } else {
+        // Custom Solver Visual Table SVG
+        const text = cleanAlpha(stateParams.custom.text).slice(0, 8);
+        const mode = stateParams.custom.mode;
+        const p1 = parseInt(stateParams.custom.p1) || 3;
+        const p2 = parseInt(stateParams.custom.p2) || 0;
+        const a = mode === 'caesar' ? 1 : p1;
+        const b = mode === 'caesar' ? p1 : p2;
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 860 260" class="w-full max-w-4xl h-auto select-none">
+            <rect x="10" y="10" width="840" height="240" rx="16" fill="#0d1322" stroke="#334155" stroke-width="1.5"/>
+            <text x="30" y="38" fill="#facc15" font-family="JetBrains Mono" font-size="13" font-weight="bold">
+              TABLE DE RÉSOLUTION AUTOMATIQUE : E(x) = (${a} × x + ${b}) mod 26
+            </text>
+            ${text.split('').map((ch, i) => {
+              const x = ch.charCodeAt(0) - 65;
+              const c = mod(a * x + b, 26);
+              const xPos = 35 + i * 98;
+              return `
+                <rect x="${xPos}" y="60" width="86" height="165" rx="10" fill="#111827" stroke="#10b981" stroke-width="2"/>
+                <text x="${xPos + 43}" y="88" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="20" font-weight="bold">${ch}</text>
+                <text x="${xPos + 43}" y="110" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">x = ${x}</text>
+                <line x1="${xPos + 12}" y1="125" x2="${xPos + 74}" y2="125" stroke="#334155"/>
+                <text x="${xPos + 43}" y="150" text-anchor="middle" fill="#facc15" font-family="JetBrains Mono" font-size="11">(${a}×${x}+${b})%26</text>
+                <text x="${xPos + 43}" y="178" text-anchor="middle" fill="#10b981" font-family="JetBrains Mono" font-size="14" font-weight="bold">C = ${c}</text>
+                <text x="${xPos + 43}" y="210" text-anchor="middle" fill="#22c55e" font-family="JetBrains Mono" font-size="22" font-weight="bold">${ALPHABET[c]}</text>
+              `;
+            }).join('')}
+          </svg>
+        `;
+      }
+    }
+
+    /*************************************************************************
+     * 8. WORKED EXAMPLE & LINE-BY-LINE PYTHON CODE RENDERER
+     *************************************************************************/
+    function renderWorkedExampleAndCode() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const exampleEl = document.getElementById('worked-example-content');
+      const tipEl = document.getElementById('exam-tip-box');
+
+      tipEl.innerHTML = `<p class="text-xs sm:text-sm text-emerald-200 leading-relaxed">${algo.examTip}</p>`;
+
+      // Generate dynamic mathematical proof based on current stateParams
+      if (currentAlgoId === 'caesar') {
+        const text = cleanAlpha(stateParams.caesar.plaintext);
+        const k = mod(parseInt(stateParams.caesar.shift) || 0, 26);
+        const rows = text.split('').map(ch => {
+          const x = ch.charCodeAt(0) - 65;
+          const c = mod(x + k, 26);
+          return `<li class="font-mono text-xs bg-slate-900/90 p-2 rounded border border-slate-800">
+            Lettre <strong class="text-white">'${ch}'</strong> (x=${x}) → C = (${x} + ${k}) mod 26 = <strong>${c}</strong> → <strong class="text-emerald-400">'${ALPHABET[c]}'</strong>
+          </li>`;
+        }).join('');
+        const fullCipher = text.split('').map(ch => ALPHABET[mod(ch.charCodeAt(0) - 65 + k, 26)]).join('');
+
+        exampleEl.innerHTML = `
+          <p><strong>Énoncé :</strong> Chiffrer le message clair <code class="text-emerald-300 font-bold">${text}</code> avec la clé de César <code class="text-yellow-300 font-bold">k = ${k}</code>.</p>
+          <ul class="space-y-1.5 mt-2">${rows}</ul>
+          <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 font-mono text-xs mt-3">
+            <div>✅ Message Chiffré : <strong class="text-emerald-400 text-sm">${fullCipher}</strong></div>
+            <div class="mt-1 text-slate-400">🔄 Déchiffrement D(C) = (C - ${k}) mod 26 → <strong class="text-white">${text}</strong></div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'affine') {
+        const text = cleanAlpha(stateParams.affine.plaintext);
+        const a = parseInt(stateParams.affine.a) || 5;
+        const b = mod(parseInt(stateParams.affine.b) || 8, 26);
+        const aInv = modInverse(a, 26);
+        const rows = text.split('').map(ch => {
+          const x = ch.charCodeAt(0) - 65;
+          const c = mod(a * x + b, 26);
+          return `<li class="font-mono text-xs bg-slate-900/90 p-2 rounded border border-slate-800">
+            <strong>'${ch}'</strong> (x=${x}) : (${a}×${x} + ${b}) = ${a*x+b} ≡ <strong>${c} mod 26</strong> → <strong class="text-emerald-400">'${ALPHABET[c]}'</strong>
+          </li>`;
+        }).join('');
+        const fullCipher = text.split('').map(ch => ALPHABET[mod(a * (ch.charCodeAt(0) - 65) + b, 26)]).join('');
+
+        exampleEl.innerHTML = `
+          <p><strong>Énoncé :</strong> Chiffrer <code class="text-emerald-300 font-bold">${text}</code> avec la clé affine <code class="text-yellow-300 font-bold">(a=${a}, b=${b})</code>.</p>
+          <p class="text-xs text-slate-300">1) Inversion de a : <code>pgcd(${a}, 26) = 1</code> et <code>${a}⁻¹ mod 26 = ${aInv}</code> car <code>${a} × ${aInv} = ${a * aInv} ≡ 1 mod 26</code>.</p>
+          <ul class="space-y-1.5 mt-2">${rows}</ul>
+          <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 font-mono text-xs mt-3">
+            <div>✅ Message Chiffré : <strong class="text-emerald-400 text-sm">${fullCipher}</strong></div>
+            <div class="mt-1 text-yellow-300">🔄 Formule de déchiffrement : x ≡ ${aInv} × (C - ${b}) mod 26</div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'vigenere') {
+        const text = cleanAlpha(stateParams.vigenere.plaintext);
+        const key = cleanAlpha(stateParams.vigenere.key);
+        const rows = text.split('').map((ch, i) => {
+          const m = ch.charCodeAt(0) - 65;
+          const kChar = key[i % key.length];
+          const k = kChar.charCodeAt(0) - 65;
+          const c = mod(m + k, 26);
+          return `<li class="font-mono text-xs bg-slate-900/90 p-2 rounded border border-slate-800">
+            i=${i} : Mᵢ=<strong>'${ch}'(${m})</strong> + Kᵢ=<strong>'${kChar}'(${k})</strong> = ${m+k} ≡ <strong>${c}</strong> → <strong class="text-emerald-400">'${ALPHABET[c]}'</strong>
+          </li>`;
+        }).join('');
+        const fullCipher = text.split('').map((ch, i) => ALPHABET[mod((ch.charCodeAt(0)-65) + (key.charCodeAt(i%key.length)-65), 26)]).join('');
+
+        exampleEl.innerHTML = `
+          <p><strong>Énoncé :</strong> Chiffrer <code class="text-emerald-300 font-bold">${text}</code> avec le mot-clé <code class="text-yellow-300 font-bold">${key}</code>.</p>
+          <ul class="space-y-1.5 mt-2">${rows}</ul>
+          <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 font-mono text-xs mt-3">
+            ✅ Message Chiffré : <strong class="text-emerald-400 text-sm">${fullCipher}</strong>
+          </div>
+        `;
+      } else if (currentAlgoId === 'hill') {
+        let text = cleanAlpha(stateParams.hill.plaintext);
+        if (text.length % 2 !== 0) text += 'X';
+        const { k11, k12, k21, k22 } = stateParams.hill;
+        const det = mod(k11 * k22 - k12 * k21, 26);
+        const detInv = modInverse(det, 26);
+        let cipher = "";
+        let stepsHtml = "";
+        for (let i = 0; i < text.length; i += 2) {
+          const p1 = text.charCodeAt(i) - 65;
+          const p2 = text.charCodeAt(i + 1) - 65;
+          const c1 = mod(k11 * p1 + k12 * p2, 26);
+          const c2 = mod(k21 * p1 + k22 * p2, 26);
+          cipher += ALPHABET[c1] + ALPHABET[c2];
+          stepsHtml += `<li class="font-mono text-xs bg-slate-900/90 p-2 rounded border border-slate-800">
+            Bloc <strong>"${text.slice(i, i+2)}"</strong> [${p1}, ${p2}]ᵀ → C₁=${c1} ('${ALPHABET[c1]}'), C₂=${c2} ('${ALPHABET[c2]}')
+          </li>`;
+        }
+
+        exampleEl.innerHTML = `
+          <p><strong>Énoncé :</strong> Chiffrer <code class="text-emerald-300 font-bold">${text}</code> avec la matrice 2×2 : <code>[[${k11}, ${k12}], [${k21}, ${k22}]]</code>.</p>
+          <p class="text-xs text-slate-300">1) Déterminant : <code>det(K) = (${k11}×${k22} - ${k12}×${k21}) mod 26 = ${det}</code>. ${detInv ? `Inverse : <code>det⁻¹ = ${detInv} mod 26</code>.` : `<span class="text-red-400">Non inversible mod 26 !</span>`}</p>
+          <ul class="space-y-1.5 mt-2">${stepsHtml}</ul>
+          <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 font-mono text-xs mt-3">
+            ✅ Message Chiffré par blocs : <strong class="text-emerald-400 text-sm">${cipher}</strong>
+          </div>
+        `;
+      } else if (currentAlgoId === 'vernam') {
+        const text = cleanAlpha(stateParams.vernam.plaintext);
+        let key = cleanAlpha(stateParams.vernam.key);
+        while (key.length < text.length) key += 'X';
+        const rows = text.split('').map((ch, i) => {
+          const m = ch.charCodeAt(0);
+          const k = key.charCodeAt(i);
+          const c = m ^ k;
+          return `<li class="font-mono text-xs bg-slate-900/90 p-2 rounded border border-slate-800">
+            '${ch}' (${m.toString(2).padStart(8,'0')}) ⊕ '${key[i]}' (${k.toString(2).padStart(8,'0')}) = <strong class="text-emerald-400">${c.toString(2).padStart(8,'0')}</strong> (déc: ${c})
+          </li>`;
+        }).join('');
+
+        exampleEl.innerHTML = `
+          <p><strong>Énoncé :</strong> Appliquer le masque jetable XOR entre le message <code class="text-emerald-300 font-bold">${text}</code> et la clé <code class="text-yellow-300 font-bold">${key}</code>.</p>
+          <ul class="space-y-1.5 mt-2">${rows}</ul>
+        `;
+      } else if (currentAlgoId === 'rsa') {
+        const { p, q, e, m } = stateParams.rsa;
+        const n = p * q;
+        const phi = (p - 1) * (q - 1);
+        const d = modInverse(e, phi);
+        const c = modPow(m, e, n);
+        const mDec = d ? modPow(c, d, n) : '?';
+
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs sm:text-sm font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">1. <strong>Module RSA :</strong> n = p × q = ${p} × ${q} = <strong class="text-emerald-400">${n}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">2. <strong>Indicatrice d'Euler :</strong> φ(n) = (${p}-1)×(${q}-1) = <strong class="text-yellow-300">${phi}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">3. <strong>Clé privée d :</strong> d ≡ ${e}⁻¹ mod ${phi} = <strong class="text-emerald-400">${d ?? 'Invalide'}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">4. <strong>Chiffrement :</strong> C = ${m}<sup>${e}</sup> mod ${n} = <strong class="text-yellow-300">${c}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">5. <strong>Déchiffrement :</strong> M = ${c}<sup>${d ?? '?'}</sup> mod ${n} = <strong class="text-emerald-400">${mDec}</strong></div>
+          </div>
+        `;
+      } else if (currentAlgoId === 'dh') {
+        const { p, g, a, b } = stateParams.dh;
+        const A = modPow(g, a, p);
+        const B = modPow(g, b, p);
+        const K = modPow(B, a, p);
+
+        exampleEl.innerHTML = `
+          <div class="space-y-2 text-xs sm:text-sm font-mono">
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">1. <strong>Paramètres publics :</strong> p = ${p}, g = ${g}</div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">2. <strong>Calcul d'Alice (secret a=${a}) :</strong> A = ${g}<sup>${a}</sup> mod ${p} = <strong class="text-emerald-400">${A}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-slate-800">3. <strong>Calcul de Bob (secret b=${b}) :</strong> B = ${g}<sup>${b}</sup> mod ${p} = <strong class="text-yellow-300">${B}</strong></div>
+            <div class="p-2.5 rounded bg-slate-900 border border-emerald-500/40">4. <strong>Clé Secrète Partagée :</strong> K = ${B}<sup>${a}</sup> mod ${p} = ${A}<sup>${b}</sup> mod ${p} = <strong class="text-emerald-400 text-base">${K}</strong></div>
+          </div>
+        `;
+      } else {
+        // Custom Solver Worked Output
+        const text = cleanAlpha(stateParams.custom.text);
+        const mode = stateParams.custom.mode;
+        const p1 = parseInt(stateParams.custom.p1) || 3;
+        const p2 = parseInt(stateParams.custom.p2) || 0;
+        const a = mode === 'caesar' ? 1 : p1;
+        const b = mode === 'caesar' ? p1 : p2;
+        const aInv = modInverse(a, 26);
+        const cipher = text.split('').map(ch => ALPHABET[mod(a * (ch.charCodeAt(0) - 65) + b, 26)]).join('');
+
+        exampleEl.innerHTML = `
+          <p><strong>Résolution automatique pour :</strong> <code class="text-emerald-300">${text}</code> avec <code>E(x) = (${a}x + ${b}) mod 26</code>.</p>
+          <div class="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 font-mono text-xs mt-2 space-y-1">
+            <div>Mot Clair : <strong class="text-white">${text}</strong></div>
+            <div>Mot Chiffré : <strong class="text-emerald-400 text-sm">${cipher}</strong></div>
+            <div>Inverse modulaire a⁻¹ mod 26 : <strong class="text-yellow-300">${aInv ?? 'Non inversible !'}</strong></div>
+          </div>
+        `;
+      }
+
+      // Render Python Code with Line-by-Line French Comments
+      document.getElementById('python-filename').textContent = algo.pythonFilename;
+      const codeContainer = document.getElementById('python-code-container');
+      codeContainer.innerHTML = algo.pythonLines.map((item, idx) => `
+        <div class="code-line rounded px-2 py-1 transition">
+          <div class="text-emerald-400/90 italic text-xs">${item.comment}</div>
+          <div class="text-slate-100 font-semibold flex items-center gap-3 mt-0.5">
+            <span class="text-slate-600 select-none w-5 text-right text-[11px]">${idx + 1}</span>
+            <span class="text-yellow-300/95 whitespace-pre">${item.code}</span>
+          </div>
+        </div>
+      `).join('');
+
+      runSimulatedPython();
+    }
+
+    /*************************************************************************
+     * 9. LIVE PYTHON CONSOLE SIMULATOR & CLIPBOARD COPY
+     *************************************************************************/
+    function runSimulatedPython() {
+      const out = document.getElementById('python-console-output');
+      if (currentAlgoId === 'caesar') {
+        const t = cleanAlpha(stateParams.caesar.plaintext);
+        const k = mod(parseInt(stateParams.caesar.shift) || 0, 26);
+        const c = t.split('').map(ch => ALPHABET[mod(ch.charCodeAt(0) - 65 + k, 26)]).join('');
+        out.textContent = `>>> texte_clair = "${t}"\n>>> k = ${k}\n>>> chiffrer_cesar("${t}", ${k})\n'${c}'\n>>> dechiffrer_cesar("${c}", ${k})\n'${t}'`;
+      } else if (currentAlgoId === 'affine') {
+        const t = cleanAlpha(stateParams.affine.plaintext);
+        const a = parseInt(stateParams.affine.a) || 5;
+        const b = mod(parseInt(stateParams.affine.b) || 8, 26);
+        const aInv = modInverse(a, 26);
+        const c = t.split('').map(ch => ALPHABET[mod(a * (ch.charCodeAt(0) - 65) + b, 26)]).join('');
+        out.textContent = `>>> inverse_mod26(${a})\n${aInv}\n>>> chiffrer_affine("${t}", a=${a}, b=${b})\n'${c}'\n>>> dechiffrer_affine("${c}", a=${a}, b=${b})\n'${t}'`;
+      } else if (currentAlgoId === 'vigenere') {
+        const t = cleanAlpha(stateParams.vigenere.plaintext);
+        const k = cleanAlpha(stateParams.vigenere.key);
+        const c = t.split('').map((ch, i) => ALPHABET[mod((ch.charCodeAt(0)-65) + (k.charCodeAt(i%k.length)-65), 26)]).join('');
+        out.textContent = `>>> chiffrer_vigenere("${t}", "${k}")\n'${c}'\n>>> dechiffrer_vigenere("${c}", "${k}")\n'${t}'`;
+      } else if (currentAlgoId === 'hill') {
+        let t = cleanAlpha(stateParams.hill.plaintext);
+        if (t.length % 2 !== 0) t += 'X';
+        const { k11, k12, k21, k22 } = stateParams.hill;
+        let c = '';
+        for (let i = 0; i < t.length; i += 2) {
+          const p1 = t.charCodeAt(i) - 65, p2 = t.charCodeAt(i+1) - 65;
+          c += ALPHABET[mod(k11*p1 + k12*p2, 26)] + ALPHABET[mod(k21*p1 + k22*p2, 26)];
+        }
+        out.textContent = `>>> K = [[${k11}, ${k12}], [${k21}, ${k22}]]\n>>> determinant_mod26(K)\n${mod(k11*k22 - k12*k21, 26)}\n>>> chiffrer_hill_2x2("${t}", K)\n'${c}'`;
+      } else if (currentAlgoId === 'vernam') {
+        const t = cleanAlpha(stateParams.vernam.plaintext);
+        let k = cleanAlpha(stateParams.vernam.key);
+        while (k.length < t.length) k += 'X';
+        const xorArr = t.split('').map((ch, i) => ch.charCodeAt(0) ^ k.charCodeAt(i));
+        out.textContent = `>>> octets = vernam_xor("${t}", "${k.slice(0, t.length)}")\n>>> print(octets)\n[${xorArr.join(', ')}]\n>>> dechiffrer_vernam(octets, "${k.slice(0, t.length)}")\n'${t}'`;
+      } else if (currentAlgoId === 'rsa') {
+        const { p, q, e, m } = stateParams.rsa;
+        const n = p * q, phi = (p - 1) * (q - 1), d = modInverse(e, phi);
+        const c = modPow(m, e, n);
+        const dec = d ? modPow(c, d, n) : 'Erreur';
+        out.textContent = `>>> pub, priv, phi = generer_cles_rsa(p=${p}, q=${q}, e=${e})\n>>> print("Publique:", pub, "Privée:", priv, "Phi:", phi)\nPublique: (${e}, ${n}) Privée: (${d}, ${n}) Phi: ${phi}\n>>> C = chiffrer_rsa(${m}, pub)  # Résultat: ${c}\n>>> dechiffrer_rsa(${c}, priv)   # Résultat: ${dec}`;
+      } else if (currentAlgoId === 'dh') {
+        const { p, g, a, b } = stateParams.dh;
+        const A = modPow(g, a, p), B = modPow(g, b, p), K = modPow(B, a, p);
+        out.textContent = `>>> A, B, cle_secrete = protocole_diffie_hellman(p=${p}, g=${g}, a=${a}, b=${b})\n>>> print(f"A public = {A}, B public = {B}, Clé secrète K = {cle_secrete}")\nA public = ${A}, B public = ${B}, Clé secrète K = ${K}`;
+      } else {
+        const t = cleanAlpha(stateParams.custom.text);
+        const nums = t.split('').map(c => c.charCodeAt(0) - 65);
+        out.textContent = `>>> texte_vers_nombres("${t}")\n[${nums.join(', ')}]\n>>> inverse_modulaire(${stateParams.custom.p1}, 26)\n${modInverse(stateParams.custom.p1, 26) ?? 'None'}`;
+      }
+    }
+
+    function copyPythonCode() {
+      const algo = ALGORITHMS.find(a => a.id === currentAlgoId);
+      const rawCode = algo.pythonLines.map(l => `${l.comment}\n${l.code}`).join('\n');
+      const tempArea = document.createElement('textarea');
+      tempArea.value = rawCode;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempArea);
+
+      const btn = document.getElementById('copy-code-btn');
+      btn.textContent = '✅ Code copié !';
+      setTimeout(() => { btn.innerHTML = '📋 Copier le code'; }, 2000);
+    }
+
+    /*************************************************************************
+     * 10. ANIMATION STEPPER CONTROLS
+     *************************************************************************/
+    function nextStep() {
+      const steps = getStepsForCurrentAlgo();
+      currentStepIndex = (currentStepIndex + 1) % steps.length;
+      renderSvgStage();
+    }
+
+    function prevStep() {
+      const steps = getStepsForCurrentAlgo();
+      currentStepIndex = (currentStepIndex - 1 + steps.length) % steps.length;
+      renderSvgStage();
+    }
+
+    function goToStep(idx) {
+      currentStepIndex = idx;
+      renderSvgStage();
+    }
+
+    function resetSteps() {
+      stopAutoPlay();
+      currentStepIndex = 0;
+      renderSvgStage();
+    }
+
+    function togglePlay() {
+      if (playInterval) {
+        stopAutoPlay();
+      } else {
+        const btn = document.getElementById('play-pause-btn');
+        btn.innerHTML = '⏸ Pause';
+        btn.classList.replace('bg-emerald-500', 'bg-yellow-400');
+        playInterval = setInterval(() => {
+          nextStep();
+        }, 2400);
+      }
+    }
+
+    function stopAutoPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+      }
+      const btn = document.getElementById('play-pause-btn');
+      if (btn) {
+        btn.innerHTML = '▶ Lecture Auto';
+        btn.classList.replace('bg-yellow-400', 'bg-emerald-500');
+      }
+    }
+
+    function renderAllSections() {
+      renderCourseHeader();
+      renderInteractiveControls();
+      renderSvgStage();
+      renderWorkedExampleAndCode();
+    }
+
+    // Initialize Application on Load
+    window.onload = function () {
+      initReferenceTables();
+      renderNavigationTabs();
+      renderAllSections();
+    };
+  </script>
+</body>
+</html>
