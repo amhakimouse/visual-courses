@@ -79,3 +79,17 @@ $$\text{Parcours : } s_k \;\longrightarrow\; s_{k+1}\in N(s_k)$$ $$\text{Populat
 | **Constructive**     | part d'une solution **vide** et ajoute une composante à chaque étape ; la décision n'est **jamais remise en question** | glouton, plus proche voisin, Kruskal, GRASP (phase de construction) |
 | **Recherche locale** | part d'une solution **complète** et la modifie par mouvements élémentaires dans un voisinage                           | descente, recuit simulé, tabou, RVV, bruitage                       |
 | **Évolutive**        | fait évoluer une **population** avec des principes d'évolution naturelle, pour améliorer la qualité moyenne            | algorithmes génétiques, colonies de fourmis                         |
+
+
+### Bilan du Cours2
+
+|Concept|À retenir|
+|---|---|
+|1. Optimum local/global|$f(s^+)\le f(s)\ \forall s\in N(s^+)$ ; le départ décide du résultat|
+|2. Constructives|solution vide $\to$ ajouts, myope, jamais défait|
+|3. Représentation|0-1, indicateur général, permutation|
+|4. Voisinage|$N(s)$ = un mouvement ; espace $(S,N)$|
+|5. Voisinages classiques|$N_1,N_2,N_3$, 2-opt avec $\Delta$ sur 4 arêtes|
+|6. Descente|_first_ vs _best improvement_, arrêt = optimum local|
+|7. Espace de recherche|connexité, taille, diamètre ; faiblesses et remèdes|
+|8. GRASP|glouton randomisé + recherche locale, multi-départ|

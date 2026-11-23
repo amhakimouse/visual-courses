@@ -65,3 +65,20 @@ $$N(s)=\{s_1,s_2,\dots,s_k\}$$
 
 <text x="340" y="306" text-anchor="middle" style="fill:rgb(82, 81, 78);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, Roboto, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">Ambre : solution courante s = 101. Vert : voisins N(s) = {001, 111, 100}</text>
 </svg>
+### Algorithmes de descente (climbers)
+
+||Amélioration itérative (_first improvement_)|Descente la plus rapide (_best improvement_)|
+|---|---|---|
+|Choix du voisin|**le premier** voisin $s'$ tel que $f(s')<f(s)$|**le meilleur** de tout $N(s)$|
+|Coût d'une itération|$\le \lvert N(s)\rvert$ évaluations|exactement $\lvert N(s)\rvert$ évaluations|
+|Nombre d'itérations|souvent plus grand|souvent plus petit|
+
+### GRASP (Greedy Randomized Adaptive Search Procedures)
+
+**Explication.** GRASP est une première **métaheuristique** : elle combine une constructive et une recherche locale dans une boucle **multi-départ** dont les itérations sont **totalement indépendantes**. À chaque itération :
+
+1. **Construction** : un glouton **randomisé** produit une solution $s$.
+2. **Recherche locale** : on améliore $s$ pour obtenir $s'$.
+3. **Mise à jour** : si $f(s')<f(s^*)$, alors $s^*\leftarrow s'$.
+
+![[Pasted image 20261123162948.png]]

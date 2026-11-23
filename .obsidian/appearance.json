@@ -1,5 +1,6 @@
 {
   "cssTheme": "Obsidianite",
   "interfaceFontFamily": "Cascadia Code,Source Code Pro",
-  "textFontFamily": "Source Code Pro,Book Antiqua,Helvetica"
+  "textFontFamily": "Source Code Pro,Book Antiqua,Helvetica",
+  "showRibbon": true
 }
