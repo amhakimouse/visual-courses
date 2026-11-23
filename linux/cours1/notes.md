@@ -84,6 +84,7 @@ Un **compte utilisateur** = une **identité** pour le système + un **environnem
 | Créer un groupe          | **groupadd ftpusers** | ajoute une ligne dans `/etc/group`            |
 | Supprimer un groupe      | **groupdel ftpusers** | retire la ligne                               |
 
+
 ```
  useradd toto  ──►  passwd toto  ──►  compte utilisable
    (création)       (mot de passe)

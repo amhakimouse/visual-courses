@@ -3,4 +3,4 @@
 
 ![[Pasted image 20261017105814.png]]
 
-![[Pasted image 20261017105836.png]]
+![[Pasted image 20261017105836.png|849]]

@@ -4,7 +4,7 @@ Tous ces filtres sont des **convolutions** (vu en 2.1) avec un kernel différent
 
 - **Principe :** Il prend tous les pixels sous une fenêtre (par exemple $3 \times 3$), les classe par ordre croissant, et remplace le pixel central par la **valeur médiane** (la valeur du milieu).
     
-- **Effet :** Il est redoutable pour `éliminer les bruits` "poivre et sel" (les points isolés très clairs ou très sombres) **sans flouter les contours**, car il ne calcule pas de moyenne mathématique.
+- **Effet :** `éliminer les bruits` "poivre et sel" (les points isolés très clairs ou très sombres) `Préserve les contours`.
 ### Le Filtre Moyen (ou passe-bas)
 
 - **Principe :** Il calcule la **moyenne arithmétique** de tous les pixels situés sous la fenêtre (taille $3 \times 3$ ou $5 \times 5$).
@@ -12,6 +12,28 @@ Tous ces filtres sont des **convolutions** (vu en 2.1) avec un kernel différent
 - **Effet :** Il atténue le bruit en lissant l'image, mais il **crée du flou** et détruit/adoucit les contours.
     
 - **Impact de la taille ($3 \times 3$ vs $5 \times 5$) :** Un filtre moyen $5 \times 5$ lisse beaucoup plus qu'un filtre $3 \times 3$, ce qui rend l'image encore `plus floue` et efface davantage les détails.
+
+
+### Filtre Gaussien
+
+le filtre gaussien attribue des **poids plus importants au pixel central** et des poids de plus en plus faibles aux pixels situés à mesure qu'on s'éloigne.
+
+$$H_g = \frac{1}{16}\begin{bmatrix} 1 & 2 & 1 \\ 2 & 4 & 2 \\ 1 & 2 & 1 \end{bmatrix}$$
+
+_(La somme des coefficients est $1+2+1+2+4+2+1+2+1 = 16$)_.
+
+### Filtre de Sobel (Détection de contours)
+
+- $h_x$ détecte les variations horizontales (contours verticaux).
+    
+- $h_y$ détecte les variations verticales (contours horizontaux).
+    
+- **Module du gradient :** $\vert{}G\vert{} = \sqrt{G_x^2 + G_y^2}$ (mesure l'intensité du contour $$G \ = h\times I $$
+    
+- **Argument (direction) :** $\theta = \arctan\left(\frac{G_y}{G_x}\right)$.
+
+Masques de Sobel : $h_x = \begin{bmatrix} 1 & 0 & -1 \\ 2 & 0 & -2 \\ 1 & 0 & -1 \end{bmatrix}$ et $h_y = \begin{bmatrix} 1 & 2 & 1 \\ 0 & 0 & 0 \\ -1 & -2 & -1 \end{bmatrix}$
+
 #### Vue d'ensemble : pourquoi 3 filtres différents ?
 
 ```
